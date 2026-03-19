@@ -34,7 +34,6 @@ const TEX = {
   uranus:     'https://d2xsxph8kpxj0f.cloudfront.net/310419663029916604/boBVkWMKnM6d26ztuVrLrs/2k_uranus_a5872335.jpg',
   neptune:    'https://d2xsxph8kpxj0f.cloudfront.net/310419663029916604/boBVkWMKnM6d26ztuVrLrs/2k_neptune_d38c09d9.jpg',
   moon:       'https://d2xsxph8kpxj0f.cloudfront.net/310419663029916604/boBVkWMKnM6d26ztuVrLrs/2k_moon_d6e624fa.jpg',
-  starfield:  'https://d2xsxph8kpxj0f.cloudfront.net/310419663029916604/boBVkWMKnM6d26ztuVrLrs/2k_stars_milky_way_c0e2a2d3.jpg',
 } as const;
 
 type TexKey = 'mercury' | 'venus' | 'earth' | 'mars' | 'jupiter' | 'saturn' | 'uranus' | 'neptune';

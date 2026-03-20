@@ -105,7 +105,7 @@ export function OortCloud() {
           void main() {
             float d = length(gl_PointCoord - vec2(0.5));
             if (d > 0.5) discard;
-            float alpha = 0.08 * smoothstep(0.5, 0.1, d);
+            float alpha = 0.15 * smoothstep(0.5, 0.1, d);
             gl_FragColor = vec4(0.533, 0.6, 0.733, alpha);
           }
         `}

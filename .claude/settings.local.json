@@ -3,7 +3,8 @@
     "allow": [
       "mcp__plugin_playwright_playwright__browser_resize",
       "mcp__plugin_playwright_playwright__browser_navigate",
-      "mcp__plugin_playwright_playwright__browser_take_screenshot"
+      "mcp__plugin_playwright_playwright__browser_take_screenshot",
+      "Bash(sudo apt-get:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

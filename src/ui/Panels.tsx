@@ -745,9 +745,9 @@ export default function Panels(props: PanelProps) {
 
 // ─── Extracted sub-components ────────────────────────────────────────────────
 
-function MoonCard({ moon, parentName, onClose, accent, accentRgb, mobile }: {
+function MoonCard({ moon, parentName, onClose, mobile }: {
   moon: ReturnType<typeof getMoonsForPlanet>[0]; parentName: string;
-  onClose: () => void; accent: string; accentRgb: string; mobile: boolean;
+  onClose: () => void; mobile: boolean;
 }) {
   return (
     <div

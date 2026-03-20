@@ -14,19 +14,31 @@ import { useTheme } from '../lib/themes';
 
 export function ScaleMarkers() {
   const { theme } = useTheme();
+  const ref = useRef<THREE.Group>(null);
+  const { camera } = useThree();
+
   const markers = useMemo(() => [
-    { r: 50,    label: 'Kuiper Belt' },
-    { r: 120,   label: 'Heliopause' },
-    { r: 1000,  label: '1,000 AU' },
-    { r: 5000,  label: '5,000 AU' },
-    { r: 10000, label: '10,000 AU' },
-    { r: 50000, label: 'Oort Cloud outer edge' },
+    { r: 50,    minDist: 30 },
+    { r: 120,   minDist: 60 },
+    { r: 1000,  minDist: 200 },
+    { r: 5000,  minDist: 500 },
+    { r: 10000, minDist: 1000 },
+    { r: 50000, minDist: 3000 },
   ], []);
 
+  // Show each marker only when camera is zoomed out enough to see it
+  useFrame(() => {
+    if (!ref.current) return;
+    const dist = camera.position.length();
+    ref.current.children.forEach((child, i) => {
+      child.visible = dist > markers[i].minDist;
+    });
+  });
+
   return (
-    <group>
+    <group ref={ref}>
       {markers.map(({ r }) => (
-        <mesh key={r} rotation={[Math.PI / 2, 0, 0]}>
+        <mesh key={r} rotation={[Math.PI / 2, 0, 0]} visible={false}>
           <ringGeometry args={[r - r * 0.001, r + r * 0.001, 128]} />
           <meshBasicMaterial
             color={r === 120 ? theme.uiAccent : '#ffffff'}

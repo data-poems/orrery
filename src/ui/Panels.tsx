@@ -152,6 +152,7 @@ export interface PanelProps {
   cams: CamPreset[];
   camIdx: number;
   onPresetSelect: (i: number) => void;
+  onMoonSelect?: (planetIdx: number, moonIdx: number) => void;
 }
 
 export default function Panels(props: PanelProps) {

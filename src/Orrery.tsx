@@ -306,6 +306,7 @@ function OrreryInner() {
         cams={CAMS}
         camIdx={camIdx}
         onPresetSelect={handlePresetSelect}
+        onMoonSelect={handleMoonSelect}
       />
     </div>
   );

@@ -54,7 +54,7 @@ export function ScaleMarkers() {
 
 // ─── Oort Cloud (sparse spherical shell of faint points) ─────────────────────
 
-const OORT_COUNT = 8000;
+const OORT_COUNT = 20000;
 
 export function OortCloud() {
   const ref = useRef<THREE.Points>(null);
@@ -181,7 +181,7 @@ const galaxyFragmentShader = `
     color += vec3(1.0, 0.95, 0.5) * sunDot;
     alpha += sunDot;
 
-    gl_FragColor = vec4(color, alpha * 0.06);
+    gl_FragColor = vec4(color, alpha * 0.35);
   }
 `;
 

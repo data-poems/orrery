@@ -212,8 +212,96 @@ export function GalaxyDisc() {
   });
 
   return (
-    <mesh ref={ref} rotation={[Math.PI / 2 + 0.1, 0, 0.4]} material={material} position={[0, -2000, 0]} visible={false}>
-      <planeGeometry args={[200000, 200000]} />
-    </mesh>
+    <group>
+      <mesh ref={ref} rotation={[Math.PI / 2 + 0.1, 0, 0.4]} material={material} position={[0, -2000, 0]} visible={false}>
+        <planeGeometry args={[200000, 200000]} />
+      </mesh>
+      <GalaxyStars />
+    </group>
+  );
+}
+
+// ─── Galaxy star points (scattered along spiral arms) ────────────────────────
+
+const GALAXY_STAR_COUNT = 15000;
+
+function GalaxyStars() {
+  const ref = useRef<THREE.Points>(null);
+  const { camera } = useThree();
+
+  const geometry = useMemo(() => {
+    const positions = new Float32Array(GALAXY_STAR_COUNT * 3);
+    const colors = new Float32Array(GALAXY_STAR_COUNT * 3);
+    const sizes = new Float32Array(GALAXY_STAR_COUNT);
+
+    for (let i = 0; i < GALAXY_STAR_COUNT; i++) {
+      // Generate points concentrated in spiral arm pattern
+      const r = Math.pow(Math.random(), 0.6) * 90000; // concentration toward center
+      const armAngle = Math.floor(Math.random() * 2) * Math.PI; // 2 main arms
+      const spiralAngle = armAngle + r * 0.00008 + (Math.random() - 0.5) * 0.8;
+
+      const x = r * Math.cos(spiralAngle) + (Math.random() - 0.5) * r * 0.3;
+      const z = r * Math.sin(spiralAngle) + (Math.random() - 0.5) * r * 0.3;
+      const y = (Math.random() - 0.5) * Math.max(500, r * 0.05); // thin disc
+
+      // Rotate to match galaxy disc orientation
+      const rx = x;
+      const ry = y * Math.cos(0.1) - z * Math.sin(0.1) - 2000;
+      const rz = y * Math.sin(0.1) + z * Math.cos(0.1);
+
+      positions[i * 3] = rx * Math.cos(0.4) - rz * Math.sin(0.4);
+      positions[i * 3 + 1] = ry;
+      positions[i * 3 + 2] = rx * Math.sin(0.4) + rz * Math.cos(0.4);
+
+      // Color: blue-white for arm stars, warm for center
+      const centerFactor = Math.exp(-r / 20000);
+      colors[i * 3] = 0.7 + centerFactor * 0.3;
+      colors[i * 3 + 1] = 0.8 + centerFactor * 0.1;
+      colors[i * 3 + 2] = 1.0 - centerFactor * 0.3;
+
+      sizes[i] = 1.0 + Math.random() * 2.0;
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    geo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+    return geo;
+  }, []);
+
+  useFrame(() => {
+    if (!ref.current) return;
+    ref.current.visible = camera.position.length() > 500;
+  });
+
+  return (
+    <points ref={ref} geometry={geometry} visible={false}>
+      <shaderMaterial
+        vertexShader={`
+          attribute float size;
+          attribute vec3 color;
+          varying vec3 vColor;
+          void main() {
+            vColor = color;
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            gl_PointSize = size;
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `}
+        fragmentShader={`
+          varying vec3 vColor;
+          void main() {
+            float d = length(gl_PointCoord - vec2(0.5));
+            if (d > 0.5) discard;
+            float alpha = 0.6 * smoothstep(0.5, 0.15, d);
+            gl_FragColor = vec4(vColor, alpha);
+          }
+        `}
+        transparent={true}
+        blending={THREE.AdditiveBlending}
+        depthWrite={false}
+        depthTest={false}
+      />
+    </points>
   );
 }

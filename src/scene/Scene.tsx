@@ -200,9 +200,6 @@ export default function Scene({
   const focusedMoons = selPlanet !== null ? getMoonsForPlanet(selPlanet) : [];
   const focusedParentPos = selPlanet !== null ? positions.get(selPlanet) : null;
 
-  // Auto-hide constellations at deep zoom (>200 AU)
-  const constellationsVisible = showConstellations && camDist < 200;
-
   const handleCameraDistance = (d: number) => {
     setCamDist(d);
     if (onCameraDistance) onCameraDistance(d);
@@ -266,16 +263,13 @@ export default function Scene({
         </group>
       ))}
       <StarField visible={showStars} />
-      <ConstellationLines visible={constellationsVisible} theme={theme} />
-      <ConstellationLabels visible={constellationsVisible} />
-      <MilkyWayBand visible={showStars} theme={theme} />
-      <ScaleMarkers />
-      <OortCloud />
-      <GalaxyDisc />
+      <ConstellationLines visible={showConstellations} theme={theme} />
+      <ConstellationLabels visible={showConstellations} />
       <CamCtrl
         focusTarget={focusTarget}
         positions={positions}
         cinematic={cinematic}
+        camPreset={camPreset}
         onCameraDistance={handleCameraDistance}
       />
     </>

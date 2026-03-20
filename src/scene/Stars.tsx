@@ -206,8 +206,9 @@ export function ConstellationLines({ visible, theme }: { visible: boolean; theme
   const material = useMemo(() => new THREE.LineBasicMaterial({
     color: theme.constellationLine,
     transparent: true,
-    opacity: 0.08,
+    opacity: 0.25,
     depthWrite: false,
+    depthTest: false,
   }), [theme.constellationLine]);
 
   if (!geometry) return null;
@@ -223,7 +224,8 @@ export function ConstellationLines({ visible, theme }: { visible: boolean; theme
 
 interface ConstellationCentroid {
   id: string;
-  name: string;
+  latin: string;
+  english: string;
   pos: [number, number, number];
 }
 
@@ -241,7 +243,8 @@ function useConstellationCentroids(): ConstellationCentroid[] {
           if (feature.geometry.type === 'Point') {
             items.push({
               id: feature.id,
-              name: feature.properties.en || feature.properties.name,
+              latin: feature.properties.name || feature.id,
+              english: feature.properties.en || '',
               pos: raDecTo3D(coords[0], coords[1]),
             });
           }
@@ -298,7 +301,7 @@ export function ConstellationLabels({ visible }: { visible: boolean }) {
                 zIndexRange={[1, 0]}
               >
                 <div style={{
-                  color: 'rgba(255,255,255,0.3)',
+                  color: 'rgba(255,255,255,0.35)',
                   fontSize: 11,
                   fontFamily: "'Cormorant Garamond', serif",
                   fontStyle: 'italic',
@@ -306,8 +309,11 @@ export function ConstellationLabels({ visible }: { visible: boolean }) {
                   whiteSpace: 'nowrap',
                   letterSpacing: 1,
                   userSelect: 'none',
+                  textAlign: 'center',
+                  lineHeight: 1.3,
                 }}>
-                  {c.name}
+                  <span style={{ display: 'block', fontSize: 12, fontWeight: 400, fontStyle: 'normal' }}>{c.latin}</span>
+                  {c.english && <span style={{ display: 'block', fontSize: 9, opacity: 0.6 }}>{c.english}</span>}
                 </div>
               </Html>
             )}

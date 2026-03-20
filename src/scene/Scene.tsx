@@ -13,6 +13,7 @@ import { planetXYZ } from '../lib/kepler';
 import { Sun, Planet, OrbitRing, Satellite, SatelliteOrbit } from './Bodies';
 import { AsteroidBelt, NeoDot, AsteroidOrbitLine } from './Asteroids';
 import { StarField, ConstellationLines, ConstellationLabels } from './Stars';
+import { ScaleMarkers, OortCloud, GalaxyDisc } from './DeepSpace';
 import { useTheme } from '../lib/themes';
 
 // Default home camera position (replaces CAMS[1] "System" view)
@@ -260,6 +261,9 @@ export default function Scene({
       <StarField visible={showStars} />
       <ConstellationLines visible={showConstellations} theme={theme} />
       <ConstellationLabels visible={showConstellations} />
+      <ScaleMarkers />
+      <OortCloud />
+      <GalaxyDisc />
       <CamCtrl
         focusTarget={focusTarget}
         positions={positions}

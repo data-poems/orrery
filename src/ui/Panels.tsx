@@ -240,45 +240,74 @@ export default function Panels(props: PanelProps) {
         {speed !== 1 && <span style={{ color: accent, fontSize: 11, fontWeight: 400 }}>{speedLabel(speed)}</span>}
       </div>
 
-      {/* ── Breadcrumb navigation ── */}
-      <nav
-        role="navigation"
-        aria-label="Solar system navigation"
+      {/* ── Camera presets ── */}
+      <div
+        role="toolbar"
+        aria-label="Camera presets"
         style={{
           position: 'absolute', top: mobile ? 52 : 56,
           left: '50%', transform: 'translateX(-50%)',
-          display: 'flex', alignItems: 'center', gap: 0, zIndex: 10,
+          display: 'flex', alignItems: 'center', gap: 3, zIndex: 10,
           maxWidth: mobile ? 'calc(100vw - 24px)' : 'none',
           overflowX: mobile ? 'auto' : 'visible',
           WebkitOverflowScrolling: 'touch',
           scrollbarWidth: 'none',
-          ...glass, padding: mobile ? '6px 12px' : '4px 12px',
+          ...glass, padding: mobile ? '6px 10px' : '4px 10px',
         }}
       >
-        {navStack.map((segment, i) => (
-          <span key={i} style={{ display: 'flex', alignItems: 'center' }}>
-            {i > 0 && (
-              <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11, margin: '0 6px', fontWeight: 300 }}>{'\u203a'}</span>
-            )}
+        {cams.map((cam, i) => {
+          const active = camIdx === i && selPlanet === null;
+          return (
             <button
-              onClick={() => navigateToLevel(i)}
-              aria-label={`Navigate to ${segment}`}
-              aria-current={i === navStack.length - 1 ? 'location' : undefined}
+              key={cam.key}
+              onClick={() => onPresetSelect(i)}
+              aria-label={`Camera preset: ${cam.label} (${cam.key})`}
+              aria-pressed={active}
               style={{
-                background: 'none', border: 'none', cursor: i < navStack.length - 1 ? 'pointer' : 'default',
-                color: i === navStack.length - 1 ? accent : 'rgba(255,255,255,0.4)',
-                fontSize: mobile ? 12 : 12, fontFamily: "'Cormorant Garamond', serif",
-                fontWeight: i === navStack.length - 1 ? 500 : 300,
-                padding: '2px 4px', minHeight: mobile ? 36 : 'auto',
-                letterSpacing: 0.5, whiteSpace: 'nowrap',
-                transition: 'color 0.15s',
+                background: active ? `rgba(${accentRgb},0.08)` : 'transparent',
+                border: `1px solid ${active ? `rgba(${accentRgb},0.35)` : 'rgba(255,255,255,0.07)'}`,
+                borderRadius: 3,
+                padding: mobile ? '6px 10px' : '3px 8px',
+                fontSize: 11,
+                cursor: 'pointer', fontFamily: 'inherit',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                minWidth: mobile ? 44 : 'auto',
+                minHeight: mobile ? 36 : 'auto',
+                color: active ? accent : 'rgba(255,255,255,0.4)',
+                fontWeight: active ? 500 : 300,
+                letterSpacing: 0.5,
+                transition: 'all 0.15s',
               }}
             >
-              {segment}
+              {!mobile && <span style={{ opacity: 0.35, fontSize: 9, marginRight: 3 }}>{cam.key}</span>}
+              {cam.label}
             </button>
-          </span>
-        ))}
-      </nav>
+          );
+        })}
+        {selPlanet !== null && (
+          <button
+            onClick={() => { setSelPlanet(null); setFocusTarget(null); }}
+            aria-label="Release camera focus"
+            style={{
+              background: `rgba(${accentRgb},0.08)`,
+              border: `1px solid rgba(${accentRgb},0.35)`,
+              borderRadius: 3,
+              padding: mobile ? '6px 10px' : '3px 8px',
+              fontSize: 11,
+              cursor: 'pointer', fontFamily: 'inherit',
+              whiteSpace: 'nowrap',
+              color: accent,
+              fontWeight: 500,
+              letterSpacing: 0.5,
+              minWidth: mobile ? 44 : 'auto',
+              minHeight: mobile ? 36 : 'auto',
+            }}
+          >
+            {ALL_BODIES[selPlanet].name} ×
+          </button>
+        )}
+      </div>
 
       {/* ── Mobile back button ── */}
       {mobile && navStack.length > 1 && (
@@ -624,9 +653,9 @@ export default function Panels(props: PanelProps) {
           color: 'rgba(255,255,255,0.12)', fontSize: 9, lineHeight: 1.8, textAlign: 'right', fontStyle: 'italic', fontWeight: 300,
           transition: 'right 0.3s', zIndex: 10,
         }}>
-          <div>click planet to focus · Escape back · P planet list</div>
-          <div>S stars · C constellations · D dwarf · N neo</div>
-          <div>F cinematic clock · Space pause</div>
+          <div>1-8 camera presets · click planet to focus · Escape back</div>
+          <div>S stars · C constellations · D dwarf · N neo · P list</div>
+          <div>F cinematic · Space pause</div>
         </div>
       )}
 

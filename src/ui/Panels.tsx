@@ -171,7 +171,7 @@ export default function Panels(props: PanelProps) {
           {playing ? '\u23f8' : '\u25b6'}
         </Btn>
         <Btn onClick={() => setSpeed(s => Math.min(86400 * 365, s * 10))} label="Speed up">\u00bb</Btn>
-        <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: mobile ? 10 : 9, minWidth: 52, textAlign: 'center' }}>
+        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: mobile ? 12 : 11, minWidth: 56, textAlign: 'center', fontWeight: 300 }}>
           {speedLabel(speed)}
         </span>
         <Btn onClick={() => { setSimTime(() => new Date()); setSpeed(() => 3600); }} style={{ color: '#ffcc44', marginLeft: 4 }} label="Reset to current time">NOW</Btn>
@@ -309,12 +309,12 @@ export default function Panels(props: PanelProps) {
               <span style={{ color: '#fff', fontSize: mobile ? 12 : 11 }}>{neo.name.replace(/[()]/g, '')}</span>
               {neo.orbit?.loaded && <span style={{ color: '#00ffcc', fontSize: 9, marginLeft: 'auto', fontStyle: 'italic' }}>orbit</span>}
             </div>
-            <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 8, marginTop: 2 }}>
-              {neo.missLunar.toFixed(1)} LD \u00b7 {neo.velKms.toFixed(1)} km/s \u00b7 {Math.round(neo.dMin)}\u2013{Math.round(neo.dMax)} m
+            <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, marginTop: 2, fontWeight: 300 }}>
+              {neo.missLunar.toFixed(1)} LD · {neo.velKms.toFixed(1)} km/s · {Math.round(neo.dMin)}–{Math.round(neo.dMax)} m
             </div>
           </div>
         ))}
-        <div style={{ color: 'rgba(255,255,255,0.12)', fontSize: 7, marginTop: 8, textAlign: 'center' }}>Source: NASA JPL NeoWs \u00b7 SBDB</div>
+        <div style={{ color: 'rgba(255,255,255,0.15)', fontSize: 9, marginTop: 8, textAlign: 'center', fontStyle: 'italic', fontWeight: 300 }}>Source: NASA JPL NeoWs · SBDB</div>
       </div>
 
       {/* ── Selected NEO detail ── */}
@@ -330,11 +330,11 @@ export default function Panels(props: PanelProps) {
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: '#fff', fontSize: 12, fontWeight: 600 }}>{selNeo.name}</span>
+            <span style={{ color: '#fff', fontSize: 15, fontWeight: 600 }}>{selNeo.name}</span>
             <Btn onClick={() => setSelNeo(null)} label="Close NEO details">{'\u2715'}</Btn>
           </div>
           {selNeo.hazardous && (
-            <div style={{ color: '#ff4444', fontSize: 8, letterSpacing: 1.5, marginTop: 2, textTransform: 'uppercase' }}>{'\u26a0'} Potentially Hazardous</div>
+            <div style={{ color: '#ff4444', fontSize: 10, letterSpacing: 1.5, marginTop: 2, textTransform: 'uppercase', fontWeight: 400 }}>⚠ Potentially Hazardous</div>
           )}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', marginTop: 8 }}>
             <Stat label="Diameter" val={`${Math.round(selNeo.dMin)}\u2013${Math.round(selNeo.dMax)} m`} />
@@ -369,9 +369,9 @@ export default function Panels(props: PanelProps) {
         <div
           role="region"
           aria-label="Simulation data"
-          style={{ position: 'absolute', bottom: mobile ? 80 : 56, left: mobile ? 8 : 14, ...glass, padding: '8px 12px', fontSize: 9, zIndex: 15 }}
+          style={{ position: 'absolute', bottom: mobile ? 80 : 56, left: mobile ? 8 : 14, ...glass, padding: '10px 14px', fontSize: 11, zIndex: 15 }}
         >
-          <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 8, letterSpacing: 1.5, marginBottom: 6, textTransform: 'uppercase' }}>Simulation</div>
+          <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, letterSpacing: 2, marginBottom: 6, textTransform: 'uppercase', fontWeight: 300 }}>Simulation</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 14px' }}>
             <Stat label="Julian Date" val={jd.toFixed(2)} />
             <Stat label="T (centuries)" val={T.toFixed(4)} />
@@ -387,7 +387,7 @@ export default function Panels(props: PanelProps) {
       {!mobile && (
         <div style={{
           position: 'absolute', bottom: 56, right: showNeo ? 264 : 14,
-          color: 'rgba(255,255,255,0.1)', fontSize: 7, lineHeight: 1.8, textAlign: 'right',
+          color: 'rgba(255,255,255,0.12)', fontSize: 9, lineHeight: 1.8, textAlign: 'right', fontStyle: 'italic', fontWeight: 300,
           transition: 'right 0.3s', zIndex: 10,
         }}>
           <div>1\u20138 cameras \u00b7 click planet to focus</div>
@@ -398,7 +398,7 @@ export default function Panels(props: PanelProps) {
       {/* ── Title watermark ── */}
       <div
         aria-hidden="true"
-        style={{ position: 'absolute', top: 14, left: 14, color: 'rgba(255,255,255,0.12)', fontSize: 9, letterSpacing: 3, textTransform: 'uppercase', zIndex: 5 }}
+        style={{ position: 'absolute', top: 14, left: 14, color: 'rgba(255,255,255,0.15)', fontSize: 11, letterSpacing: 4, textTransform: 'uppercase', zIndex: 5, fontWeight: 300 }}
       >
         Orrery
       </div>

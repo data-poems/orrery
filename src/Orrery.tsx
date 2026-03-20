@@ -8,7 +8,7 @@
 import { useEffect, useState, useRef, useMemo, useCallback, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import * as THREE from 'three';
-import { ALL_BODIES } from './data/planets';
+import { ALL_BODIES, CAMS } from './data/planets';
 import { getMoonsForPlanet } from './data/moons';
 import type { NEO, FocusTarget } from './lib/kepler';
 import { julianDate, moonPhase } from './lib/kepler';
@@ -35,11 +35,14 @@ function OrreryInner() {
   const [navStack, setNavStack] = useState<string[]>(['Solar System']);
   const [selMoonIdx, setSelMoonIdx] = useState<number | null>(null);
   const [cameraDistance, setCameraDistance] = useState(50);
+  const [camIdx, setCamIdx] = useState(1);
   const positionsRef = useRef(new Map<number, [number, number, number]>());
 
   const jd = useMemo(() => julianDate(simTime), [simTime]);
   const T = useMemo(() => (jd - 2451545.0) / 36525, [jd]);
   const moon = useMemo(() => moonPhase(jd), [jd]);
+
+  const camPreset = camIdx >= 0 && camIdx < CAMS.length ? CAMS[camIdx] : null;
 
   const handlePositionsUpdate = useCallback((m: Map<number, [number, number, number]>) => {
     positionsRef.current = m;
@@ -129,10 +132,10 @@ function OrreryInner() {
       setFocusTarget(prev => prev ? { planetIdx: prev.planetIdx, pos: prev.pos } : null);
       setNavStack(prev => prev.slice(0, -1));
     } else if (selPlanet !== null) {
-      // At planet level → back to solar system
       setSelPlanet(null);
       setFocusTarget(null);
       setSelMoonIdx(null);
+      setCamIdx(1);
       setNavStack(['Solar System']);
     }
   }, [cinematic, navStack, selMoonIdx, selPlanet]);
@@ -155,10 +158,11 @@ function OrreryInner() {
 
   // Planet selection auto-focuses camera and pushes to nav stack
   const handlePlanetSelect = useCallback((idx: number | null) => {
-    if (cinematic) return; // ignore clicks in cinematic mode
+    if (cinematic) return;
 
     setSelPlanet(idx);
     setSelMoonIdx(null);
+    setCamIdx(-1);
     if (idx !== null) {
       const pos = positionsRef.current.get(idx);
       if (pos) setFocusTarget({ planetIdx: idx, pos });
@@ -183,6 +187,24 @@ function OrreryInner() {
       return [...base, moons[moonIdx].name];
     });
   }, [cinematic]);
+
+  // Camera preset selection
+  const handlePresetSelect = useCallback((idx: number) => {
+    setCamIdx(idx);
+    const preset = CAMS[idx];
+    setSelMoonIdx(null);
+    setCinematic(false);
+    if (preset.follow !== undefined) {
+      const pos = positionsRef.current.get(preset.follow);
+      setSelPlanet(preset.follow);
+      setFocusTarget({ planetIdx: preset.follow, pos: pos || [0, 0, 0] });
+      setNavStack(['Solar System', ALL_BODIES[preset.follow].name]);
+    } else {
+      setSelPlanet(null);
+      setFocusTarget(null);
+      setNavStack(['Solar System']);
+    }
+  }, []);
 
   // Keyboard shortcuts
   useEffect(() => {

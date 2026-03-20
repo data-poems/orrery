@@ -45,6 +45,7 @@ export interface CamPreset {
 export interface FocusTarget {
   planetIdx: number;
   pos: [number, number, number];
+  moonIdx?: number;
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────────

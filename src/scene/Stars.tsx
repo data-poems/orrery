@@ -206,9 +206,9 @@ export function ConstellationLines({ visible, theme }: { visible: boolean; theme
   const material = useMemo(() => new THREE.LineBasicMaterial({
     color: theme.constellationLine,
     transparent: true,
-    opacity: 0.25,
+    opacity: 0.12,
     depthWrite: false,
-    depthTest: false,
+    depthTest: true,
   }), [theme.constellationLine]);
 
   if (!geometry) return null;

@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { TEX } from '../data/planets';
 import type { PlanetDef } from '../lib/kepler';
 import { planetXYZ, orbitPath } from '../lib/kepler';
+import type { MoonDef } from '../data/moons';
 import { useTheme } from '../lib/themes';
 
 // ─── Sun ────────────────────────────────────────────────────────────────────────
@@ -130,12 +131,13 @@ export function Planet({ planet, T, selected, onSelect, hovered, onHover }: {
     <group position={pos}>
       <mesh
         ref={ref}
+        renderOrder={10}
         onClick={e => { e.stopPropagation(); onSelect(); }}
         onPointerEnter={() => onHover(true)}
         onPointerLeave={() => onHover(false)}
       >
         <sphereGeometry args={[r, 48, 48]} />
-        <meshStandardMaterial map={tex} roughness={0.8} metalness={0.0} />
+        <meshStandardMaterial map={tex} roughness={0.8} metalness={0.0} depthWrite={true} />
       </mesh>
       {planet.tex === 'earth' && <EarthClouds radius={r} />}
       {planet.hasRings && <SaturnRings radius={r} />}

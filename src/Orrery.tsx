@@ -131,8 +131,9 @@ function OrreryInner() {
       if (k === 'f') document.documentElement.requestFullscreen?.();
       if (k === 'escape') { setSelPlanet(null); setSelNeo(null); setFocusTarget(null); setShowPlanetList(false); }
       if (k === ' ') { e.preventDefault(); setPlaying(p => !p); }
+      if (e.key === '0' && CAMS.length >= 10) { setCamIdx(9); setFocusTarget(null); }
       const num = parseInt(e.key);
-      if (num >= 1 && num <= CAMS.length) { setCamIdx(num - 1); setFocusTarget(null); }
+      if (num >= 1 && num <= Math.min(9, CAMS.length)) { setCamIdx(num - 1); setFocusTarget(null); }
     };
     window.addEventListener('keydown', fn);
     return () => window.removeEventListener('keydown', fn);

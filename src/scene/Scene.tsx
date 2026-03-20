@@ -20,7 +20,7 @@ import { useTheme } from '../lib/themes';
 function AUGrid() {
   return (
     <group>
-      {[1, 2, 5, 10, 20, 30].map(r => (
+      {[1, 2, 5, 10, 20, 30, 50, 100].map(r => (
         <mesh key={r} rotation={[Math.PI / 2, 0, 0]}>
           <ringGeometry args={[r - 0.003, r + 0.003, 128]} />
           <meshBasicMaterial color="#ffffff" transparent opacity={0.025} side={THREE.DoubleSide} />
@@ -222,6 +222,9 @@ export default function Scene({
       <ConstellationLines visible={showConstellations} theme={theme} />
       <ConstellationLabels visible={showConstellations} />
       <MilkyWayBand visible={showStars} theme={theme} />
+      <ScaleMarkers />
+      <OortCloud />
+      <GalaxyDisc />
       <CamCtrl preset={camPreset} focusTarget={focusTarget} positions={positions} />
     </>
   );

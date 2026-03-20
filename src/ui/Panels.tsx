@@ -467,7 +467,7 @@ export default function Panels(props: PanelProps) {
           color: 'rgba(255,255,255,0.12)', fontSize: 9, lineHeight: 1.8, textAlign: 'right', fontStyle: 'italic', fontWeight: 300,
           transition: 'right 0.3s', zIndex: 10,
         }}>
-          <div>1{'\u2013'}8 cameras · click planet to focus · P planet list</div>
+          <div>1{'\u2013'}0 cameras · click planet to focus · P planet list</div>
           <div>S stars · C constellations · T theme · D dwarf</div>
           <div>H hud · N neo · F fullscreen · Space pause</div>
         </div>

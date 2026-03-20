@@ -71,14 +71,26 @@ export function OortCloud() {
 
   return (
     <points geometry={geometry}>
-      <pointsMaterial
-        color="#8899bb"
-        size={30}
-        sizeAttenuation={false}
-        transparent
-        opacity={0.08}
+      <shaderMaterial
+        vertexShader={`
+          void main() {
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            gl_PointSize = 2.0;
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `}
+        fragmentShader={`
+          void main() {
+            float d = length(gl_PointCoord - vec2(0.5));
+            if (d > 0.5) discard;
+            float alpha = 0.08 * smoothstep(0.5, 0.1, d);
+            gl_FragColor = vec4(0.533, 0.6, 0.733, alpha);
+          }
+        `}
+        transparent={true}
         blending={THREE.AdditiveBlending}
         depthWrite={false}
+        depthTest={false}
       />
     </points>
   );

@@ -119,25 +119,33 @@ export function StarField({ visible }: { visible: boolean }) {
     return geo;
   }, [starData]);
 
-  const material = useMemo(() => new THREE.PointsMaterial({
-    vertexColors: true,
-    sizeAttenuation: false,
+  const material = useMemo(() => new THREE.ShaderMaterial({
+    vertexShader: `
+      attribute float size;
+      attribute vec3 color;
+      varying vec3 vColor;
+      void main() {
+        vColor = color;
+        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+        gl_PointSize = size;
+        gl_Position = projectionMatrix * mvPosition;
+      }
+    `,
+    fragmentShader: `
+      varying vec3 vColor;
+      void main() {
+        // Circular point with soft edge
+        float d = length(gl_PointCoord - vec2(0.5));
+        if (d > 0.5) discard;
+        float alpha = 0.85 * smoothstep(0.5, 0.2, d);
+        gl_FragColor = vec4(vColor, alpha);
+      }
+    `,
     transparent: true,
     blending: THREE.AdditiveBlending,
     depthWrite: false,
-    opacity: 0.85,
+    depthTest: false,
   }), []);
-
-  // Drive point sizes from the 'size' attribute via onBeforeCompile
-  useEffect(() => {
-    material.onBeforeCompile = (shader) => {
-      shader.vertexShader = shader.vertexShader.replace(
-        'uniform float size;',
-        'attribute float size;'
-      );
-    };
-    material.needsUpdate = true;
-  }, [material]);
 
   if (!geometry) return null;
 

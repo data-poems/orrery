@@ -8,22 +8,20 @@
 import { useEffect, useState, useRef, useMemo, useCallback, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import * as THREE from 'three';
-import { CAMS } from './data/planets';
+import { ALL_BODIES } from './data/planets';
+import { getMoonsForPlanet } from './data/moons';
 import type { NEO, FocusTarget } from './lib/kepler';
 import { julianDate, moonPhase } from './lib/kepler';
-import { ThemeProvider, useTheme } from './lib/themes';
+import { ThemeProvider } from './lib/themes';
 import Scene from './scene/Scene';
 import Panels from './ui/Panels';
 import LoadingScreen from './ui/LoadingScreen';
 
 function OrreryInner() {
-  const { cycleTheme } = useTheme();
   const [neos, setNeos] = useState<NEO[]>([]);
   const [selNeo, setSelNeo] = useState<NEO | null>(null);
   const [selPlanet, setSelPlanet] = useState<number | null>(null);
-  const [camIdx, setCamIdx] = useState(0);
   const [showNeo, setShowNeo] = useState(false);
-  const [showHud, setShowHud] = useState(false);
   const [showDwarf, setShowDwarf] = useState(true);
   const [showStars, setShowStars] = useState(true);
   const [showConstellations, setShowConstellations] = useState(true);
@@ -33,6 +31,10 @@ function OrreryInner() {
   const [playing, setPlaying] = useState(true);
   const [focusTarget, setFocusTarget] = useState<FocusTarget | null>(null);
   const [sceneReady, setSceneReady] = useState(false);
+  const [cinematic, setCinematic] = useState(false);
+  const [navStack, setNavStack] = useState<string[]>(['Solar System']);
+  const [selMoonIdx, setSelMoonIdx] = useState<number | null>(null);
+  const [cameraDistance, setCameraDistance] = useState(50);
   const positionsRef = useRef(new Map<number, [number, number, number]>());
 
   const jd = useMemo(() => julianDate(simTime), [simTime]);
@@ -86,7 +88,6 @@ function OrreryInner() {
     if (!selNeo) return;
     if (selNeo.orbit !== undefined) return;
 
-    // Mark as loading
     setNeos(prev => prev.map(n => n.id === selNeo.id ? { ...n, orbit: { a: 0, e: 0, i: 0, om: 0, w: 0, ma: 0, epoch: 0, loaded: false } } : n));
 
     fetch(`https://ssd-api.jpl.nasa.gov/sbdb.api?spk=${selNeo.id}&phys-par=false&close-approach=false`)
@@ -114,48 +115,119 @@ function OrreryInner() {
       });
   }, [selNeo]);
 
+  // Navigate back one level
+  const navigateBack = useCallback(() => {
+    if (cinematic) {
+      setCinematic(false);
+      return;
+    }
+    if (navStack.length <= 1) return;
+
+    if (selMoonIdx !== null) {
+      // At moon level → back to planet
+      setSelMoonIdx(null);
+      setFocusTarget(prev => prev ? { planetIdx: prev.planetIdx, pos: prev.pos } : null);
+      setNavStack(prev => prev.slice(0, -1));
+    } else if (selPlanet !== null) {
+      // At planet level → back to solar system
+      setSelPlanet(null);
+      setFocusTarget(null);
+      setSelMoonIdx(null);
+      setNavStack(['Solar System']);
+    }
+  }, [cinematic, navStack, selMoonIdx, selPlanet]);
+
+  // Navigate to a specific breadcrumb level
+  const navigateToLevel = useCallback((level: number) => {
+    if (level === 0) {
+      // Solar System
+      setSelPlanet(null);
+      setSelMoonIdx(null);
+      setFocusTarget(null);
+      setNavStack(['Solar System']);
+    } else if (level === 1 && navStack.length > 2) {
+      // Planet level when at moon level
+      setSelMoonIdx(null);
+      setFocusTarget(prev => prev ? { planetIdx: prev.planetIdx, pos: prev.pos } : null);
+      setNavStack(prev => prev.slice(0, 2));
+    }
+  }, [navStack]);
+
+  // Planet selection auto-focuses camera and pushes to nav stack
+  const handlePlanetSelect = useCallback((idx: number | null) => {
+    if (cinematic) return; // ignore clicks in cinematic mode
+
+    setSelPlanet(idx);
+    setSelMoonIdx(null);
+    if (idx !== null) {
+      const pos = positionsRef.current.get(idx);
+      if (pos) setFocusTarget({ planetIdx: idx, pos });
+      setNavStack(['Solar System', ALL_BODIES[idx].name]);
+    } else {
+      setFocusTarget(null);
+      setNavStack(['Solar System']);
+    }
+  }, [cinematic]);
+
+  // Moon selection drill-down
+  const handleMoonSelect = useCallback((planetIdx: number, moonIdx: number) => {
+    if (cinematic) return;
+    const moons = getMoonsForPlanet(planetIdx);
+    if (moonIdx >= moons.length) return;
+
+    setSelMoonIdx(moonIdx);
+    const pos = positionsRef.current.get(planetIdx);
+    if (pos) setFocusTarget({ planetIdx, pos, moonIdx });
+    setNavStack(prev => {
+      const base = prev.length >= 2 ? prev.slice(0, 2) : [...prev];
+      return [...base, moons[moonIdx].name];
+    });
+  }, [cinematic]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const fn = (e: KeyboardEvent) => {
-      // Don't capture if user is typing in an input
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
       const k = e.key.toLowerCase();
-      if (k === 'h') setShowHud(p => !p);
+
+      // In cinematic mode, any key exits
+      if (cinematic) {
+        setCinematic(false);
+        return;
+      }
+
       if (k === 'n') setShowNeo(p => !p);
       if (k === 'd') setShowDwarf(p => !p);
       if (k === 's') setShowStars(p => !p);
       if (k === 'c') setShowConstellations(p => !p);
-      if (k === 't') cycleTheme();
       if (k === 'p') setShowPlanetList(p => !p);
-      if (k === 'f') document.documentElement.requestFullscreen?.();
-      if (k === 'escape') { setSelPlanet(null); setSelNeo(null); setFocusTarget(null); setShowPlanetList(false); }
+      if (k === 'f') setCinematic(true);
+      if (k === 'escape') {
+        navigateBack();
+        setSelNeo(null);
+        setShowPlanetList(false);
+      }
       if (k === ' ') { e.preventDefault(); setPlaying(p => !p); }
-      if (e.key === '0' && CAMS.length >= 10) { setCamIdx(9); setFocusTarget(null); }
-      const num = parseInt(e.key);
-      if (num >= 1 && num <= Math.min(9, CAMS.length)) { setCamIdx(num - 1); setFocusTarget(null); }
     };
     window.addEventListener('keydown', fn);
     return () => window.removeEventListener('keydown', fn);
-  }, []);
+  }, [cinematic, navigateBack]);
 
-  // Planet selection auto-focuses camera
-  const handlePlanetSelect = useCallback((idx: number | null) => {
-    setSelPlanet(idx);
-    if (idx !== null) {
-      const pos = positionsRef.current.get(idx);
-      if (pos) setFocusTarget({ planetIdx: idx, pos });
-    } else {
-      setFocusTarget(null);
-    }
-  }, []);
+  // Exit cinematic mode on click
+  const handleCinematicClick = useCallback(() => {
+    if (cinematic) setCinematic(false);
+  }, [cinematic]);
 
   return (
-    <div style={{
-      width: '100vw', height: '100dvh', background: '#000',
-      position: 'relative', overflow: 'hidden',
-      fontFamily: "'Cormorant Garamond','Garamond','Baskerville','Georgia',serif",
-    }}>
+    <div
+      style={{
+        width: '100vw', height: '100dvh', background: '#000',
+        position: 'relative', overflow: 'hidden',
+        fontFamily: "'Cormorant Garamond','Garamond','Baskerville','Georgia',serif",
+      }}
+      onClick={handleCinematicClick}
+    >
       <Canvas
         camera={{ position: [0, 3, 4], fov: 55, near: 0.005, far: 250000 }}
         style={{ position: 'absolute', inset: 0 }}
@@ -167,12 +239,15 @@ function OrreryInner() {
             jd={jd} T={T}
             neos={neos} selNeo={selNeo} setSelNeo={setSelNeo}
             selPlanet={selPlanet} setSelPlanet={handlePlanetSelect}
-            camPreset={CAMS[camIdx]}
             focusTarget={focusTarget}
             onPositionsUpdate={handlePositionsUpdate}
             showDwarf={showDwarf}
             showStars={showStars}
             showConstellations={showConstellations}
+            cinematic={cinematic}
+            onMoonSelect={handleMoonSelect}
+            selMoonIdx={selMoonIdx}
+            onCameraDistance={setCameraDistance}
           />
         </Suspense>
       </Canvas>
@@ -183,13 +258,10 @@ function OrreryInner() {
         simTime={simTime} moon={moon}
         speed={speed} setSpeed={setSpeed}
         playing={playing} setPlaying={setPlaying}
-        camIdx={camIdx} setCamIdx={setCamIdx}
-        cams={CAMS}
         focusTarget={focusTarget} setFocusTarget={setFocusTarget}
         selPlanet={selPlanet} setSelPlanet={handlePlanetSelect}
         neos={neos} selNeo={selNeo} setSelNeo={setSelNeo}
         showNeo={showNeo} setShowNeo={setShowNeo}
-        showHud={showHud} setShowHud={setShowHud}
         showDwarf={showDwarf} setShowDwarf={setShowDwarf}
         showStars={showStars} setShowStars={setShowStars}
         showConstellations={showConstellations} setShowConstellations={setShowConstellations}
@@ -197,6 +269,13 @@ function OrreryInner() {
         setSimTime={setSimTime}
         jd={jd} T={T}
         positionsRef={positionsRef}
+        cinematic={cinematic}
+        setCinematic={setCinematic}
+        navStack={navStack}
+        navigateBack={navigateBack}
+        navigateToLevel={navigateToLevel}
+        selMoonIdx={selMoonIdx}
+        cameraDistance={cameraDistance}
       />
     </div>
   );

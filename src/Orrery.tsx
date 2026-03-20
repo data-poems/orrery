@@ -157,9 +157,9 @@ function OrreryInner() {
       fontFamily: "'Cormorant Garamond','Garamond','Baskerville','Georgia',serif",
     }}>
       <Canvas
-        camera={{ position: [0, 3, 4], fov: 55, near: 0.005, far: 500 }}
+        camera={{ position: [0, 3, 4], fov: 55, near: 0.005, far: 250000 }}
         style={{ position: 'absolute', inset: 0 }}
-        gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.2 }}
+        gl={{ antialias: true, logarithmicDepthBuffer: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.2 }}
         onCreated={() => setSceneReady(true)}
       >
         <Suspense fallback={null}>

@@ -84,4 +84,7 @@ export const CAMS: CamPreset[] = [
   { key: '8', label: 'Outer',     pos: [0, 60, 90],      tgt: [0, 0, 0] },
   { key: '9', label: 'Deep',      pos: [0, 80, 120],     tgt: [0, 0, 0] },
   { key: '0', label: 'Kuiper',    pos: [0, 120, 180],    tgt: [0, 0, 0] },
+  { key: '',  label: 'Helio',     pos: [0, 200, 300],    tgt: [0, 0, 0] },
+  { key: '',  label: 'Oort',      pos: [0, 4000, 6000],  tgt: [0, 0, 0] },
+  { key: '',  label: 'Galaxy',    pos: [0, 60000, 90000], tgt: [0, 0, 0] },
 ];

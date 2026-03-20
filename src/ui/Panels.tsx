@@ -148,7 +148,7 @@ export default function Panels(props: PanelProps) {
               transition: 'all 0.15s',
             }}
           >
-            {c.key} {c.label}
+            {c.key ? `${c.key} ` : ''}{c.label}
           </button>
         ))}
         {focusTarget !== null && (

@@ -184,10 +184,11 @@ export function Moon({ earthPos, jd }: { earthPos: [number, number, number]; jd:
 
 export function OrbitRing({ planet, T, dim, highlighted }: { planet: PlanetDef; T: number; dim: boolean; highlighted: boolean }) {
   const pts = useMemo(() => orbitPath(planet, T), [planet, T]);
+  const { theme } = useTheme();
   return (
     <Line
       points={pts}
-      color={highlighted ? '#00ffcc' : planet.color}
+      color={highlighted ? theme.selectedRing : planet.color}
       lineWidth={highlighted ? 1.2 : dim ? 0.3 : 0.6}
       transparent
       opacity={highlighted ? 0.6 : dim ? 0.08 : 0.25}

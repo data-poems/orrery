@@ -9,7 +9,7 @@
 
 import type { NEO, CamPreset, FocusTarget } from '../lib/kepler';
 import { ALL_BODIES } from '../data/planets';
-import { useTheme, THEMES } from '../lib/themes';
+import { useTheme } from '../lib/themes';
 import { glass, useIsMobile } from './styles';
 
 // ─── Tiny UI primitives ─────────────────────────────────────────────────────────

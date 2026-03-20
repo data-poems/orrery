@@ -382,41 +382,6 @@ export default function Panels(props: PanelProps) {
         ))}
       </div>
 
-      {/* ── Time controls (bottom center) ── */}
-      <div
-        role="toolbar"
-        aria-label="Simulation speed controls"
-        style={{
-          position: 'absolute', bottom: mobile ? 12 : 14,
-          left: '50%', transform: 'translateX(-50%)',
-          display: 'flex', alignItems: 'center', gap: 4,
-          ...glass, padding: mobile ? '6px 12px' : '5px 12px', zIndex: 10,
-          paddingBottom: mobile ? 'max(6px, env(safe-area-inset-bottom))' : '5px',
-        }}
-      >
-        <Btn onClick={() => setSpeed(s => Math.max(1, s / 10))} label="Slow down" style={{ fontSize: 11, fontStyle: 'italic' }}>slower</Btn>
-        <Btn
-          onClick={() => setPlaying(p => !p)}
-          label={playing ? 'Pause simulation' : 'Resume simulation'}
-          style={{ color: playing ? accent : '#ff6644', fontSize: 14, padding: '0 8px', fontWeight: 600 }}
-        >
-          {playing ? 'II' : '\u25b6'}
-        </Btn>
-        <Btn onClick={() => setSpeed(s => Math.min(86400 * 365, s * 10))} label="Speed up" style={{ fontSize: 11, fontStyle: 'italic' }}>faster</Btn>
-        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: mobile ? 12 : 11, minWidth: 56, textAlign: 'center', fontWeight: 300 }}>
-          {speedLabel(speed)}
-        </span>
-        <Btn onClick={() => { setSimTime(() => new Date()); setSpeed(() => 1); }} style={{ color: '#ffcc44', marginLeft: 4 }} label="Reset to current time">NOW</Btn>
-        {!mobile && (
-          <Btn
-            onClick={() => setCinematic(true)}
-            label="Enter cinematic clock mode"
-            style={{ color: 'rgba(255,255,255,0.3)', marginLeft: 4, fontSize: 11 }}
-          >
-            {'\u{1F570}'}
-          </Btn>
-        )}
-      </div>
 
       {/* ── Planet list panel ── */}
       {showPlanetList && (

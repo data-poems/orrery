@@ -267,7 +267,6 @@ function OrreryInner() {
         showConstellations={showConstellations} setShowConstellations={setShowConstellations}
         showPlanetList={showPlanetList} setShowPlanetList={setShowPlanetList}
         setSimTime={setSimTime}
-        jd={jd} T={T}
         positionsRef={positionsRef}
         cinematic={cinematic}
         setCinematic={setCinematic}

@@ -134,7 +134,6 @@ export interface PanelProps {
   showConstellations: boolean; setShowConstellations: (fn: (p: boolean) => boolean) => void;
   showPlanetList: boolean; setShowPlanetList: (fn: (p: boolean) => boolean) => void;
   setSimTime: (fn: (d: Date) => Date) => void;
-  jd: number; T: number;
   positionsRef: React.MutableRefObject<Map<number, [number, number, number]>>;
   cinematic: boolean;
   setCinematic: (c: boolean) => void;

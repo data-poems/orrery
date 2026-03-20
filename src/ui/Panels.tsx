@@ -17,7 +17,7 @@ function Btn({ children, onClick, style, label }: {
   return (
     <button onClick={onClick} aria-label={label} style={{
       background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)',
-      fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
+      fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
       padding: '4px 8px', lineHeight: 1.4, minWidth: 44, minHeight: 44,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       ...style,
@@ -30,8 +30,8 @@ function Btn({ children, onClick, style, label }: {
 function Stat({ label, val, c }: { label: string; val: string | number; c?: string }) {
   return (
     <div>
-      <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 8, letterSpacing: 0.5, textTransform: 'uppercase' }}>{label}</div>
-      <div style={{ color: c || '#fff', fontSize: 10, marginTop: 1 }}>{val}</div>
+      <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 9, letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 300 }}>{label}</div>
+      <div style={{ color: c || '#fff', fontSize: 12, marginTop: 1 }}>{val}</div>
     </div>
   );
 }
@@ -174,7 +174,7 @@ export default function Panels(props: PanelProps) {
         <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: mobile ? 10 : 9, minWidth: 52, textAlign: 'center' }}>
           {speedLabel(speed)}
         </span>
-        <Btn onClick={() => { setSimTime(() => new Date()); setSpeed(() => 1); }} style={{ color: '#ffcc44', marginLeft: 4 }} label="Reset to current time">NOW</Btn>
+        <Btn onClick={() => { setSimTime(() => new Date()); setSpeed(() => 3600); }} style={{ color: '#ffcc44', marginLeft: 4 }} label="Reset to current time">NOW</Btn>
       </div>
 
       {/* ── Toggle buttons (bottom right) ── */}

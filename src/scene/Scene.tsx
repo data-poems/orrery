@@ -8,12 +8,11 @@ import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { ALL_BODIES } from '../data/planets';
 import { getMoonsForPlanet } from '../data/moons';
-import type { PlanetDef, NEO, FocusTarget } from '../lib/kepler';
+import type { PlanetDef, NEO, FocusTarget, CamPreset } from '../lib/kepler';
 import { planetXYZ } from '../lib/kepler';
 import { Sun, Planet, OrbitRing, Satellite, SatelliteOrbit } from './Bodies';
 import { AsteroidBelt, NeoDot, AsteroidOrbitLine } from './Asteroids';
-import { StarField, ConstellationLines, ConstellationLabels, MilkyWayBand } from './Stars';
-import { ScaleMarkers, OortCloud, GalaxyDisc } from './DeepSpace';
+import { StarField, ConstellationLines, ConstellationLabels } from './Stars';
 import { useTheme } from '../lib/themes';
 
 // Default home camera position (replaces CAMS[1] "System" view)
@@ -37,10 +36,11 @@ function AUGrid() {
 
 // ─── Camera controller ──────────────────────────────────────────────────────────
 
-function CamCtrl({ focusTarget, positions, cinematic, onCameraDistance }: {
+function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistance }: {
   focusTarget: FocusTarget | null;
   positions: Map<number, [number, number, number]>;
   cinematic: boolean;
+  camPreset?: CamPreset | null;
   onCameraDistance?: (d: number) => void;
 }) {
   const { camera } = useThree();

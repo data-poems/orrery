@@ -155,7 +155,7 @@ export default function Panels(props: PanelProps) {
     showStars, setShowStars,
     showConstellations, setShowConstellations,
     showPlanetList, setShowPlanetList,
-    setSimTime, jd, T, positionsRef,
+    setSimTime, positionsRef,
     cinematic, setCinematic,
     navStack, navigateBack, navigateToLevel,
     selMoonIdx, cameraDistance,

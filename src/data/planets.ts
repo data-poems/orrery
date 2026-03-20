@@ -7,7 +7,7 @@
  * Textures: Solar System Scope (CC BY 4.0)
  */
 
-import type { PlanetDef, TexKey, CamPreset } from '../lib/kepler';
+import type { PlanetDef, TexKey } from '../lib/kepler';
 
 // ─── CDN texture URLs ───────────────────────────────────────────────────────────
 

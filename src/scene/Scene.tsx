@@ -12,6 +12,7 @@ import { planetXYZ } from '../lib/kepler';
 import { Sun, Planet, Moon, OrbitRing } from './Bodies';
 import { AsteroidBelt, NeoDot, AsteroidOrbitLine } from './Asteroids';
 import { StarField, ConstellationLines, ConstellationLabels, MilkyWayBand } from './Stars';
+import { ScaleMarkers, OortCloud, GalaxyDisc } from './DeepSpace';
 import { useTheme } from '../lib/themes';
 
 // ─── AU reference grid ──────────────────────────────────────────────────────────

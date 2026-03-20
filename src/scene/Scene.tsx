@@ -40,29 +40,12 @@ function CamCtrl({ preset, focusTarget, positions }: {
   const ctrlRef = useRef<any>(null);
   const tPos = useRef(new THREE.Vector3(...preset.pos));
   const tLook = useRef(new THREE.Vector3(...preset.tgt));
+  const settling = useRef(true);
+  const prevTrackPos = useRef(new THREE.Vector3());
 
+  // Trigger transition on preset or focus changes (NOT on position updates)
   useEffect(() => {
-    if (focusTarget !== null) {
-      const pp = positions.get(focusTarget.planetIdx);
-      if (pp) {
-        const planet = ALL_BODIES[focusTarget.planetIdx];
-        const offset = planet.radius * 8 + planet.a * 0.15;
-        tLook.current = new THREE.Vector3(...pp);
-        tPos.current = new THREE.Vector3(pp[0] + offset, pp[1] + offset * 0.4, pp[2] + offset);
-      }
-    } else {
-      let p = new THREE.Vector3(...preset.pos);
-      let l = new THREE.Vector3(...preset.tgt);
-      if (preset.follow !== undefined) {
-        const pp = positions.get(preset.follow);
-        if (pp) { l = new THREE.Vector3(...pp); p = l.clone().add(new THREE.Vector3(0.3, 0.25, 0.5)); }
-      }
-      tPos.current = p;
-      tLook.current = l;
-    }
-  }, [preset, focusTarget, positions]);
-
-  useFrame(() => {
+    settling.current = true;
     if (focusTarget !== null) {
       const pp = positions.get(focusTarget.planetIdx);
       if (pp) {
@@ -70,13 +53,79 @@ function CamCtrl({ preset, focusTarget, positions }: {
         const offset = planet.radius * 8 + planet.a * 0.15;
         tLook.current.set(...pp);
         tPos.current.set(pp[0] + offset, pp[1] + offset * 0.4, pp[2] + offset);
+        prevTrackPos.current.set(...pp);
+      }
+    } else {
+      const p = new THREE.Vector3(...preset.pos);
+      const l = new THREE.Vector3(...preset.tgt);
+      if (preset.follow !== undefined) {
+        const pp = positions.get(preset.follow);
+        if (pp) {
+          l.set(...pp);
+          p.copy(l).add(new THREE.Vector3(0.3, 0.25, 0.5));
+          prevTrackPos.current.set(...pp);
+        }
+      }
+      tPos.current.copy(p);
+      tLook.current.copy(l);
+    }
+  }, [preset, focusTarget]);
+
+  // Stop transition when user grabs orbit controls
+  useEffect(() => {
+    const ctrl = ctrlRef.current;
+    if (!ctrl) return;
+    const stop = () => { settling.current = false; };
+    ctrl.addEventListener('start', stop);
+    return () => ctrl.removeEventListener('start', stop);
+  });
+
+  useFrame(() => {
+    const ctrl = ctrlRef.current;
+    // Determine which planet (if any) we're tracking
+    const trackIdx = focusTarget?.planetIdx ?? preset.follow ?? null;
+
+    if (trackIdx !== null) {
+      const pp = positions.get(trackIdx);
+      if (pp) {
+        const newTarget = new THREE.Vector3(...pp);
+
+        if (settling.current) {
+          // Smooth transition to planet view
+          if (focusTarget !== null) {
+            const planet = ALL_BODIES[trackIdx];
+            const offset = planet.radius * 8 + planet.a * 0.15;
+            tPos.current.set(pp[0] + offset, pp[1] + offset * 0.4, pp[2] + offset);
+          }
+          tLook.current.copy(newTarget);
+          camera.position.lerp(tPos.current, 0.03);
+          if (ctrl) ctrl.target.lerp(tLook.current, 0.03);
+          if (camera.position.distanceTo(tPos.current) < 0.1) {
+            settling.current = false;
+          }
+        } else {
+          // After settling: translate camera+target by planet motion delta
+          // so user's orbit angle is preserved while tracking the planet
+          const delta = newTarget.clone().sub(prevTrackPos.current);
+          if (delta.length() > 0.00001) {
+            camera.position.add(delta);
+            if (ctrl) ctrl.target.add(delta);
+          }
+        }
+        prevTrackPos.current.copy(newTarget);
+      }
+    } else {
+      // Static preset — only lerp during settling
+      if (settling.current) {
+        camera.position.lerp(tPos.current, 0.03);
+        if (ctrl) ctrl.target.lerp(tLook.current, 0.03);
+        if (camera.position.distanceTo(tPos.current) < 0.05) {
+          settling.current = false;
+        }
       }
     }
-    camera.position.lerp(tPos.current, 0.03);
-    if (ctrlRef.current) {
-      ctrlRef.current.target.lerp(tLook.current, 0.03);
-      ctrlRef.current.update();
-    }
+
+    if (ctrl) ctrl.update();
   });
 
   return (
@@ -85,7 +134,7 @@ function CamCtrl({ preset, focusTarget, positions }: {
       enableDamping
       dampingFactor={0.06}
       minDistance={0.05}
-      maxDistance={200}
+      maxDistance={100000}
       autoRotate={!focusTarget && !!preset.autoRotate}
       autoRotateSpeed={0.25}
     />

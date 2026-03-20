@@ -159,7 +159,7 @@ export default function Panels(props: PanelProps) {
     showPlanetList, setShowPlanetList,
     setSimTime, positionsRef,
     cinematic, setCinematic,
-    navStack, navigateBack, navigateToLevel,
+    navStack, navigateBack,
     selMoonIdx, cameraDistance,
     cams, camIdx, onPresetSelect,
   } = props;

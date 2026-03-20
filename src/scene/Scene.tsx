@@ -180,8 +180,6 @@ export default function Scene({
   const [hovMoon, setHovMoon] = useState<number | null>(null);
   const { scene } = useThree();
   const { theme } = useTheme();
-  const [camDist, setCamDist] = useState(50);
-
   useEffect(() => { scene.background = new THREE.Color('#000000'); }, [scene]);
 
   const positions = useMemo(() => {

@@ -33,9 +33,9 @@ export default function LoadingScreen({ ready }: { ready: boolean }) {
       }}
     >
       <div style={{
-        color: 'rgba(255,255,255,0.15)',
-        fontSize: 11, letterSpacing: 6,
-        textTransform: 'uppercase',
+        color: 'rgba(255,255,255,0.2)',
+        fontSize: 16, letterSpacing: 8,
+        textTransform: 'uppercase', fontWeight: 300,
         marginBottom: 24,
       }}>
         Orrery

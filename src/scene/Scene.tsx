@@ -11,6 +11,8 @@ import type { PlanetDef, NEO, CamPreset, FocusTarget } from '../lib/kepler';
 import { planetXYZ } from '../lib/kepler';
 import { Sun, Planet, Moon, OrbitRing } from './Bodies';
 import { AsteroidBelt, NeoDot, AsteroidOrbitLine } from './Asteroids';
+import { StarField, ConstellationLines, ConstellationLabels, MilkyWayBand } from './Stars';
+import { useTheme } from '../lib/themes';
 
 // ─── AU reference grid ──────────────────────────────────────────────────────────
 
@@ -100,14 +102,18 @@ export interface SceneProps {
   focusTarget: FocusTarget | null;
   onPositionsUpdate: (m: Map<number, [number, number, number]>) => void;
   showDwarf: boolean;
+  showStars: boolean;
+  showConstellations: boolean;
 }
 
 export default function Scene({
   jd, T, neos, selNeo, setSelNeo, selPlanet, setSelPlanet,
   camPreset, focusTarget, onPositionsUpdate, showDwarf,
+  showStars, showConstellations,
 }: SceneProps) {
   const [hov, setHov] = useState<number | null>(null);
   const { scene } = useThree();
+  const { theme } = useTheme();
 
   // Set black background
   useEffect(() => { scene.background = new THREE.Color('#000000'); }, [scene]);

@@ -5,7 +5,8 @@
  * and rely on logarithmic depth buffer for z-precision.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useTheme } from '../lib/themes';
 
@@ -164,6 +165,9 @@ const galaxyFragmentShader = `
 `;
 
 export function GalaxyDisc() {
+  const ref = useRef<THREE.Mesh>(null);
+  const { camera } = useThree();
+
   const material = useMemo(() => new THREE.ShaderMaterial({
     vertexShader: galaxyVertexShader,
     fragmentShader: galaxyFragmentShader,
@@ -173,8 +177,21 @@ export function GalaxyDisc() {
     blending: THREE.AdditiveBlending,
   }), []);
 
+  // Only show galaxy disc when camera is far enough to see it as a disc
+  useFrame(() => {
+    if (!ref.current) return;
+    const dist = camera.position.length();
+    ref.current.visible = dist > 500;
+    // Fade in smoothly between 500 and 2000 AU
+    if (dist > 500 && dist < 2000) {
+      material.opacity = (dist - 500) / 1500;
+    } else if (dist >= 2000) {
+      material.opacity = 1;
+    }
+  });
+
   return (
-    <mesh rotation={[Math.PI / 2 + 0.1, 0, 0.4]} material={material} position={[0, -500, 0]}>
+    <mesh ref={ref} rotation={[Math.PI / 2 + 0.1, 0, 0.4]} material={material} position={[0, -2000, 0]} visible={false}>
       <planeGeometry args={[200000, 200000]} />
     </mesh>
   );

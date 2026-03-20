@@ -360,6 +360,7 @@ export default function Panels(props: PanelProps) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', fontWeight: 300 }}>Near-Earth Objects</span>
           <span style={{ color: accent, fontSize: 11 }}>{neos.length} today</span>
+          <Btn onClick={() => setShowNeo(p => !p)} label="Close NEO panel">{'\u2715'}</Btn>
         </div>
         {neos.length === 0 && (
           <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11, textAlign: 'center', marginTop: 20, fontStyle: 'italic' }}>Loading NASA data{'\u2026'}</div>

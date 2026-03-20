@@ -41,7 +41,7 @@ export default function Orrery() {
   // Time tick (~60fps)
   useEffect(() => {
     if (!playing) return;
-    const id = setInterval(() => setSimTime(p => new Date(p.getTime() + speed * 1000 * 16)), 16);
+    const id = setInterval(() => setSimTime(p => new Date(p.getTime() + speed * 16)), 16);
     return () => clearInterval(id);
   }, [playing, speed]);
 
@@ -144,7 +144,7 @@ export default function Orrery() {
     <div style={{
       width: '100vw', height: '100vh', background: '#000',
       position: 'relative', overflow: 'hidden',
-      fontFamily: "'JetBrains Mono','SF Mono',monospace",
+      fontFamily: "'Cormorant Garamond','Garamond','Baskerville','Georgia',serif",
     }}>
       <Canvas
         camera={{ position: [0, 3, 4], fov: 55, near: 0.005, far: 500 }}

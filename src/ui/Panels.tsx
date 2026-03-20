@@ -564,7 +564,7 @@ export default function Panels(props: PanelProps) {
         )}
         {sp && !selectedMoon && (
           <PlanetCard
-            planet={sp} selPlanet={selPlanet!} moons={moons}
+            planet={sp} selPlanet={selPlanet!}
             focusTarget={focusTarget} setFocusTarget={setFocusTarget} setSelPlanet={setSelPlanet}
             positionsRef={positionsRef} accent={accent} accentRgb={accentRgb} mobile={mobile}
           />

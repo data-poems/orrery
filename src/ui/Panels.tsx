@@ -97,11 +97,11 @@ export default function Panels(props: PanelProps) {
           maxWidth: mobile ? 'calc(100vw - 24px)' : 'none',
         }}
       >
-        <span style={{ color: '#fff', fontSize: mobile ? 14 : 17, fontWeight: 600, letterSpacing: 2 }}>{fmtTime(simTime)}</span>
-        <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: mobile ? 8 : 10 }}>{fmtDate(simTime)}</span>
+        <span style={{ color: '#fff', fontSize: mobile ? 18 : 22, fontWeight: 300, letterSpacing: 3, fontFamily: "'Cormorant', serif" }}>{fmtTime(simTime)}</span>
+        <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: mobile ? 10 : 12, fontStyle: 'italic', fontWeight: 300 }}>{fmtDate(simTime)}</span>
         <span style={{ fontSize: mobile ? 13 : 15 }}>{moon.emoji}</span>
-        {!mobile && <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 9 }}>{moon.name} \u00b7 {moon.ill}%</span>}
-        {speed !== 1 && <span style={{ color: '#00ffcc', fontSize: 9 }}>{speedLabel(speed)}</span>}
+        {!mobile && <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, fontStyle: 'italic', fontWeight: 300 }}>{moon.name} · {moon.ill}%</span>}
+        {speed !== 1 && <span style={{ color: '#00ffcc', fontSize: 11, fontWeight: 400 }}>{speedLabel(speed)}</span>}
       </div>
 
       {/* ── Camera preset pills ── */}
@@ -126,9 +126,9 @@ export default function Panels(props: PanelProps) {
             aria-pressed={camIdx === i && !focusTarget}
             onClick={() => { setCamIdx(i); setFocusTarget(null); setSelPlanet(null); }}
             style={{
-              ...glass, padding: mobile ? '6px 10px' : '3px 8px',
-              fontSize: mobile ? 10 : 9, cursor: 'pointer', fontFamily: 'inherit',
-              whiteSpace: 'nowrap',
+              ...glass, padding: mobile ? '8px 12px' : '4px 10px',
+              fontSize: mobile ? 12 : 11, cursor: 'pointer', fontFamily: 'inherit',
+              whiteSpace: 'nowrap', fontWeight: 400, letterSpacing: 0.5,
               minHeight: mobile ? 44 : 'auto',
               color: camIdx === i && !focusTarget ? '#00ffcc' : 'rgba(255,255,255,0.4)',
               borderColor: camIdx === i && !focusTarget ? 'rgba(0,255,204,0.4)' : 'rgba(255,255,255,0.07)',
@@ -200,8 +200,8 @@ export default function Panels(props: PanelProps) {
             aria-pressed={'on' in b ? b.on : undefined}
             style={{
               ...glass,
-              padding: mobile ? '10px 12px' : '4px 9px',
-              fontSize: mobile ? 10 : 9,
+              padding: mobile ? '10px 14px' : '5px 10px',
+              fontSize: mobile ? 12 : 11,
               cursor: 'pointer', fontFamily: 'inherit',
               minWidth: mobile ? 44 : 'auto',
               minHeight: mobile ? 44 : 'auto',
@@ -230,11 +230,11 @@ export default function Panels(props: PanelProps) {
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-            <span style={{ color: '#fff', fontSize: 13, fontWeight: 700, letterSpacing: 1 }}>{sp.name}</span>
-            {sp.isDwarf && <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 7, border: '1px solid rgba(255,255,255,0.15)', padding: '1px 4px', borderRadius: 2 }}>DWARF</span>}
+            <span style={{ color: '#fff', fontSize: 16, fontWeight: 600, letterSpacing: 1.5 }}>{sp.name}</span>
+            {sp.isDwarf && <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9, border: '1px solid rgba(255,255,255,0.15)', padding: '2px 6px', borderRadius: 2, fontStyle: 'italic', fontWeight: 300, letterSpacing: 1 }}>dwarf</span>}
             <Btn onClick={() => { setSelPlanet(null); setFocusTarget(null); }} label="Close planet info">{'\u2715'}</Btn>
           </div>
-          <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 8, lineHeight: 1.6, marginBottom: 8 }}>{sp.desc}</div>
+          <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, lineHeight: 1.6, marginBottom: 8, fontStyle: 'italic', fontWeight: 300 }}>{sp.desc}</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 10px' }}>
             <Stat label="Type" val={sp.type} />
             <Stat label="Moons" val={sp.moons} />
@@ -252,7 +252,7 @@ export default function Panels(props: PanelProps) {
             }}
             aria-label={focusTarget?.planetIdx === selPlanet ? 'Release camera focus' : `Focus camera on ${sp.name}`}
             style={{
-              marginTop: 10, width: '100%', padding: mobile ? '10px 0' : '4px 0', fontSize: 9, cursor: 'pointer',
+              marginTop: 10, width: '100%', padding: mobile ? '10px 0' : '6px 0', fontSize: 11, cursor: 'pointer',
               fontFamily: 'inherit', borderRadius: 3, border: '1px solid rgba(0,255,204,0.3)',
               background: focusTarget?.planetIdx === selPlanet ? 'rgba(0,255,204,0.15)' : 'transparent',
               color: '#00ffcc', transition: 'all 0.15s',
@@ -282,11 +282,11 @@ export default function Panels(props: PanelProps) {
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 8, letterSpacing: 2, textTransform: 'uppercase' }}>Near-Earth Objects</span>
-          <span style={{ color: '#00ffcc', fontSize: 9 }}>{neos.length} today</span>
+          <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', fontWeight: 300 }}>Near-Earth Objects</span>
+          <span style={{ color: '#00ffcc', fontSize: 11 }}>{neos.length} today</span>
         </div>
         {neos.length === 0 && (
-          <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: 9, textAlign: 'center', marginTop: 20 }}>Loading NASA data\u2026</div>
+          <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11, textAlign: 'center', marginTop: 20, fontStyle: 'italic' }}>Loading NASA data\u2026</div>
         )}
         {neos.map(neo => (
           <div
@@ -306,8 +306,8 @@ export default function Panels(props: PanelProps) {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
               {neo.hazardous && <span style={{ color: '#ff4444', fontSize: 7 }} aria-label="Potentially hazardous">{'\u25cf'}</span>}
-              <span style={{ color: '#fff', fontSize: mobile ? 10 : 9 }}>{neo.name.replace(/[()]/g, '')}</span>
-              {neo.orbit?.loaded && <span style={{ color: '#00ffcc', fontSize: 7, marginLeft: 'auto' }}>orbit</span>}
+              <span style={{ color: '#fff', fontSize: mobile ? 12 : 11 }}>{neo.name.replace(/[()]/g, '')}</span>
+              {neo.orbit?.loaded && <span style={{ color: '#00ffcc', fontSize: 9, marginLeft: 'auto', fontStyle: 'italic' }}>orbit</span>}
             </div>
             <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 8, marginTop: 2 }}>
               {neo.missLunar.toFixed(1)} LD \u00b7 {neo.velKms.toFixed(1)} km/s \u00b7 {Math.round(neo.dMin)}\u2013{Math.round(neo.dMax)} m

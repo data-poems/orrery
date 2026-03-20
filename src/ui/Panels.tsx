@@ -560,7 +560,7 @@ export default function Panels(props: PanelProps) {
 
         {/* Info cards */}
         {selectedMoon && (
-          <MoonCard moon={selectedMoon} parentName={sp?.name || ''} onClose={navigateBack} accent={accent} accentRgb={accentRgb} mobile={mobile} />
+          <MoonCard moon={selectedMoon} parentName={sp?.name || ''} onClose={navigateBack} mobile={mobile} />
         )}
         {sp && !selectedMoon && (
           <PlanetCard
@@ -698,7 +698,7 @@ export default function Panels(props: PanelProps) {
 
       {/* ── Info cards (right side for desktop when rail is on left) ── */}
       {selectedMoon && (
-        <MoonCard moon={selectedMoon} parentName={sp?.name || ''} onClose={navigateBack} accent={accent} accentRgb={accentRgb} mobile={mobile} />
+        <MoonCard moon={selectedMoon} parentName={sp?.name || ''} onClose={navigateBack} mobile={mobile} />
       )}
       {sp && !selectedMoon && (
         <PlanetCard

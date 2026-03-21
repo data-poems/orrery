@@ -217,111 +217,123 @@ export default function Panels(props: PanelProps) {
 
   return (
     <>
-      {/* ── Top bar: date/time/moon ── */}
-      <div
-        role="status"
-        aria-label="Simulation time"
-        style={{
-          position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
-          display: 'flex', alignItems: 'center', gap: mobile ? 8 : 12,
-          ...glass, padding: mobile ? '8px 12px' : '6px 16px', zIndex: 10,
-          maxWidth: mobile ? 'calc(100vw - 24px)' : 'none',
-        }}
-      >
-        <span style={{ color: '#fff', fontSize: mobile ? 18 : 22, fontWeight: 300, letterSpacing: 3, fontFamily: "'Cormorant', serif" }}>{fmtTime(simTime)}</span>
-        <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: mobile ? 10 : 12, fontStyle: 'italic', fontWeight: 300 }}>{fmtDate(simTime)}</span>
-        <span style={{ fontSize: mobile ? 13 : 15 }}>{moon.emoji}</span>
-        {!mobile && <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, fontStyle: 'italic', fontWeight: 300 }}>{moon.name} · {moon.ill}%</span>}
-        {speed !== 1 && <span style={{ color: accent, fontSize: 11, fontWeight: 400 }}>{speedLabel(speed)}</span>}
-      </div>
+      {/* ── Top bar: date + controls row ── */}
+      <div style={{
+        position: 'absolute', top: 8, left: 8, right: 8, zIndex: 10,
+        display: 'flex', flexDirection: 'column', gap: 6,
+        alignItems: 'center',
+      }}>
+        {/* Row 1: Date/time */}
+        <div
+          role="status"
+          aria-label="Simulation time"
+          style={{
+            display: 'flex', alignItems: 'center', gap: mobile ? 8 : 12,
+            ...glass, padding: mobile ? '6px 12px' : '5px 16px',
+          }}
+        >
+          <span style={{ color: '#fff', fontSize: mobile ? 16 : 20, fontWeight: 300, letterSpacing: 3, fontFamily: "'Cormorant', serif" }}>{fmtTime(simTime)}</span>
+          <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: mobile ? 9 : 11, fontStyle: 'italic', fontWeight: 300 }}>{fmtDate(simTime)}</span>
+          <span style={{ fontSize: mobile ? 12 : 14 }}>{moon.emoji}</span>
+          {!mobile && <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, fontStyle: 'italic', fontWeight: 300 }}>{moon.name} · {moon.ill}%</span>}
+          {speed !== 1 && <span style={{ color: accent, fontSize: 10, fontWeight: 400 }}>{speedLabel(speed)}</span>}
+        </div>
 
-      {/* ── Camera presets ── */}
-      <div
-        role="toolbar"
-        aria-label="Camera presets"
-        style={{
-          position: 'absolute', top: mobile ? 52 : 56,
-          left: '50%', transform: 'translateX(-50%)',
-          display: 'flex', alignItems: 'center', gap: mobile ? 3 : 4, zIndex: 10,
-          maxWidth: mobile ? 'calc(100vw - 24px)' : 'none',
-          overflowX: mobile ? 'auto' : 'visible',
-          WebkitOverflowScrolling: 'touch',
-          scrollbarWidth: 'none',
-          ...glass, padding: mobile ? '6px 10px' : '6px 12px',
-        }}
-      >
-        {cams.map((cam, i) => {
-          const active = camIdx === i && selPlanet === null;
-          return (
-            <button
-              key={cam.key}
-              onClick={() => onPresetSelect(i)}
-              aria-label={`Camera preset: ${cam.label} (${cam.key})`}
-              aria-pressed={active}
+        {/* Row 2: Camera presets + Planet dropdown — unified toolbar */}
+        <div
+          role="toolbar"
+          aria-label="Navigation controls"
+          style={{
+            display: 'flex', alignItems: 'center', gap: mobile ? 3 : 4,
+            ...glass, padding: mobile ? '4px 8px' : '4px 10px',
+            maxWidth: mobile ? 'calc(100vw - 16px)' : 'none',
+            overflowX: mobile ? 'auto' : 'visible',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none',
+            flexWrap: mobile ? 'nowrap' : 'wrap',
+            justifyContent: 'center',
+          }}
+        >
+          {/* Camera preset buttons */}
+          {cams.map((cam, i) => {
+            const active = camIdx === i && selPlanet === null;
+            return (
+              <button
+                key={cam.key}
+                onClick={() => onPresetSelect(i)}
+                aria-label={`Camera preset: ${cam.label} (${cam.key})`}
+                aria-pressed={active}
+                style={{
+                  background: active ? `rgba(${accentRgb},0.12)` : 'transparent',
+                  border: `1px solid ${active ? `rgba(${accentRgb},0.4)` : 'rgba(255,255,255,0.08)'}`,
+                  borderRadius: 4,
+                  padding: mobile ? '5px 8px' : '4px 10px',
+                  fontSize: mobile ? 10 : 12,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  minWidth: mobile ? 40 : 'auto',
+                  minHeight: mobile ? 32 : 28,
+                  color: active ? accent : 'rgba(255,255,255,0.5)',
+                  fontWeight: active ? 500 : 300,
+                  letterSpacing: 0.5,
+                  transition: 'all 0.15s',
+                }}
+              >
+                {cam.label}
+              </button>
+            );
+          })}
+
+          {/* Divider */}
+          <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />
+
+          {/* Planet dropdown */}
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <select
+              value={selPlanet ?? ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === '') {
+                  setSelPlanet(null);
+                  setFocusTarget(null);
+                } else {
+                  setSelPlanet(parseInt(val));
+                }
+              }}
+              aria-label="Select planet"
               style={{
-                background: active ? `rgba(${accentRgb},0.12)` : 'transparent',
-                border: `1px solid ${active ? `rgba(${accentRgb},0.4)` : 'rgba(255,255,255,0.1)'}`,
+                appearance: 'none',
+                background: selPlanet !== null ? `rgba(${accentRgb},0.1)` : 'transparent',
+                border: `1px solid ${selPlanet !== null ? `rgba(${accentRgb},0.35)` : 'rgba(255,255,255,0.08)'}`,
                 borderRadius: 4,
-                padding: mobile ? '6px 10px' : '5px 12px',
-                fontSize: mobile ? 11 : 13,
+                padding: mobile ? '5px 24px 5px 8px' : '4px 22px 4px 8px',
+                fontSize: mobile ? 10 : 12,
                 cursor: 'pointer', fontFamily: 'inherit',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                minWidth: mobile ? 44 : 'auto',
-                minHeight: mobile ? 36 : 32,
-                color: active ? accent : 'rgba(255,255,255,0.55)',
-                fontWeight: active ? 500 : 300,
+                color: selPlanet !== null ? accent : 'rgba(255,255,255,0.5)',
+                fontWeight: selPlanet !== null ? 500 : 300,
                 letterSpacing: 0.5,
+                minHeight: mobile ? 32 : 28,
+                outline: 'none',
                 transition: 'all 0.15s',
               }}
             >
-              {!mobile && <span style={{ opacity: 0.4, fontSize: 10, marginRight: 4 }}>{cam.key}</span>}
-              {cam.label}
-            </button>
-          );
-        })}
-        {selPlanet !== null && (
-          <button
-            onClick={() => { setSelPlanet(null); setFocusTarget(null); }}
-            aria-label="Release camera focus"
-            style={{
-              background: `rgba(${accentRgb},0.08)`,
-              border: `1px solid rgba(${accentRgb},0.35)`,
-              borderRadius: 3,
-              padding: mobile ? '6px 10px' : '3px 8px',
-              fontSize: 11,
-              cursor: 'pointer', fontFamily: 'inherit',
-              whiteSpace: 'nowrap',
-              color: accent,
-              fontWeight: 500,
-              letterSpacing: 0.5,
-              minWidth: mobile ? 44 : 'auto',
-              minHeight: mobile ? 36 : 'auto',
-            }}
-          >
-            {ALL_BODIES[selPlanet].name} {'\u00d7'}
-          </button>
-        )}
+              <option value="" style={{ background: '#1a1a1a', color: '#aaa' }}>Bodies</option>
+              {ALL_BODIES.map((body, idx) => (
+                <option key={body.name} value={idx} style={{ background: '#1a1a1a', color: '#fff' }}>
+                  {body.name}{body.isDwarf ? ' (dwarf)' : ''}
+                </option>
+              ))}
+            </select>
+            {/* Custom dropdown arrow */}
+            <span style={{
+              position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+              pointerEvents: 'none', fontSize: 8,
+              color: selPlanet !== null ? accent : 'rgba(255,255,255,0.3)',
+            }}>{'\u25bc'}</span>
+          </div>
+        </div>
       </div>
-
-      {/* ── Mobile back button ── */}
-      {mobile && navStack.length > 1 && (
-        <button
-          onClick={navigateBack}
-          aria-label="Navigate back"
-          style={{
-            position: 'absolute', top: 90, left: 8,
-            ...glass, padding: '8px 14px',
-            fontSize: 18, cursor: 'pointer',
-            color: 'rgba(255,255,255,0.5)',
-            minWidth: 48, minHeight: 48,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 10, fontFamily: 'inherit', fontWeight: 300,
-          }}
-        >
-          {'\u2190'}
-        </button>
-      )}
 
       {/* ── Scale indicator ── */}
       <ScaleIndicator cameraDistance={cameraDistance} />

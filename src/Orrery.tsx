@@ -430,6 +430,7 @@ function OrreryInner() {
         showAsteroidBelt={showAsteroidBelt} setShowAsteroidBelt={setShowAsteroidBelt}
         showMilkyWay={showMilkyWay} setShowMilkyWay={setShowMilkyWay}
         showDeepSpace={showDeepSpace} setShowDeepSpace={setShowDeepSpace}
+        constellationFocus={constellationFocus} setConstellationFocus={setConstellationFocus}
         showAbout={showAbout} setShowAbout={setShowAbout}
         setSimTime={setSimTime}
         positionsRef={positionsRef}

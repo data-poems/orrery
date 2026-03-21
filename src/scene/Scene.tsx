@@ -184,6 +184,7 @@ export interface SceneProps {
   showAsteroidBelt: boolean;
   showMilkyWay: boolean;
   showDeepSpace: boolean;
+  constellationFocus: boolean;
   cinematic: boolean;
   onMoonSelect?: (planetIdx: number, moonIdx: number) => void;
   selMoonIdx?: number | null;
@@ -196,7 +197,7 @@ export default function Scene({
   jd, T, neos, selNeo, setSelNeo, selPlanet, setSelPlanet,
   focusTarget, onPositionsUpdate, showDwarf,
   showStars, showConstellations, showAsteroidBelt, showMilkyWay, showDeepSpace,
-  cinematic, onMoonSelect, selMoonIdx, onCameraDistance, camPreset, cinematicAngle,
+  constellationFocus, cinematic, onMoonSelect, selMoonIdx, onCameraDistance, camPreset, cinematicAngle,
 }: SceneProps) {
   const [hov, setHov] = useState<number | null>(null);
   const [hovMoon, setHovMoon] = useState<number | null>(null);
@@ -280,8 +281,8 @@ export default function Scene({
         </group>
       ))}
       <StarField visible={showStars} />
-      <ConstellationLines visible={showConstellations} theme={theme} />
-      <ConstellationLabels visible={showConstellations} />
+      <ConstellationLines visible={showConstellations} theme={theme} focus={constellationFocus} />
+      <ConstellationLabels visible={showConstellations} focus={constellationFocus} />
       <MilkyWayBand visible={showMilkyWay} theme={theme} />
       {showDeepSpace && <ScaleMarkers />}
       {showDeepSpace && <OortCloud />}

@@ -267,7 +267,7 @@ const glowPointFragmentShader = `
   }
 `;
 
-export function ConstellationLines({ visible }: { visible: boolean; theme: OrreryTheme }) {
+export function ConstellationLines({ visible, focus }: { visible: boolean; theme: OrreryTheme; focus?: boolean }) {
   const lineData = useConstellationLineData();
   const { camera } = useThree();
 
@@ -320,16 +320,25 @@ export function ConstellationLines({ visible }: { visible: boolean; theme: Orrer
     depthTest: true,
   }), []);
 
-  // Distance-based fade
+  // Distance-based fade (boosted in focus mode)
   useFrame(() => {
     const dist = camera.position.length();
-    let opacity = 0.5;
-    if (dist < 1) opacity = 0;
-    else if (dist < 5) opacity = 0.5 * ((dist - 1) / 4);
-    else if (dist > 500) opacity = 0.08;
-    else if (dist > 200) opacity = 0.5 - (dist - 200) / 300 * 0.42;
+    const base = focus ? 0.85 : 0.5;
+    const minFade = focus ? 0.3 : 0;
+    let opacity = base;
+    if (!focus) {
+      if (dist < 1) opacity = 0;
+      else if (dist < 5) opacity = base * ((dist - 1) / 4);
+      else if (dist > 500) opacity = 0.08;
+      else if (dist > 200) opacity = base - (dist - 200) / 300 * (base - 0.08);
+    } else {
+      // In focus mode, only fade slightly at extremes
+      if (dist < 1) opacity = minFade;
+      else if (dist > 500) opacity = 0.4;
+      else if (dist > 200) opacity = base - (dist - 200) / 300 * (base - 0.4);
+    }
     lineMat.uniforms.opacity.value = opacity;
-    pointMat.uniforms.opacity.value = opacity * 0.35;
+    pointMat.uniforms.opacity.value = opacity * (focus ? 0.5 : 0.35);
   });
 
   if (!geometry || !glowGeo) return null;
@@ -387,7 +396,7 @@ function useConstellationCentroids(): ConstellationCentroid[] {
   return centroids;
 }
 
-export function ConstellationLabels({ visible }: { visible: boolean }) {
+export function ConstellationLabels({ visible, focus }: { visible: boolean; focus?: boolean }) {
   const centroids = useConstellationCentroids();
   const { camera } = useThree();
   const groupRef = useRef<THREE.Group>(null);
@@ -401,12 +410,18 @@ export function ConstellationLabels({ visible }: { visible: boolean }) {
     }
 
     const dist = camera.position.length();
-    // Fade out when zoomed close (<5 AU) or far (>200 AU)
-    let opacity = 0.4;
-    if (dist < 1) opacity = 0;
-    else if (dist < 5) opacity = 0.4 * ((dist - 1) / 4);
-    else if (dist > 500) opacity = 0.05;
-    else if (dist > 200) opacity = 0.4 - (dist - 200) / 300 * 0.35;
+    const base = focus ? 0.85 : 0.4;
+    let opacity = base;
+    if (!focus) {
+      if (dist < 1) opacity = 0;
+      else if (dist < 5) opacity = base * ((dist - 1) / 4);
+      else if (dist > 500) opacity = 0.05;
+      else if (dist > 200) opacity = base - (dist - 200) / 300 * (base - 0.05);
+    } else {
+      if (dist < 1) opacity = 0.3;
+      else if (dist > 500) opacity = 0.4;
+      else if (dist > 200) opacity = base - (dist - 200) / 300 * (base - 0.4);
+    }
     setLabelOpacity(opacity);
 
     const camDir = new THREE.Vector3();

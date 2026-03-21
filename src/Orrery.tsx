@@ -110,7 +110,6 @@ function OrreryInner() {
 
   const cinematicIdx = useRef(0);
   const cinematicStart = useRef(0);
-  const [cinematicDesc, setCinematicDesc] = useState('');
 
   // Space weather state for cinematic overlay (NOAA SWPC, no auth needed)
   const [solarWind, setSolarWind] = useState<string | null>(null);
@@ -148,7 +147,6 @@ function OrreryInner() {
     if (step.milkyWay !== undefined) setShowMilkyWay(() => step.milkyWay!);
     if (step.deepSpace !== undefined) setShowDeepSpace(() => step.deepSpace!);
     if (step.dwarf !== undefined) setShowDwarf(() => step.dwarf!);
-    setCinematicDesc(step.desc || '');
   }, [cinematicSteps]);
 
   // Cinematic timer — poll-based to avoid fragile setTimeout chains

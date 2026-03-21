@@ -383,16 +383,16 @@ export default function Panels(props: PanelProps) {
           aria-label={`Theme: ${theme.name}`}
           style={{
             ...glass,
-            padding: mobile ? '8px 10px' : '5px 8px',
+            padding: mobile ? '8px 10px' : '7px 12px',
             cursor: 'pointer', fontFamily: 'inherit',
-            display: 'flex', alignItems: 'center', gap: 5,
+            display: 'flex', alignItems: 'center', gap: 6,
             minWidth: mobile ? 44 : 'auto',
-            minHeight: mobile ? 44 : 'auto',
-            color: 'rgba(255,255,255,0.35)',
-            fontSize: 10,
+            minHeight: mobile ? 44 : 32,
+            color: 'rgba(255,255,255,0.5)',
+            fontSize: mobile ? 10 : 13,
           }}
         >
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: accent }} />
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: accent }} />
           {!mobile && <span>{theme.name}</span>}
         </button>
       </div>

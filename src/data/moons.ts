@@ -59,7 +59,9 @@ export const MOONS: MoonDef[] = [
   // Pluto (9)
   { name: 'Charon', parent: 9, a: 0.05, period: 6.387, radius: 0.010, color: '#908880', desc: 'Nearly half Pluto\'s size. The two are tidally locked, always showing the same face to each other.' },
   { name: 'Nix', parent: 9, a: 0.07, period: 24.856, radius: 0.003, color: '#b0b0b0', desc: 'Small, irregularly shaped. Discovered in 2005 alongside Hydra.' },
+  { name: 'Kerberos', parent: 9, a: 0.08, period: 32.168, radius: 0.002, color: '#909090', desc: 'Tiny double-lobed moon between Nix and Hydra. Discovered in 2011.' },
   { name: 'Hydra', parent: 9, a: 0.09, period: 38.202, radius: 0.003, color: '#a0a0a0', desc: 'Pluto\'s outermost large moon. Rotates chaotically due to Charon\'s gravity.' },
+  { name: 'Styx', parent: 9, a: 0.06, period: 20.162, radius: 0.002, color: '#a8a8a8', desc: 'Smallest known moon of Pluto. Discovered in 2012 during Hubble observations.' },
 
   // Eris (10)
   { name: 'Dysnomia', parent: 10, a: 0.05, period: 15.774, radius: 0.004, color: '#888888', desc: 'Eris\'s only known moon. Named after the daughter of Eris in Greek mythology.' },

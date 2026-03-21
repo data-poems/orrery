@@ -262,8 +262,6 @@ export default function Scene({
       <ConstellationLines visible={showConstellations} theme={theme} />
       <ConstellationLabels visible={showConstellations} />
       <ScaleMarkers />
-      <OortCloud />
-      <GalaxyDisc />
       <CamCtrl
         focusTarget={focusTarget}
         positions={positions}

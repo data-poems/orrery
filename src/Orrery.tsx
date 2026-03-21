@@ -61,26 +61,26 @@ function OrreryInner() {
   };
   const cinematicSteps = useMemo((): CinematicStep[] => [
     // Zoom out: reveal layers progressively
-    { camPreset: 8, duration: 10000, label: 'Inner Solar System',
+    { camPreset: 0, duration: 12000, label: 'Inner Planets',
       stars: true, constellations: false, asteroidBelt: false, milkyWay: false, deepSpace: false, dwarf: false },
-    { camPreset: 1, duration: 10000, label: 'The Solar System',
+    { camPreset: 1, duration: 10000, label: 'Solar System',
       asteroidBelt: true },
-    { camPreset: 2, duration: 8000, label: 'Orbital Plane',
+    { camPreset: 2, duration: 8000, label: 'From Above',
       constellations: true },
-    { camPreset: 3, duration: 8000, label: 'Ecliptic View' },
-    { camPreset: 4, duration: 8000, label: 'Outer Planets',
+    { camPreset: 3, duration: 8000, label: 'Ecliptic Plane' },
+    { camPreset: 4, duration: 10000, label: 'Outer Planets',
       dwarf: true },
-    { camPreset: 5, duration: 8000, label: 'Kuiper Belt' },
-    { camPreset: 6, duration: 10000, label: 'Oort Cloud',
+    { camPreset: 5, duration: 10000, label: 'Kuiper Belt' },
+    { camPreset: 6, duration: 12000, label: 'Oort Cloud',
       milkyWay: true },
-    { camPreset: 7, duration: 12000, label: 'Galactic View',
+    { camPreset: 7, duration: 14000, label: 'Galactic View',
       deepSpace: true },
     // Zoom back in
-    { camPreset: 6, duration: 8000, label: 'Oort Cloud' },
+    { camPreset: 6, duration: 10000, label: 'Oort Cloud' },
     { camPreset: 5, duration: 8000, label: 'Kuiper Belt' },
     { camPreset: 4, duration: 8000, label: 'Outer Planets' },
-    { camPreset: 2, duration: 8000, label: 'Orbital Plane' },
-    { camPreset: 0, duration: 10000, label: 'Inner Solar System' },
+    { camPreset: 1, duration: 10000, label: 'Solar System' },
+    { camPreset: 0, duration: 12000, label: 'Inner Planets' },
   ], []);
 
   const cinematicIdx = useRef(0);

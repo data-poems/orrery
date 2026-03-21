@@ -611,19 +611,15 @@ export default function Panels(props: PanelProps) {
               </>
             )}
           </div>
-        </div>
-
-        {/* Current zoom label -- centered */}
-        <div style={{
-          position: 'absolute', top: '50%', left: '50%',
-          transform: 'translate(-50%, -50%)',
-          fontSize: mobile ? 28 : 42, fontWeight: 300, letterSpacing: 6,
-          color: 'rgba(255,255,255,0.2)',
-          textTransform: 'uppercase',
-          fontFamily: "'Cormorant Garamond','Garamond','Baskerville','Georgia',serif",
-          textShadow: '0 0 30px rgba(0,0,0,0.6)',
-        }}>
-          {cinematicLabel}
+          {/* Current zoom label -- below time cluster */}
+          <div style={{
+            marginTop: mobile ? 8 : 12,
+            fontSize: mobile ? 14 : 18, fontWeight: 300, letterSpacing: 4,
+            color: 'rgba(255,255,255,0.15)',
+            textTransform: 'uppercase',
+          }}>
+            {cinematicLabel}
+          </div>
         </div>
 
         {/* Exit hint */}

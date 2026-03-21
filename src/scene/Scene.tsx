@@ -115,6 +115,12 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistanc
     const ctrl = ctrlRef.current;
     const trackIdx = focusTarget?.planetIdx ?? null;
 
+    // Distance-adaptive lerp: faster when far from target so deep-space
+    // transitions (Oort→Galaxy) don't crawl through empty blackness.
+    const remainDist = camera.position.distanceTo(tPos.current);
+    const lerpFactor = remainDist > 1000 ? 0.06 : remainDist > 100 ? 0.045 : 0.03;
+    const settleThreshold = remainDist > 1000 ? 50 : remainDist > 100 ? 5 : 0.05;
+
     // Unified camera logic — cinematic and interactive use the same settling
     // approach so planet zooms look identical in both modes.
     if (trackIdx !== null) {
@@ -130,8 +136,8 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistanc
             tPos.current.set(pp[0] + ox, pp[1] + oy, pp[2] + oz);
           }
           tLook.current.copy(newTarget);
-          camera.position.lerp(tPos.current, 0.03);
-          if (ctrl) ctrl.target.lerp(tLook.current, 0.03);
+          camera.position.lerp(tPos.current, lerpFactor);
+          if (ctrl) ctrl.target.lerp(tLook.current, lerpFactor);
           if (camera.position.distanceTo(tPos.current) < 0.1) {
             settling.current = false;
           }
@@ -146,9 +152,9 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistanc
       }
     } else {
       if (settling.current) {
-        camera.position.lerp(tPos.current, 0.03);
-        if (ctrl) ctrl.target.lerp(tLook.current, 0.03);
-        if (camera.position.distanceTo(tPos.current) < 0.05) {
+        camera.position.lerp(tPos.current, lerpFactor);
+        if (ctrl) ctrl.target.lerp(tLook.current, lerpFactor);
+        if (camera.position.distanceTo(tPos.current) < settleThreshold) {
           settling.current = false;
         }
       }

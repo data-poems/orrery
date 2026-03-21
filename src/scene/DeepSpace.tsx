@@ -66,10 +66,18 @@ export function OortCloud() {
     if (!ref.current) return;
     const dist = camera.position.length();
     ref.current.visible = dist > 200;
-    // Fade in 200-2000, cap at 0.25
+    // Fade in 200-2000, brighter peak at mid-distances where Oort is the main visual
     if (ref.current.material && 'opacity' in ref.current.material) {
-      (ref.current.material as THREE.PointsMaterial).opacity =
-        dist < 2000 ? Math.min(0.25, (dist - 200) / 1800 * 0.25) : 0.25;
+      let opacity: number;
+      if (dist < 2000) {
+        opacity = (dist - 200) / 1800 * 0.35;
+      } else if (dist < 60000) {
+        opacity = 0.35;
+      } else {
+        // Fade out as galaxy takes over
+        opacity = Math.max(0.1, 0.35 - (dist - 60000) / 50000 * 0.25);
+      }
+      (ref.current.material as THREE.PointsMaterial).opacity = opacity;
     }
   });
 
@@ -98,9 +106,9 @@ export function OortCloud() {
     <points ref={ref} geometry={geometry} visible={false}>
       <pointsMaterial
         color="#8899bb"
-        size={1.2}
+        size={1.5}
         transparent
-        opacity={0.25}
+        opacity={0.35}
         depthWrite={false}
         depthTest={true}
         sizeAttenuation={false}

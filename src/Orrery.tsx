@@ -87,6 +87,7 @@ function OrreryInner() {
   // Apply a cinematic shot
   const applyCinematicShot = useCallback((idx: number) => {
     const shot = cinematicShots[idx % cinematicShots.length];
+    setCinematicAngle({ angle: shot.angle, elevation: shot.elevation, distMult: shot.distMult });
     if (shot.planetIdx === -1) {
       // Wide solar system view
       setSelPlanet(null);
@@ -117,6 +118,7 @@ function OrreryInner() {
   useEffect(() => {
     if (!cinematic) {
       if (cinematicTimer.current) clearTimeout(cinematicTimer.current);
+      setCinematicAngle(undefined);
       return;
     }
 

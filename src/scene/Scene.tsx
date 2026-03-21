@@ -73,7 +73,7 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistanc
       const planet = ALL_BODIES[focusTarget.planetIdx];
       const moons = getMoonsForPlanet(focusTarget.planetIdx);
       const maxMoonA = moons.length > 0 ? Math.max(...moons.map(m => m.a)) : 0;
-      const d = Math.max(planet.radius * 5, maxMoonA * 2.5);
+      const d = Math.max(planet.radius * 8, maxMoonA * 2.5);
       const [ox, oy, oz] = offsetFromAngle(d, 0.7, 0.4);
       return { pos: [pp[0] + ox, pp[1] + oy, pp[2] + oz] as [number, number, number], look: pp };
     }
@@ -135,7 +135,7 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistanc
             const planet = ALL_BODIES[trackIdx];
             const moons = getMoonsForPlanet(trackIdx);
             const maxMoonA = moons.length > 0 ? Math.max(...moons.map(m => m.a)) : 0;
-            const d = Math.max(planet.radius * 5, maxMoonA * 2.5);
+            const d = Math.max(planet.radius * 8, maxMoonA * 2.5);
             const [ox, oy, oz] = offsetFromAngle(d, 0.7, 0.4);
             tPos.current.set(pp[0] + ox, pp[1] + oy, pp[2] + oz);
           }

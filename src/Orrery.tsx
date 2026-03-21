@@ -73,10 +73,9 @@ function OrreryInner() {
       desc: 'A ring of icy bodies beyond Neptune, home to Pluto and thousands more.' },
     { camPreset: 6, duration: 3000, label: 'Oort Cloud',
       desc: 'A vast spherical shell of comets at the edge of the Solar System.',
-      milkyWay: true },
+      milkyWay: true, deepSpace: true },
     { camPreset: 7, duration: 5000, label: 'Galactic View',
-      desc: 'Our Solar System is one of billions in the Milky Way galaxy.',
-      deepSpace: true },
+      desc: 'Our Solar System is one of billions in the Milky Way galaxy.' },
     // Phase 2: Extended planet tour -- close-up exploration
     { focusPlanet: 2, duration: 6000, label: 'Earth',
       desc: 'Third rock from the Sun. The only known world with liquid water on its surface.' },

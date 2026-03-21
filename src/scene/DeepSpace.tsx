@@ -182,11 +182,12 @@ export function GalaxyDisc() {
   useFrame(() => {
     if (!ref.current) return;
     const dist = camera.position.length();
-    // Only show galaxy at distances where it looks like a galaxy, not a blurry wash
-    ref.current.visible = dist > 8000;
-    if (dist > 8000 && dist < 30000) {
-      material.opacity = (dist - 8000) / 22000;
-    } else if (dist >= 30000) {
+    // Show galaxy only when far enough for it to look like a galaxy, not a blurry wash.
+    // Sharper fade-in avoids the "blurry overlay" look at intermediate distances.
+    ref.current.visible = dist > 20000;
+    if (dist > 20000 && dist < 50000) {
+      material.opacity = (dist - 20000) / 30000;
+    } else if (dist >= 50000) {
       material.opacity = 1;
     }
   });
@@ -244,7 +245,7 @@ function GalaxyStars() {
 
   useFrame(() => {
     if (!ref.current) return;
-    ref.current.visible = camera.position.length() > 8000;
+    ref.current.visible = camera.position.length() > 20000;
   });
 
   return (

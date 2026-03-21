@@ -50,6 +50,92 @@ function OrreryInner() {
 
   const camPreset = camIdx >= 0 && camIdx < CAMS.length ? CAMS[camIdx] : null;
 
+  // ─── Cinematic tour: auto-cycle through bodies and views ────────────────────
+  const cinematicShots = useMemo(() => {
+    // Each shot: { planetIdx, moonIdx?, duration(ms), angle, elevation, distMult }
+    // angle/elevation/distMult control camera placement relative to body
+    const shots: { planetIdx: number; moonIdx?: number; duration: number; angle: number; elevation: number; distMult: number; label: string }[] = [
+      // Wide solar system view
+      { planetIdx: -1, duration: 8000, angle: 0, elevation: 0.4, distMult: 1, label: 'Solar System' },
+      // Inner planets
+      { planetIdx: 2, duration: 7000, angle: 0.3, elevation: 0.3, distMult: 1, label: 'Earth' },
+      { planetIdx: 2, moonIdx: 0, duration: 5000, angle: -0.5, elevation: 0.2, distMult: 1.5, label: 'The Moon' },
+      { planetIdx: 1, duration: 5000, angle: 1.2, elevation: 0.5, distMult: 1, label: 'Venus' },
+      { planetIdx: 0, duration: 5000, angle: 2.0, elevation: 0.3, distMult: 1, label: 'Mercury' },
+      { planetIdx: 3, duration: 5000, angle: -0.3, elevation: 0.4, distMult: 1, label: 'Mars' },
+      // Gas giants
+      { planetIdx: 4, duration: 7000, angle: 0.8, elevation: 0.3, distMult: 0.8, label: 'Jupiter' },
+      { planetIdx: 4, moonIdx: 2, duration: 5000, angle: -0.4, elevation: 0.2, distMult: 1.2, label: 'Ganymede' },
+      { planetIdx: 5, duration: 7000, angle: -0.6, elevation: 0.5, distMult: 0.7, label: 'Saturn' },
+      { planetIdx: 5, moonIdx: 5, duration: 5000, angle: 0.9, elevation: 0.3, distMult: 1, label: 'Titan' },
+      // Ice giants and outer
+      { planetIdx: 6, duration: 5000, angle: 1.5, elevation: 0.4, distMult: 1, label: 'Uranus' },
+      { planetIdx: 7, duration: 5000, angle: -1.0, elevation: 0.3, distMult: 1, label: 'Neptune' },
+      { planetIdx: 7, moonIdx: 0, duration: 4000, angle: 0.5, elevation: 0.2, distMult: 1.3, label: 'Triton' },
+      // Dwarf planets
+      { planetIdx: 9, duration: 5000, angle: 0.2, elevation: 0.5, distMult: 1, label: 'Pluto' },
+      // Pull back to wide view
+      { planetIdx: -1, duration: 6000, angle: Math.PI, elevation: 0.6, distMult: 1, label: 'Solar System' },
+    ];
+    return shots;
+  }, []);
+
+  const cinematicIdx = useRef(0);
+  const cinematicTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Apply a cinematic shot
+  const applyCinematicShot = useCallback((idx: number) => {
+    const shot = cinematicShots[idx % cinematicShots.length];
+    if (shot.planetIdx === -1) {
+      // Wide solar system view
+      setSelPlanet(null);
+      setSelMoonIdx(null);
+      setFocusTarget(null);
+      setCamIdx(1); // System view preset
+      setNavStack(['Solar System']);
+    } else {
+      setSelPlanet(shot.planetIdx);
+      setCamIdx(-1);
+      const pos = positionsRef.current.get(shot.planetIdx);
+      if (shot.moonIdx !== undefined) {
+        const moons = getMoonsForPlanet(shot.planetIdx);
+        if (shot.moonIdx < moons.length) {
+          setSelMoonIdx(shot.moonIdx);
+          setFocusTarget({ planetIdx: shot.planetIdx, pos: pos || [0, 0, 0], moonIdx: shot.moonIdx });
+          setNavStack(['Solar System', ALL_BODIES[shot.planetIdx].name, moons[shot.moonIdx].name]);
+        }
+      } else {
+        setSelMoonIdx(null);
+        setFocusTarget({ planetIdx: shot.planetIdx, pos: pos || [0, 0, 0] });
+        setNavStack(['Solar System', ALL_BODIES[shot.planetIdx].name]);
+      }
+    }
+  }, [cinematicShots]);
+
+  // Cinematic tour timer
+  useEffect(() => {
+    if (!cinematic) {
+      if (cinematicTimer.current) clearTimeout(cinematicTimer.current);
+      return;
+    }
+
+    // Start tour from shot 0
+    cinematicIdx.current = 0;
+    applyCinematicShot(0);
+
+    const advance = () => {
+      cinematicIdx.current = (cinematicIdx.current + 1) % cinematicShots.length;
+      applyCinematicShot(cinematicIdx.current);
+      cinematicTimer.current = setTimeout(advance, cinematicShots[cinematicIdx.current].duration);
+    };
+
+    cinematicTimer.current = setTimeout(advance, cinematicShots[0].duration);
+
+    return () => {
+      if (cinematicTimer.current) clearTimeout(cinematicTimer.current);
+    };
+  }, [cinematic, applyCinematicShot, cinematicShots]);
+
   const handlePositionsUpdate = useCallback((m: Map<number, [number, number, number]>) => {
     positionsRef.current = m;
   }, []);

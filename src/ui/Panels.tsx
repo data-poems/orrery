@@ -1,11 +1,12 @@
 /*
  * All HUD panels — overlay UI for the orrery
  *
- * Layout: unified toolbar (top) with camera presets, Bodies dropdown,
- * Layers dropdown, About button. Info cards + NEO panel below.
+ * Layout: minimal top HUD (info bar + camera presets), side drawer for everything else.
+ * Drawer starts closed, slides from right on desktop, bottom sheet on mobile.
  *
  * Responsive: mobile gets larger touch targets, bottom sheets, safe-area insets.
  * Theme-aware: all accent colors come from the active theme.
+ * No emoji anywhere.
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -13,7 +14,7 @@ import type { NEO, FocusTarget, CamPreset } from '../lib/kepler';
 import { ALL_BODIES } from '../data/planets';
 import { getMoonsForPlanet } from '../data/moons';
 import { useTheme, THEMES } from '../lib/themes';
-import { glass, bokehCard, dropdownPanel, aboutModal, bottomSheet, useIsMobile } from './styles';
+import { glass, bokehCard, drawerPanel, drawerTab, bottomSheet, useIsMobile } from './styles';
 
 // ─── Tiny UI primitives ─────────────────────────────────────────────────────────
 
@@ -129,361 +130,75 @@ function useClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () =
   }, [ref, handler]);
 }
 
-// ─── Bodies Dropdown ─────────────────────────────────────────────────────────────
+// ─── Section header (used in drawer) ────────────────────────────────────────────
 
-function BodiesDropdown({ selPlanet, setSelPlanet, accent, accentRgb, mobile, onMoonSelect }: {
-  selPlanet: number | null;
-  setSelPlanet: (i: number | null) => void;
-  accent: string;
-  accentRgb: string;
-  mobile: boolean;
-  onMoonSelect?: (planetIdx: number, moonIdx: number) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useClickOutside(ref, () => setOpen(false));
-
-  useEffect(() => {
-    const fn = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
-    if (open) window.addEventListener('keydown', fn);
-    return () => window.removeEventListener('keydown', fn);
-  }, [open]);
-
-  const handleSelect = useCallback((idx: number) => {
-    setSelPlanet(idx);
-    setOpen(false);
-  }, [setSelPlanet]);
-
-  const handleMoonClick = useCallback((planetIdx: number, moonIdx: number) => {
-    if (onMoonSelect) onMoonSelect(planetIdx, moonIdx);
-    setOpen(false);
-  }, [onMoonSelect]);
-
-  // Build planet tree: planets with their moons
-  const planets = ALL_BODIES.slice(0, 8); // main planets
-  const dwarfs = ALL_BODIES.slice(8);     // dwarf planets
-
+function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
-    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
-      <button
-        onClick={() => setOpen(p => !p)}
-        aria-expanded={open}
-        aria-haspopup="true"
-        aria-label="Select celestial body"
-        style={{
-          background: selPlanet !== null ? `rgba(${accentRgb},0.1)` : 'transparent',
-          border: `1px solid ${selPlanet !== null ? `rgba(${accentRgb},0.35)` : 'rgba(255,255,255,0.08)'}`,
-          borderRadius: 4,
-          padding: mobile ? '5px 10px' : '4px 10px',
-          fontSize: mobile ? 10 : 12,
-          cursor: 'pointer', fontFamily: 'inherit',
-          color: selPlanet !== null ? accent : 'rgba(255,255,255,0.5)',
-          fontWeight: selPlanet !== null ? 500 : 300,
-          letterSpacing: 0.5,
-          minHeight: mobile ? 32 : 28,
-          display: 'flex', alignItems: 'center', gap: 6,
-          transition: 'all 0.15s',
-        }}
-      >
-        {selPlanet !== null && (
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: ALL_BODIES[selPlanet].color, flexShrink: 0 }} />
-        )}
-        {selPlanet !== null ? ALL_BODIES[selPlanet].name : 'Bodies'}
-        <span style={{ fontSize: 8, opacity: 0.6, marginLeft: 2 }}>{open ? '\u25b2' : '\u25bc'}</span>
-      </button>
-
-      {open && (
-        <>
-          {/* Backdrop for mobile */}
-          {mobile && <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 99 }} onClick={() => setOpen(false)} />}
-          <div
-            role="tree"
-            aria-label="Celestial bodies"
-            style={mobile ? {
-              ...dropdownPanel,
-              ...bottomSheet('60vh'),
-              padding: '12px 0',
-            } : {
-              ...dropdownPanel,
-              position: 'absolute', top: '100%', left: 0, marginTop: 4,
-              minWidth: 200, maxHeight: 400, overflowY: 'auto',
-              padding: '8px 0', zIndex: 100,
-            }}
-          >
-            {/* Planets */}
-            {planets.map((body, idx) => {
-              const moons = getMoonsForPlanet(idx);
-              return (
-                <div key={body.name} role="treeitem">
-                  <button
-                    onClick={() => handleSelect(idx)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-                      padding: mobile ? '10px 16px' : '6px 14px',
-                      background: selPlanet === idx ? `rgba(${accentRgb},0.08)` : 'transparent',
-                      border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                      color: selPlanet === idx ? accent : 'rgba(255,255,255,0.7)',
-                      fontSize: mobile ? 13 : 12, fontWeight: selPlanet === idx ? 500 : 300,
-                      minHeight: mobile ? 44 : 'auto', textAlign: 'left',
-                      transition: 'background 0.1s',
-                    }}
-                  >
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: body.color, flexShrink: 0 }} />
-                    {body.name}
-                  </button>
-                  {/* Moons */}
-                  {moons.map((moon, mIdx) => (
-                    <button
-                      key={moon.name}
-                      onClick={() => handleMoonClick(idx, mIdx)}
-                      role="treeitem"
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-                        padding: mobile ? '8px 16px 8px 36px' : '4px 14px 4px 32px',
-                        background: 'transparent', border: 'none', cursor: 'pointer',
-                        fontFamily: 'inherit', color: 'rgba(255,255,255,0.45)',
-                        fontSize: mobile ? 12 : 11, fontStyle: 'italic', fontWeight: 300,
-                        minHeight: mobile ? 40 : 'auto', textAlign: 'left',
-                      }}
-                    >
-                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: moon.color, flexShrink: 0 }} />
-                      {moon.name}
-                    </button>
-                  ))}
-                </div>
-              );
-            })}
-
-            {/* Dwarf planets separator */}
-            <div style={{
-              padding: '8px 14px 4px', fontSize: 9, letterSpacing: 2,
-              color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', fontWeight: 300,
-            }}>
-              Dwarf Planets
-            </div>
-            {dwarfs.map((body, i) => {
-              const idx = 8 + i;
-              const moons = getMoonsForPlanet(idx);
-              return (
-                <div key={body.name} role="treeitem">
-                  <button
-                    onClick={() => handleSelect(idx)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-                      padding: mobile ? '10px 16px' : '6px 14px',
-                      background: selPlanet === idx ? `rgba(${accentRgb},0.08)` : 'transparent',
-                      border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                      color: selPlanet === idx ? accent : 'rgba(255,255,255,0.7)',
-                      fontSize: mobile ? 13 : 12, fontWeight: selPlanet === idx ? 500 : 300,
-                      minHeight: mobile ? 44 : 'auto', textAlign: 'left',
-                      transition: 'background 0.1s',
-                    }}
-                  >
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: body.color, flexShrink: 0 }} />
-                    {body.name}
-                  </button>
-                  {moons.map((moon, mIdx) => (
-                    <button
-                      key={moon.name}
-                      onClick={() => handleMoonClick(idx, mIdx)}
-                      role="treeitem"
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-                        padding: mobile ? '8px 16px 8px 36px' : '4px 14px 4px 32px',
-                        background: 'transparent', border: 'none', cursor: 'pointer',
-                        fontFamily: 'inherit', color: 'rgba(255,255,255,0.45)',
-                        fontSize: mobile ? 12 : 11, fontStyle: 'italic', fontWeight: 300,
-                        minHeight: mobile ? 40 : 'auto', textAlign: 'left',
-                      }}
-                    >
-                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: moon.color, flexShrink: 0 }} />
-                      {moon.name}
-                    </button>
-                  ))}
-                </div>
-              );
-            })}
-          </div>
-        </>
-      )}
+    <div style={{
+      color: 'rgba(255,255,255,0.25)', fontSize: 9, letterSpacing: 2,
+      textTransform: 'uppercase', fontWeight: 300,
+      padding: '12px 16px 6px',
+    }}>
+      {children}
     </div>
   );
 }
 
-// ─── Layers Dropdown ─────────────────────────────────────────────────────────────
+const sectionDivider: React.CSSProperties = {
+  height: 1, background: 'rgba(255,255,255,0.06)', margin: '4px 0',
+};
 
-function LayersDropdown({ accent, accentRgb, mobile, neoStatus, neoCount, ...toggles }: {
+// ─── Side Drawer ────────────────────────────────────────────────────────────────
+
+function SideDrawer({
+  open, accent, accentRgb, mobile,
+  selPlanet, setSelPlanet, onMoonSelect,
+  neos, neoStatus, selNeo, setSelNeo,
+  showNeo, showStars, showConstellations, constellationFocus, showDwarf,
+  showAsteroidBelt, showMilkyWay, showDeepSpace,
+  setShowNeo, setShowStars, setShowConstellations, setConstellationFocus,
+  setShowDwarf, setShowAsteroidBelt, setShowMilkyWay, setShowDeepSpace,
+}: {
+  open: boolean;
   accent: string;
   accentRgb: string;
   mobile: boolean;
+  selPlanet: number | null;
+  setSelPlanet: (i: number | null) => void;
+  onMoonSelect?: (planetIdx: number, moonIdx: number) => void;
+  neos: NEO[];
   neoStatus: 'loading' | 'loaded' | 'error';
-  neoCount: number;
+  selNeo: NEO | null;
+  setSelNeo: (n: NEO | null) => void;
+  showNeo: boolean; setShowNeo: (fn: (p: boolean) => boolean) => void;
   showStars: boolean; setShowStars: (fn: (p: boolean) => boolean) => void;
   showConstellations: boolean; setShowConstellations: (fn: (p: boolean) => boolean) => void;
   constellationFocus: boolean; setConstellationFocus: (fn: (p: boolean) => boolean) => void;
   showDwarf: boolean; setShowDwarf: (fn: (p: boolean) => boolean) => void;
-  showNeo: boolean; setShowNeo: (fn: (p: boolean) => boolean) => void;
   showAsteroidBelt: boolean; setShowAsteroidBelt: (fn: (p: boolean) => boolean) => void;
   showMilkyWay: boolean; setShowMilkyWay: (fn: (p: boolean) => boolean) => void;
   showDeepSpace: boolean; setShowDeepSpace: (fn: (p: boolean) => boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
   const { theme, setTheme } = useTheme();
-  useClickOutside(ref, () => setOpen(false));
 
-  useEffect(() => {
-    const fn = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
-    if (open) window.addEventListener('keydown', fn);
-    return () => window.removeEventListener('keydown', fn);
-  }, [open]);
+  const planets = ALL_BODIES.slice(0, 8);
+  const dwarfs = ALL_BODIES.slice(8);
 
-  const neoLabel = neoStatus === 'loaded' ? `NEO (${neoCount})` :
+  const neoLabel = neoStatus === 'loaded' ? `NEO (${neos.length})` :
                    neoStatus === 'error' ? 'NEO (unavailable)' : 'NEO (loading)';
 
   const layers = [
-    { label: 'Stars', key: 'S', on: toggles.showStars, fn: () => toggles.setShowStars(p => !p) },
-    { label: 'Constellations', key: 'C', on: toggles.showConstellations, fn: () => toggles.setShowConstellations(p => !p) },
-    { label: 'Stargazer', key: 'G', on: toggles.constellationFocus, fn: () => toggles.setConstellationFocus(p => !p) },
-    { label: 'Dwarf Planets', key: 'D', on: toggles.showDwarf, fn: () => toggles.setShowDwarf(p => !p) },
-    { label: neoLabel, key: 'N', on: toggles.showNeo, fn: () => toggles.setShowNeo(p => !p) },
-    { label: 'Asteroid Belt', key: null, on: toggles.showAsteroidBelt, fn: () => toggles.setShowAsteroidBelt(p => !p) },
-    { label: 'Milky Way', key: null, on: toggles.showMilkyWay, fn: () => toggles.setShowMilkyWay(p => !p) },
-    { label: 'Deep Space', key: null, on: toggles.showDeepSpace, fn: () => toggles.setShowDeepSpace(p => !p) },
+    { label: 'Stars', key: 'S', on: showStars, fn: () => setShowStars(p => !p) },
+    { label: 'Constellations', key: 'C', on: showConstellations, fn: () => setShowConstellations(p => !p) },
+    { label: 'Stargazer', key: 'G', on: constellationFocus, fn: () => setConstellationFocus(p => !p) },
+    { label: 'Dwarf Planets', key: 'D', on: showDwarf, fn: () => setShowDwarf(p => !p) },
+    { label: neoLabel, key: 'N', on: showNeo, fn: () => setShowNeo(p => !p) },
+    { label: 'Asteroid Belt', key: null, on: showAsteroidBelt, fn: () => setShowAsteroidBelt(p => !p) },
+    { label: 'Milky Way', key: null, on: showMilkyWay, fn: () => setShowMilkyWay(p => !p) },
+    { label: 'Deep Space', key: null, on: showDeepSpace, fn: () => setShowDeepSpace(p => !p) },
   ];
 
-  const anyActive = layers.some(l => l.on);
-
-  return (
-    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
-      <button
-        onClick={() => setOpen(p => !p)}
-        aria-expanded={open}
-        aria-haspopup="true"
-        aria-label="Toggle display layers"
-        style={{
-          background: anyActive ? `rgba(${accentRgb},0.06)` : 'transparent',
-          border: `1px solid ${anyActive ? `rgba(${accentRgb},0.2)` : 'rgba(255,255,255,0.08)'}`,
-          borderRadius: 4,
-          padding: mobile ? '5px 10px' : '4px 10px',
-          fontSize: mobile ? 10 : 12,
-          cursor: 'pointer', fontFamily: 'inherit',
-          color: anyActive ? accent : 'rgba(255,255,255,0.5)',
-          fontWeight: 300, letterSpacing: 0.5,
-          minHeight: mobile ? 32 : 28,
-          display: 'flex', alignItems: 'center', gap: 4,
-          transition: 'all 0.15s',
-        }}
-      >
-        Layers
-        <span style={{ fontSize: 8, opacity: 0.6 }}>{open ? '\u25b2' : '\u25bc'}</span>
-      </button>
-
-      {open && (
-        <>
-          {mobile && <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 99 }} onClick={() => setOpen(false)} />}
-          <div
-            role="group"
-            aria-label="Display layers"
-            style={mobile ? {
-              ...dropdownPanel,
-              ...bottomSheet('70vh'),
-              padding: '12px 0',
-            } : {
-              ...dropdownPanel,
-              position: 'absolute', top: '100%', right: 0, marginTop: 4,
-              minWidth: 200, padding: '8px 0', zIndex: 100,
-            }}
-          >
-            {/* Layer toggles */}
-            {layers.map(l => (
-              <button
-                key={l.label}
-                onClick={l.fn}
-                aria-pressed={l.on}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-                  padding: mobile ? '10px 16px' : '6px 14px',
-                  background: 'transparent', border: 'none', cursor: 'pointer',
-                  fontFamily: 'inherit', fontSize: mobile ? 13 : 12,
-                  color: l.on ? accent : 'rgba(255,255,255,0.5)',
-                  fontWeight: l.on ? 400 : 300, textAlign: 'left',
-                  minHeight: mobile ? 44 : 'auto',
-                  transition: 'color 0.1s',
-                }}
-              >
-                <span style={{
-                  width: 14, height: 14, borderRadius: 3, flexShrink: 0,
-                  border: `1.5px solid ${l.on ? accent : 'rgba(255,255,255,0.2)'}`,
-                  background: l.on ? `rgba(${accentRgb},0.15)` : 'transparent',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 10, color: accent,
-                }}>
-                  {l.on ? '\u2713' : ''}
-                </span>
-                <span style={{ flex: 1 }}>{l.label}</span>
-                {l.key && !mobile && (
-                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', fontWeight: 300 }}>{l.key}</span>
-                )}
-              </button>
-            ))}
-
-            {/* Theme section */}
-            <div style={{
-              padding: '10px 14px 4px', fontSize: 9, letterSpacing: 2,
-              color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', fontWeight: 300,
-              borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 4,
-            }}>
-              Theme
-            </div>
-            {THEMES.map(t => (
-              <button
-                key={t.id}
-                onClick={() => setTheme(t)}
-                aria-pressed={theme.id === t.id}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-                  padding: mobile ? '10px 16px' : '6px 14px',
-                  background: 'transparent', border: 'none', cursor: 'pointer',
-                  fontFamily: 'inherit', fontSize: mobile ? 13 : 12,
-                  color: theme.id === t.id ? t.uiAccent : 'rgba(255,255,255,0.5)',
-                  fontWeight: theme.id === t.id ? 400 : 300, textAlign: 'left',
-                  minHeight: mobile ? 44 : 'auto',
-                }}
-              >
-                <span style={{
-                  width: 12, height: 12, borderRadius: '50%',
-                  background: t.uiAccent, flexShrink: 0,
-                  border: theme.id === t.id ? '2px solid #fff' : '2px solid transparent',
-                }} />
-                {t.name}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-// ─── About Modal ─────────────────────────────────────────────────────────────────
-
-function AboutModal({ open, onClose, mobile }: {
-  open: boolean;
-  onClose: () => void;
-  mobile: boolean;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  useClickOutside(ref, onClose);
-
-  useEffect(() => {
-    const fn = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    if (open) window.addEventListener('keydown', fn);
-    return () => window.removeEventListener('keydown', fn);
-  }, [open, onClose]);
-
-  if (!open) return null;
-
+  // Shared styles
   const sectionTitle: React.CSSProperties = {
     color: 'rgba(255,255,255,0.3)', fontSize: 9, letterSpacing: 2,
     textTransform: 'uppercase', fontWeight: 300, marginTop: 16, marginBottom: 6,
@@ -503,32 +218,243 @@ function AboutModal({ open, onClose, mobile }: {
   };
 
   return (
-    <>
-      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 99 }} onClick={onClose} />
-      <div
-        ref={ref}
-        role="dialog"
-        aria-label="About Orrery"
-        aria-modal="true"
-        style={mobile ? {
-          ...aboutModal,
-          ...bottomSheet('80vh'),
-          padding: '20px 24px',
-        } : {
-          ...aboutModal,
-          position: 'fixed', top: '50%', left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 380, maxHeight: '80vh', overflowY: 'auto',
-          padding: '24px 28px', zIndex: 100,
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <div style={{ color: '#fff', fontSize: 18, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase' }}>Orrery</div>
-            <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, fontStyle: 'italic', fontWeight: 300, marginTop: 2 }}>Interactive Solar System</div>
-          </div>
-          <Btn onClick={onClose} label="Close about">{'\u2715'}</Btn>
+    <div
+      role="complementary"
+      aria-label="Side panel"
+      aria-hidden={!open}
+      style={mobile ? {
+        ...drawerPanel,
+        ...bottomSheet('70vh'),
+        transform: open ? 'translateY(0)' : 'translateY(100%)',
+        transition: 'transform 0.25s ease',
+        overflowY: 'auto',
+        zIndex: 30,
+        padding: '8px 0 0',
+      } : {
+        ...drawerPanel,
+        position: 'fixed',
+        top: 0, right: 0, bottom: 0,
+        width: 300,
+        transform: open ? 'translateX(0)' : 'translateX(100%)',
+        transition: 'transform 0.25s ease',
+        overflowY: 'auto',
+        zIndex: 30,
+        padding: '8px 0 0',
+      }}
+    >
+      {/* ── Bodies ── */}
+      <SectionHeader>Bodies</SectionHeader>
+      <div role="tree" aria-label="Celestial bodies">
+        {planets.map((body, idx) => {
+          const moons = getMoonsForPlanet(idx);
+          return (
+            <div key={body.name} role="treeitem">
+              <button
+                onClick={() => setSelPlanet(idx)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                  padding: mobile ? '10px 16px' : '6px 16px',
+                  background: selPlanet === idx ? `rgba(${accentRgb},0.08)` : 'transparent',
+                  border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                  color: selPlanet === idx ? accent : 'rgba(255,255,255,0.7)',
+                  fontSize: mobile ? 13 : 12, fontWeight: selPlanet === idx ? 500 : 300,
+                  minHeight: mobile ? 44 : 'auto', textAlign: 'left',
+                  transition: 'background 0.1s',
+                }}
+              >
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: body.color, flexShrink: 0 }} />
+                {body.name}
+              </button>
+              {moons.map((moon, mIdx) => (
+                <button
+                  key={moon.name}
+                  onClick={() => onMoonSelect?.(idx, mIdx)}
+                  role="treeitem"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                    padding: mobile ? '8px 16px 8px 36px' : '4px 16px 4px 34px',
+                    background: 'transparent', border: 'none', cursor: 'pointer',
+                    fontFamily: 'inherit', color: 'rgba(255,255,255,0.45)',
+                    fontSize: mobile ? 12 : 11, fontStyle: 'italic', fontWeight: 300,
+                    minHeight: mobile ? 40 : 'auto', textAlign: 'left',
+                  }}
+                >
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: moon.color, flexShrink: 0 }} />
+                  {moon.name}
+                </button>
+              ))}
+            </div>
+          );
+        })}
+
+        {/* Dwarf planets separator */}
+        <div style={{
+          padding: '8px 16px 4px', fontSize: 9, letterSpacing: 2,
+          color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', fontWeight: 300,
+        }}>
+          Dwarf Planets
         </div>
+        {dwarfs.map((body, i) => {
+          const idx = 8 + i;
+          const moons = getMoonsForPlanet(idx);
+          return (
+            <div key={body.name} role="treeitem">
+              <button
+                onClick={() => setSelPlanet(idx)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                  padding: mobile ? '10px 16px' : '6px 16px',
+                  background: selPlanet === idx ? `rgba(${accentRgb},0.08)` : 'transparent',
+                  border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                  color: selPlanet === idx ? accent : 'rgba(255,255,255,0.7)',
+                  fontSize: mobile ? 13 : 12, fontWeight: selPlanet === idx ? 500 : 300,
+                  minHeight: mobile ? 44 : 'auto', textAlign: 'left',
+                  transition: 'background 0.1s',
+                }}
+              >
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: body.color, flexShrink: 0 }} />
+                {body.name}
+              </button>
+              {moons.map((moon, mIdx) => (
+                <button
+                  key={moon.name}
+                  onClick={() => onMoonSelect?.(idx, mIdx)}
+                  role="treeitem"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                    padding: mobile ? '8px 16px 8px 36px' : '4px 16px 4px 34px',
+                    background: 'transparent', border: 'none', cursor: 'pointer',
+                    fontFamily: 'inherit', color: 'rgba(255,255,255,0.45)',
+                    fontSize: mobile ? 12 : 11, fontStyle: 'italic', fontWeight: 300,
+                    minHeight: mobile ? 40 : 'auto', textAlign: 'left',
+                  }}
+                >
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: moon.color, flexShrink: 0 }} />
+                  {moon.name}
+                </button>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={sectionDivider} />
+
+      {/* ── Layers ── */}
+      <SectionHeader>Layers</SectionHeader>
+      <div role="group" aria-label="Display layers">
+        {layers.map(l => (
+          <button
+            key={l.label}
+            onClick={l.fn}
+            aria-pressed={l.on}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+              padding: mobile ? '10px 16px' : '6px 16px',
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              fontFamily: 'inherit', fontSize: mobile ? 13 : 12,
+              color: l.on ? accent : 'rgba(255,255,255,0.5)',
+              fontWeight: l.on ? 400 : 300, textAlign: 'left',
+              minHeight: mobile ? 44 : 'auto',
+              transition: 'color 0.1s',
+            }}
+          >
+            <span style={{
+              width: 14, height: 14, borderRadius: 3, flexShrink: 0,
+              border: `1.5px solid ${l.on ? accent : 'rgba(255,255,255,0.2)'}`,
+              background: l.on ? `rgba(${accentRgb},0.15)` : 'transparent',
+            }} />
+            <span style={{ flex: 1 }}>{l.label}</span>
+            {l.key && !mobile && (
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', fontWeight: 300 }}>{l.key}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      <div style={sectionDivider} />
+
+      {/* ── Theme ── */}
+      <SectionHeader>Theme</SectionHeader>
+      <div role="radiogroup" aria-label="Color theme">
+        {THEMES.map(t => (
+          <button
+            key={t.id}
+            onClick={() => setTheme(t)}
+            role="radio"
+            aria-checked={theme.id === t.id}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+              padding: mobile ? '10px 16px' : '6px 16px',
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              fontFamily: 'inherit', fontSize: mobile ? 13 : 12,
+              color: theme.id === t.id ? t.uiAccent : 'rgba(255,255,255,0.5)',
+              fontWeight: theme.id === t.id ? 400 : 300, textAlign: 'left',
+              minHeight: mobile ? 44 : 'auto',
+            }}
+          >
+            <span style={{
+              width: 12, height: 12, borderRadius: '50%',
+              background: t.uiAccent, flexShrink: 0,
+              border: theme.id === t.id ? '2px solid #fff' : '2px solid transparent',
+            }} />
+            {t.name}
+          </button>
+        ))}
+      </div>
+
+      <div style={sectionDivider} />
+
+      {/* ── NEO (when layer is on) ── */}
+      {showNeo && (
+        <>
+          <SectionHeader>NEO Today</SectionHeader>
+          <div style={{ padding: '0 16px' }}>
+            {neoStatus === 'loading' && (
+              <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11, fontStyle: 'italic', padding: '8px 0' }}>Loading NASA data...</div>
+            )}
+            {neoStatus === 'error' && (
+              <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, fontStyle: 'italic', padding: '8px 0' }}>
+                NASA API rate limited -- try again later
+              </div>
+            )}
+            {neoStatus === 'loaded' && (
+              <div style={{ color: accent, fontSize: 10, marginBottom: 6 }}>{neos.length} today</div>
+            )}
+            {neos.map(neo => (
+              <div
+                key={neo.id}
+                role="button"
+                tabIndex={0}
+                aria-label={`${neo.name.replace(/[()]/g, '')}: ${neo.missLunar.toFixed(1)} lunar distances${neo.hazardous ? ', potentially hazardous' : ''}`}
+                onClick={() => setSelNeo(selNeo?.id === neo.id ? null : neo)}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelNeo(selNeo?.id === neo.id ? null : neo); } }}
+                style={{
+                  padding: mobile ? '10px 0' : '5px 0', cursor: 'pointer',
+                  borderBottom: '1px solid rgba(255,255,255,0.04)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  {neo.hazardous && <span style={{ color: '#ff4444', fontSize: 7 }} aria-label="Potentially hazardous">{'\u25cf'}</span>}
+                  <span style={{ color: '#fff', fontSize: mobile ? 12 : 11 }}>{neo.name.replace(/[()]/g, '')}</span>
+                  {neo.orbit?.loaded && <span style={{ color: accent, fontSize: 9, marginLeft: 'auto', fontStyle: 'italic' }}>orbit</span>}
+                </div>
+                <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, marginTop: 2, fontWeight: 300 }}>
+                  {neo.missLunar.toFixed(1)} LD {'\u00b7'} {neo.velKms.toFixed(1)} km/s {'\u00b7'} {Math.round(neo.dMin)}{'\u2013'}{Math.round(neo.dMax)} m
+                </div>
+              </div>
+            ))}
+            <div style={{ color: 'rgba(255,255,255,0.15)', fontSize: 9, marginTop: 8, fontStyle: 'italic', fontWeight: 300 }}>Source: NASA JPL NeoWs / SBDB</div>
+          </div>
+          <div style={sectionDivider} />
+        </>
+      )}
+
+      {/* ── About ── */}
+      <SectionHeader>About</SectionHeader>
+      <div style={{ padding: '0 16px 20px' }}>
+        <div style={{ color: '#fff', fontSize: 16, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase' }}>Orrery</div>
+        <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, fontStyle: 'italic', fontWeight: 300, marginTop: 2 }}>Interactive Solar System</div>
 
         <div style={sectionTitle}>Data Sources</div>
         <div style={{ borderLeft: '1px solid rgba(255,255,255,0.06)', paddingLeft: 10 }}>
@@ -541,9 +467,6 @@ function AboutModal({ open, onClose, mobile }: {
           <div style={sourceItem}>d3-celestial star catalogs</div>
           <div style={sourceItem}>HYG Database (bright stars)</div>
           <div style={sourceItem}>IAU constellation boundaries</div>
-          <div style={{ ...sectionTitle, marginTop: 10 }}>Real-Time</div>
-          <div style={sourceItem}>NASA Near-Earth Object feed</div>
-          <div style={sourceItem}>Kepler solver (propagation)</div>
         </div>
 
         <div style={sectionTitle}>Technology</div>
@@ -557,12 +480,13 @@ function AboutModal({ open, onClose, mobile }: {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <div style={kbdRow}><span style={kbd}>1-9</span> Camera presets</div>
           <div style={kbdRow}><span style={kbd}>S</span> Stars {'\u00b7'} <span style={kbd}>C</span> Constellations</div>
-          <div style={kbdRow}><span style={kbd}>D</span> Dwarf planets {'\u00b7'} <span style={kbd}>N</span> NEO {'\u00b7'} <span style={kbd}>G</span> Stargazer</div>
-          <div style={kbdRow}><span style={kbd}>F</span> Cinematic {'\u00b7'} <span style={kbd}>Space</span> Pause</div>
-          <div style={kbdRow}><span style={kbd}>Esc</span> Back / Deselect</div>
+          <div style={kbdRow}><span style={kbd}>G</span> Stargazer {'\u00b7'} <span style={kbd}>D</span> Dwarf planets</div>
+          <div style={kbdRow}><span style={kbd}>N</span> NEO {'\u00b7'} <span style={kbd}>F</span> Cinematic</div>
+          <div style={kbdRow}><span style={kbd}>Space</span> Pause {'\u00b7'} <span style={kbd}>Esc</span> Back/Deselect</div>
+          <div style={kbdRow}><span style={kbd}>M</span> Toggle panel</div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -570,7 +494,7 @@ function AboutModal({ open, onClose, mobile }: {
 
 export interface PanelProps {
   simTime: Date;
-  moon: { name: string; emoji: string; ill: number };
+  moon: { name: string; ill: number };
   speed: number; setSpeed: (fn: (s: number) => number) => void;
   playing: boolean; setPlaying: (fn: (p: boolean) => boolean) => void;
   focusTarget: FocusTarget | null; setFocusTarget: (f: FocusTarget | null) => void;
@@ -584,7 +508,7 @@ export interface PanelProps {
   showAsteroidBelt: boolean; setShowAsteroidBelt: (fn: (p: boolean) => boolean) => void;
   showMilkyWay: boolean; setShowMilkyWay: (fn: (p: boolean) => boolean) => void;
   showDeepSpace: boolean; setShowDeepSpace: (fn: (p: boolean) => boolean) => void;
-  showAbout: boolean; setShowAbout: (a: boolean) => void;
+  drawerOpen: boolean; setDrawerOpen: (fn: boolean | ((p: boolean) => boolean)) => void;
   setSimTime: (fn: (d: Date) => Date) => void;
   positionsRef: React.MutableRefObject<Map<number, [number, number, number]>>;
   cinematic: boolean;
@@ -612,7 +536,7 @@ export default function Panels(props: PanelProps) {
     showAsteroidBelt, setShowAsteroidBelt,
     showMilkyWay, setShowMilkyWay,
     showDeepSpace, setShowDeepSpace,
-    showAbout, setShowAbout,
+    drawerOpen, setDrawerOpen,
     cinematic,
     navStack,
     selMoonIdx, cameraDistance,
@@ -625,11 +549,18 @@ export default function Panels(props: PanelProps) {
   const accentRgb = theme.uiAccentRgb;
   const mobile = useIsMobile();
   const sp = selPlanet !== null ? ALL_BODIES[selPlanet] : null;
+  const drawerRef = useRef<HTMLDivElement>(null);
 
   // Selected moon info
   const selectedMoon = selPlanet !== null && selMoonIdx !== null
     ? getMoonsForPlanet(selPlanet)[selMoonIdx]
     : null;
+
+  // Close drawer on click outside (desktop only)
+  const handleDrawerClickOutside = useCallback(() => {
+    if (!mobile && drawerOpen) setDrawerOpen(false);
+  }, [mobile, drawerOpen, setDrawerOpen]);
+  useClickOutside(drawerRef, handleDrawerClickOutside);
 
   // ─── Cinematic clock mode ──────────────────────────────────────────────────
   if (cinematic) {
@@ -657,14 +588,6 @@ export default function Panels(props: PanelProps) {
           {fmtDate(simTime)}
         </div>
         <div style={{
-          fontSize: mobile ? 16 : 20, marginTop: 12,
-          display: 'flex', alignItems: 'center', gap: 8,
-          color: 'rgba(255,255,255,0.3)',
-        }}>
-          <span>{moon.emoji}</span>
-          <span style={{ fontSize: 12, fontWeight: 300, fontStyle: 'italic' }}>{moon.name}</span>
-        </div>
-        <div style={{
           position: 'absolute', bottom: mobile ? 24 : 32,
           color: 'rgba(255,255,255,0.06)', fontSize: 11,
           letterSpacing: 6, textTransform: 'uppercase', fontWeight: 300,
@@ -677,13 +600,13 @@ export default function Panels(props: PanelProps) {
 
   return (
     <>
-      {/* ── Top bar: date + controls row ── */}
+      {/* ── Top bar: info + presets ── */}
       <div style={{
-        position: 'absolute', top: 8, left: 8, right: 8, zIndex: 10,
+        position: 'absolute', top: 8, left: 8, right: mobile ? 8 : 40, zIndex: 10,
         display: 'flex', flexDirection: 'column', gap: 6,
         alignItems: 'center',
       }}>
-        {/* Row 1: Date/time */}
+        {/* Info bar: time, date, moon phase, speed controls */}
         <div
           role="status"
           aria-label="Simulation time"
@@ -694,8 +617,7 @@ export default function Panels(props: PanelProps) {
         >
           <span style={{ color: '#fff', fontSize: mobile ? 16 : 20, fontWeight: 300, letterSpacing: 3, fontFamily: "'Cormorant', serif" }}>{fmtTime(simTime)}</span>
           <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: mobile ? 9 : 11, fontStyle: 'italic', fontWeight: 300 }}>{fmtDate(simTime)}</span>
-          <span style={{ fontSize: mobile ? 12 : 14 }}>{moon.emoji}</span>
-          {!mobile && <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, fontStyle: 'italic', fontWeight: 300 }}>{moon.name} {'\u00b7'} {moon.ill}%</span>}
+          {!mobile && <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, fontStyle: 'italic', fontWeight: 300 }}>{moon.name}, {moon.ill}%</span>}
           {speed !== 1 && <span style={{ color: accent, fontSize: 10, fontWeight: 400 }}>{speedLabel(speed)}</span>}
           <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 4 }}>
             <button
@@ -712,10 +634,11 @@ export default function Panels(props: PanelProps) {
               aria-label={props.playing ? 'Pause simulation' : 'Play simulation'}
               style={{
                 background: 'none', border: 'none', color: props.playing ? accent : 'rgba(255,255,255,0.5)',
-                fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', padding: '2px 5px',
+                fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', padding: '2px 5px',
                 minWidth: 28, minHeight: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                letterSpacing: props.playing ? 2 : 0,
               }}
-            >{props.playing ? '\u23f8' : '\u25b6'}</button>
+            >{props.playing ? 'II' : '>'}</button>
             <button
               onClick={() => props.setSpeed(s => Math.min(86400 * 365, (s < 10 ? s * 10 : s * 10)))}
               aria-label="Speed up"
@@ -728,7 +651,7 @@ export default function Panels(props: PanelProps) {
           </div>
         </div>
 
-        {/* Row 2: Camera presets (scrollable on mobile) */}
+        {/* Camera presets */}
         <div
           role="toolbar"
           aria-label="Camera presets"
@@ -772,45 +695,61 @@ export default function Panels(props: PanelProps) {
               </button>
             );
           })}
-
-          {/* Desktop: Bodies/Layers/About inline with presets */}
-          {!mobile && <>
-            <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />
-            <BodiesDropdown selPlanet={selPlanet} setSelPlanet={setSelPlanet} accent={accent} accentRgb={accentRgb} mobile={false} onMoonSelect={onMoonSelect} />
-            <LayersDropdown accent={accent} accentRgb={accentRgb} mobile={false} neoStatus={neoStatus} neoCount={neos.length}
-              showStars={showStars} setShowStars={setShowStars} showConstellations={showConstellations} setShowConstellations={setShowConstellations}
-              constellationFocus={constellationFocus} setConstellationFocus={setConstellationFocus}
-              showDwarf={showDwarf} setShowDwarf={setShowDwarf} showNeo={showNeo} setShowNeo={setShowNeo}
-              showAsteroidBelt={showAsteroidBelt} setShowAsteroidBelt={setShowAsteroidBelt} showMilkyWay={showMilkyWay} setShowMilkyWay={setShowMilkyWay}
-              showDeepSpace={showDeepSpace} setShowDeepSpace={setShowDeepSpace} />
-            <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />
-            <button onClick={() => setShowAbout(true)} aria-label="About this orrery" style={{
-              background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '50%',
-              width: 28, height: 28, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
-              color: 'rgba(255,255,255,0.4)', fontWeight: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            }}>?</button>
-          </>}
         </div>
+      </div>
 
-        {/* Row 3 (mobile only): Bodies / Layers / About — always visible, not in scroll area */}
-        {mobile && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center',
-          }}>
-            <BodiesDropdown selPlanet={selPlanet} setSelPlanet={setSelPlanet} accent={accent} accentRgb={accentRgb} mobile={true} onMoonSelect={onMoonSelect} />
-            <LayersDropdown accent={accent} accentRgb={accentRgb} mobile={true} neoStatus={neoStatus} neoCount={neos.length}
-              showStars={showStars} setShowStars={setShowStars} showConstellations={showConstellations} setShowConstellations={setShowConstellations}
-              constellationFocus={constellationFocus} setConstellationFocus={setConstellationFocus}
-              showDwarf={showDwarf} setShowDwarf={setShowDwarf} showNeo={showNeo} setShowNeo={setShowNeo}
-              showAsteroidBelt={showAsteroidBelt} setShowAsteroidBelt={setShowAsteroidBelt} showMilkyWay={showMilkyWay} setShowMilkyWay={setShowMilkyWay}
-              showDeepSpace={showDeepSpace} setShowDeepSpace={setShowDeepSpace} />
-            <button onClick={() => setShowAbout(true)} aria-label="About this orrery" style={{
-              background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '50%',
-              width: 32, height: 32, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
-              color: 'rgba(255,255,255,0.4)', fontWeight: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            }}>?</button>
-          </div>
-        )}
+      {/* ── Drawer toggle tab ── */}
+      <div
+        ref={drawerRef}
+        style={{ display: 'contents' }}
+      >
+        <button
+          onClick={() => setDrawerOpen((p: boolean) => !p)}
+          aria-label={drawerOpen ? 'Close panel' : 'Open panel'}
+          aria-expanded={drawerOpen}
+          style={{
+            ...drawerTab,
+            ...(mobile ? {
+              top: 'auto', bottom: 80, right: 0,
+              transform: 'none',
+              width: 44, height: 44,
+              borderRadius: '6px 0 0 6px',
+            } : {}),
+            color: 'rgba(255,255,255,0.4)',
+            fontSize: 12,
+            fontFamily: 'inherit',
+            background: 'rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRight: 'none',
+          }}
+        >
+          {drawerOpen ? '>' : '<'}
+        </button>
+
+        {/* ── Side drawer ── */}
+        <SideDrawer
+          open={drawerOpen}
+          accent={accent}
+          accentRgb={accentRgb}
+          mobile={mobile}
+          selPlanet={selPlanet}
+          setSelPlanet={setSelPlanet}
+          onMoonSelect={onMoonSelect}
+          neos={neos}
+          neoStatus={neoStatus}
+          selNeo={selNeo}
+          setSelNeo={setSelNeo}
+          showNeo={showNeo} setShowNeo={setShowNeo}
+          showStars={showStars} setShowStars={setShowStars}
+          showConstellations={showConstellations} setShowConstellations={setShowConstellations}
+          constellationFocus={constellationFocus} setConstellationFocus={setConstellationFocus}
+          showDwarf={showDwarf} setShowDwarf={setShowDwarf}
+          showAsteroidBelt={showAsteroidBelt} setShowAsteroidBelt={setShowAsteroidBelt}
+          showMilkyWay={showMilkyWay} setShowMilkyWay={setShowMilkyWay}
+          showDeepSpace={showDeepSpace} setShowDeepSpace={setShowDeepSpace}
+        />
       </div>
 
       {/* ── Background blur overlay when body selected ── */}
@@ -921,70 +860,6 @@ export default function Panels(props: PanelProps) {
       {/* ── Scale indicator ── */}
       <ScaleIndicator cameraDistance={cameraDistance} />
 
-      {/* ── About modal ── */}
-      <AboutModal open={showAbout} onClose={() => setShowAbout(false)} mobile={mobile} />
-
-      {/* ── NEO panel ── */}
-      <div
-        role="complementary"
-        aria-label="Near-Earth objects"
-        aria-hidden={!showNeo}
-        style={{
-          position: 'absolute',
-          ...(mobile
-            ? { left: 0, right: 0, bottom: 0, top: 'auto', maxHeight: '50vh', borderRadius: '12px 12px 0 0' }
-            : { top: 56, right: 0, bottom: 50, width: 250, borderRadius: '6px 0 0 6px', borderRight: 'none' }),
-          ...glass,
-          transform: showNeo ? 'translateY(0)' : (mobile ? 'translateY(100%)' : 'translateX(100%)'),
-          transition: 'transform 0.3s ease',
-          overflowY: 'auto', padding: '10px 8px', zIndex: 15,
-          paddingBottom: mobile ? 'max(10px, env(safe-area-inset-bottom))' : '10px',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', fontWeight: 300 }}>Near-Earth Objects</span>
-          <span style={{ color: accent, fontSize: 11 }}>
-            {neoStatus === 'loaded' ? `${neos.length} today` : neoStatus === 'error' ? 'Rate limited' : 'Loading'}
-          </span>
-          <Btn onClick={() => setShowNeo(p => !p)} label="Close NEO panel">{'\u2715'}</Btn>
-        </div>
-        {neoStatus === 'loading' && (
-          <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11, textAlign: 'center', marginTop: 20, fontStyle: 'italic' }}>Loading NASA data{'\u2026'}</div>
-        )}
-        {neoStatus === 'error' && (
-          <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, textAlign: 'center', marginTop: 20, fontStyle: 'italic' }}>
-            NASA API rate limited {'\u2014'} try again later
-          </div>
-        )}
-        {neos.map(neo => (
-          <div
-            key={neo.id}
-            role="button"
-            tabIndex={0}
-            aria-label={`${neo.name.replace(/[()]/g, '')}: ${neo.missLunar.toFixed(1)} lunar distances${neo.hazardous ? ', potentially hazardous' : ''}`}
-            onClick={() => setSelNeo(selNeo?.id === neo.id ? null : neo)}
-            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelNeo(selNeo?.id === neo.id ? null : neo); } }}
-            style={{
-              padding: mobile ? '10px 10px' : '6px 7px', marginBottom: 2, borderRadius: 4, cursor: 'pointer',
-              background: selNeo?.id === neo.id ? `rgba(${accentRgb},0.07)` : 'transparent',
-              border: selNeo?.id === neo.id ? `1px solid rgba(${accentRgb},0.2)` : '1px solid transparent',
-              transition: 'all 0.15s',
-              minHeight: mobile ? 44 : 'auto',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              {neo.hazardous && <span style={{ color: '#ff4444', fontSize: 7 }} aria-label="Potentially hazardous">{'\u25cf'}</span>}
-              <span style={{ color: '#fff', fontSize: mobile ? 12 : 11 }}>{neo.name.replace(/[()]/g, '')}</span>
-              {neo.orbit?.loaded && <span style={{ color: accent, fontSize: 9, marginLeft: 'auto', fontStyle: 'italic' }}>orbit</span>}
-            </div>
-            <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, marginTop: 2, fontWeight: 300 }}>
-              {neo.missLunar.toFixed(1)} LD {'\u00b7'} {neo.velKms.toFixed(1)} km/s {'\u00b7'} {Math.round(neo.dMin)}{'\u2013'}{Math.round(neo.dMax)} m
-            </div>
-          </div>
-        ))}
-        <div style={{ color: 'rgba(255,255,255,0.15)', fontSize: 9, marginTop: 8, textAlign: 'center', fontStyle: 'italic', fontWeight: 300 }}>Source: NASA JPL NeoWs {'\u00b7'} SBDB</div>
-      </div>
-
       {/* ── Selected NEO detail ── */}
       {selNeo && (
         <div
@@ -1018,7 +893,7 @@ export default function Panels(props: PanelProps) {
               </>
             )}
             {selNeo.orbit && !selNeo.orbit.loaded && (
-              <div style={{ gridColumn: '1/-1', color: 'rgba(255,255,255,0.3)', fontSize: 9 }}>Loading orbital elements{'\u2026'}</div>
+              <div style={{ gridColumn: '1/-1', color: 'rgba(255,255,255,0.3)', fontSize: 9 }}>Loading orbital elements...</div>
             )}
           </div>
           <a

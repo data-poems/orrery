@@ -56,6 +56,36 @@ export function bottomSheet(maxHeight = '60vh'): React.CSSProperties {
   };
 }
 
+// ─── Side drawer panel ──────────────────────────────────────────────────────────
+
+export const drawerPanel: React.CSSProperties = {
+  ...glass,
+  background: 'rgba(0,0,0,0.75)',
+  backdropFilter: 'blur(20px)',
+  WebkitBackdropFilter: 'blur(20px)',
+  borderRadius: 0,
+  borderRight: 'none',
+  borderLeft: '1px solid rgba(255,255,255,0.06)',
+};
+
+export const drawerTab: React.CSSProperties = {
+  position: 'fixed',
+  right: 0,
+  top: '50%',
+  transform: 'translateY(-50%)',
+  width: 28,
+  height: 80,
+  ...glass,
+  borderRadius: '6px 0 0 6px',
+  borderRight: 'none',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  zIndex: 25,
+  transition: 'opacity 0.15s',
+};
+
 // ─── Responsive hook ────────────────────────────────────────────────────────────
 
 export function useIsMobile(): boolean {

@@ -184,7 +184,6 @@ export const CONSTELLATIONS: ConstellationMeta[] = [
   { id: 'Vol', name: 'Volans', nameEn: 'Flying Fish', mythology: '', brightestStar: 'Beta Volantis (3.77)', season: 'Winter', area: 141, zodiac: false },
   { id: 'Vul', name: 'Vulpecula', nameEn: 'The Fox', mythology: '', brightestStar: 'Anser (4.44)', season: 'Summer', area: 268, zodiac: false },
   { id: 'Cru', name: 'Crux', nameEn: 'Southern Cross', mythology: '', brightestStar: 'Acrux (0.77)', season: 'Spring', area: 68, zodiac: false },
-  { id: 'Pyx', name: 'Pyxis', nameEn: 'Mariner Compass', mythology: '', brightestStar: 'Alpha Pyxidis (3.68)', season: 'Spring', area: 221, zodiac: false },
   { id: 'Scu', name: 'Sculptor', nameEn: 'The Sculptor', mythology: '', brightestStar: 'Alpha Sculptoris (4.31)', season: 'Autumn', area: 475, zodiac: false },
   { id: 'Tel', name: 'Telescopium', nameEn: 'The Telescope', mythology: '', brightestStar: 'Alpha Telescopii (3.49)', season: 'Summer', area: 252, zodiac: false },
 ];

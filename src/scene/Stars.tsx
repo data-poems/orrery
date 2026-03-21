@@ -246,12 +246,16 @@ function useConstellationCentroids(): ConstellationCentroid[] {
       .then(r => r.json())
       .then((geojson: any) => {
         const items: ConstellationCentroid[] = [];
+        const seenIds = new Set<string>();
         for (const feature of geojson.features) {
           const coords = feature.geometry.coordinates;
           // Point geometry: [ra, dec]
           if (feature.geometry.type === 'Point') {
+            let uid = feature.id;
+            if (seenIds.has(uid)) uid = `${uid}_${seenIds.size}`;
+            seenIds.add(uid);
             items.push({
-              id: feature.id,
+              id: uid,
               latin: feature.properties.name || feature.id,
               english: feature.properties.en || '',
               pos: raDecTo3D(coords[0], coords[1]),

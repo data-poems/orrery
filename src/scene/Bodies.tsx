@@ -42,7 +42,7 @@ export function Sun() {
       <Html
         position={[0, 0.2, 0]}
         center
-        distanceFactor={3}
+        distanceFactor={1.5}
         style={{ pointerEvents: 'none' }}
         zIndexRange={[1, 0]}
       >
@@ -236,7 +236,7 @@ export function Satellite({ moon, parentPos, jd, selected, onSelect, hovered, on
         <Html
           position={[0, moon.radius + 0.008, 0]}
           center
-          distanceFactor={1.5}
+          distanceFactor={0.6}
           style={{ pointerEvents: 'none' }}
           zIndexRange={[1, 0]}
         >

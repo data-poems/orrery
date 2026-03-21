@@ -12,7 +12,7 @@ import type { NEO, FocusTarget, CamPreset } from '../lib/kepler';
 import { ALL_BODIES } from '../data/planets';
 import { getMoonsForPlanet } from '../data/moons';
 import { useTheme } from '../lib/themes';
-import { glass, useIsMobile } from './styles';
+import { glass, bokehCard, useIsMobile } from './styles';
 
 // ─── Tiny UI primitives ─────────────────────────────────────────────────────────
 
@@ -496,7 +496,7 @@ export default function Panels(props: PanelProps) {
             ...(mobile
               ? { bottom: 80, left: 8, right: 8, width: 'auto' }
               : { top: 96, left: 14, width: 205 }),
-            ...glass, padding: '12px 14px', zIndex: 20,
+            ...bokehCard, padding: '14px 16px', zIndex: 20,
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>

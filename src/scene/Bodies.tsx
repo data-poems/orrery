@@ -141,12 +141,6 @@ export function Planet({ planet, T, selected, onSelect, hovered, onHover }: {
       </mesh>
       {planet.tex === 'earth' && <EarthClouds radius={r} />}
       {planet.hasRings && <SaturnRings radius={r} />}
-      {selected && (
-        <mesh rotation={[Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[r * 2.1, r * 2.35, 64]} />
-          <meshBasicMaterial color={theme.selectedRing} transparent opacity={0.7} side={THREE.DoubleSide} />
-        </mesh>
-      )}
       {hovered && !selected && (
         <Html distanceFactor={10} style={{ pointerEvents: 'none' }}>
           <div style={{
@@ -203,12 +197,6 @@ export function Satellite({ moon, parentPos, jd, selected, onSelect, hovered, on
           <meshStandardMaterial color={moon.color} roughness={0.9} depthWrite={true} />
         )}
       </mesh>
-      {selected && (
-        <mesh position={pos} rotation={[Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[moon.radius * 2.1, moon.radius * 2.5, 32]} />
-          <meshBasicMaterial color={theme.selectedRing} transparent opacity={0.7} side={THREE.DoubleSide} />
-        </mesh>
-      )}
       {hovered && !selected && (
         <group position={pos}>
           <Html distanceFactor={5} style={{ pointerEvents: 'none' }}>

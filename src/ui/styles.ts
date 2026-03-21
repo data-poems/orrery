@@ -14,6 +14,16 @@ export const glass: React.CSSProperties = {
   borderRadius: 6,
 };
 
+// Bokeh-style card: heavier blur, softer background for info panels
+export const bokehCard: React.CSSProperties = {
+  background: 'rgba(0,0,0,0.45)',
+  backdropFilter: 'blur(32px) saturate(1.4)',
+  WebkitBackdropFilter: 'blur(32px) saturate(1.4)',
+  border: '1px solid rgba(255,255,255,0.06)',
+  borderRadius: 10,
+  boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04)',
+};
+
 // ─── Responsive hook ────────────────────────────────────────────────────────────
 
 export function useIsMobile(): boolean {

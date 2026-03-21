@@ -18,7 +18,7 @@ import Panels from './ui/Panels';
 import LoadingScreen from './ui/LoadingScreen';
 
 type CinematicStep = {
-  camPreset: number; duration: number; label: string;
+  camPreset?: number; focusPlanet?: number; duration: number; label: string;
   stars?: boolean; constellations?: boolean; asteroidBelt?: boolean;
   milkyWay?: boolean; deepSpace?: boolean; dwarf?: boolean;
 };

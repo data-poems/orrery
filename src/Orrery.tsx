@@ -59,33 +59,35 @@ function OrreryInner() {
 
   // ─── Cinematic: continuous zoom cycle through scale levels ──────────────────
   const cinematicSteps = useMemo((): CinematicStep[] => [
-    // Phase 1: Quick zoom out to galaxy (~20s)
+    // Phase 1: Outward journey — inner system to galactic scale
     { camPreset: 0, duration: 4000, label: 'Inner Planets',
       desc: 'Mercury, Venus, Earth, and Mars -- the rocky worlds closest to the Sun.',
-      stars: true, constellations: false, asteroidBelt: false, milkyWay: false, deepSpace: false, dwarf: false, constellationFocus: false },
-    { camPreset: 1, duration: 3000, label: 'Solar System',
-      desc: 'Eight planets orbit our star, spanning 30 AU from center to edge.',
-      asteroidBelt: true, constellations: true },
-    { camPreset: 4, duration: 3000, label: 'Outer Planets',
-      desc: 'Beyond the asteroid belt lie the gas and ice giants.',
-      dwarf: true },
+      stars: true, constellations: false, constellationFocus: false, asteroidBelt: false, milkyWay: false, deepSpace: false, dwarf: false },
+    { focusPlanet: 4, duration: 5000, label: 'Jupiter',
+      desc: 'King of the planets. Its Great Red Spot is a storm larger than Earth. 95 known moons.',
+      asteroidBelt: true },
+    { focusPlanet: 2, duration: 5000, label: 'Earth',
+      desc: 'Our home. The only known world with liquid water on its surface.',
+      constellations: true },
     { camPreset: 5, duration: 3000, label: 'Kuiper Belt',
-      desc: 'A ring of icy bodies beyond Neptune, home to Pluto and thousands more.' },
+      desc: 'A ring of icy bodies beyond Neptune, home to Pluto and thousands more.',
+      dwarf: true, milkyWay: true },
     { camPreset: 6, duration: 3000, label: 'Oort Cloud',
       desc: 'A vast spherical shell of comets at the edge of the Solar System.',
-      milkyWay: true, deepSpace: true },
+      deepSpace: true },
     { camPreset: 7, duration: 5000, label: 'Galactic View',
       desc: 'Our Solar System is one of billions in the Milky Way galaxy.' },
-    // Phase 2: Extended planet tour -- close-up exploration
-    { focusPlanet: 2, duration: 6000, label: 'Earth',
-      desc: 'Third rock from the Sun. The only known world with liquid water on its surface.' },
+
+    // Phase 2: Dramatic zoom back in to the Sun
+    { camPreset: 8, duration: 6000, label: 'Sol',
+      desc: 'A yellow dwarf star, 4.6 billion years old. 99.86% of all mass in the solar system.',
+      deepSpace: false, milkyWay: false },
+
+    // Phase 3: Planet tour
     { focusPlanet: 3, duration: 5000, label: 'Mars',
       desc: 'The Red Planet. Olympus Mons rises 21 km -- the tallest volcano known.' },
-    { focusPlanet: 4, duration: 6000, label: 'Jupiter',
-      desc: 'King of the planets. Its Great Red Spot is a storm larger than Earth. 95 known moons.' },
-    { focusPlanet: 5, duration: 6000, label: 'Saturn',
-      desc: 'The ringed giant. Its rings span 282,000 km but are only 10 meters thick.',
-      constellationFocus: false },
+    { focusPlanet: 5, duration: 5000, label: 'Saturn',
+      desc: 'The ringed giant. Its rings span 282,000 km but are only 10 meters thick.' },
     { camPreset: 2, duration: 5000, label: 'Constellations',
       desc: '88 constellations map the entire celestial sphere, tracing stories millennia old.',
       constellationFocus: true },
@@ -100,8 +102,10 @@ function OrreryInner() {
       desc: "Earth's twin in size, but a world of crushing pressure and sulfuric acid clouds." },
     { camPreset: 3, duration: 4000, label: 'Ecliptic Plane',
       desc: "The plane of Earth's orbit -- where all the planets roughly align." },
-    { camPreset: 1, duration: 5000, label: 'Solar System',
-      desc: 'Our cosmic neighborhood -- eight planets orbiting an ordinary star.' },
+
+    // Phase 4: Return home
+    { camPreset: 0, duration: 5000, label: 'Inner Planets',
+      desc: 'Our cosmic neighborhood -- four rocky worlds orbiting close to an ordinary star.' },
   ], []);
 
   const cinematicIdx = useRef(0);

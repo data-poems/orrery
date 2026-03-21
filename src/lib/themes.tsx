@@ -12,7 +12,6 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 export interface OrreryTheme {
   id: string;
   name: string;
-  constellationLine: string;
   uiAccent: string;
   uiAccentRgb: string;          // r,g,b for rgba() usage
   panelBorder: string;
@@ -24,7 +23,6 @@ export const THEMES: OrreryTheme[] = [
   {
     id: 'brass',
     name: 'Brass',
-    constellationLine: '#c8a86e',
     uiAccent: '#00ffcc',
     uiAccentRgb: '0,255,204',
     panelBorder: 'rgba(255,255,255,0.08)',
@@ -34,7 +32,6 @@ export const THEMES: OrreryTheme[] = [
   {
     id: 'silver',
     name: 'Silver',
-    constellationLine: '#8899bb',
     uiAccent: '#66bbff',
     uiAccentRgb: '102,187,255',
     panelBorder: 'rgba(255,255,255,0.08)',
@@ -44,7 +41,6 @@ export const THEMES: OrreryTheme[] = [
   {
     id: 'highcontrast',
     name: 'High Contrast',
-    constellationLine: '#ffffff',
     uiAccent: '#ffff00',
     uiAccentRgb: '255,255,0',
     panelBorder: 'rgba(255,255,255,0.15)',
@@ -54,7 +50,6 @@ export const THEMES: OrreryTheme[] = [
   {
     id: 'ember',
     name: 'Ember',
-    constellationLine: '#cc7744',
     uiAccent: '#44ccaa',
     uiAccentRgb: '68,204,170',
     panelBorder: 'rgba(255,255,255,0.08)',
@@ -81,13 +76,11 @@ function loadTheme(): OrreryTheme {
 interface ThemeContextValue {
   theme: OrreryTheme;
   setTheme: (theme: OrreryTheme) => void;
-  cycleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
   theme: THEMES[0],
   setTheme: () => {},
-  cycleTheme: () => {},
 });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {

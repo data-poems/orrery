@@ -19,23 +19,29 @@ import LoadingScreen from './ui/LoadingScreen';
 
 function OrreryInner() {
   const [neos, setNeos] = useState<NEO[]>([]);
+  const [neoStatus, setNeoStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
   const [selNeo, setSelNeo] = useState<NEO | null>(null);
-  const [selPlanet, setSelPlanet] = useState<number | null>(2);
+  // Mobile: no info card on load (blocks screen). Desktop: Earth selected.
+  const isMobileInit = typeof window !== 'undefined' && window.innerWidth < 768;
+  const [selPlanet, setSelPlanet] = useState<number | null>(isMobileInit ? null : 2);
   const [showNeo, setShowNeo] = useState(false);
   const [showDwarf, setShowDwarf] = useState(true);
   const [showStars, setShowStars] = useState(true);
   const [showConstellations, setShowConstellations] = useState(true);
-  const [showPlanetList, setShowPlanetList] = useState(false);
+  const [showAsteroidBelt, setShowAsteroidBelt] = useState(true);
+  const [showMilkyWay, setShowMilkyWay] = useState(true);
+  const [showDeepSpace, setShowDeepSpace] = useState(true);
+  const [showAbout, setShowAbout] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [simTime, setSimTime] = useState(new Date());
   const [playing, setPlaying] = useState(true);
   const [focusTarget, setFocusTarget] = useState<FocusTarget | null>(null);
   const [sceneReady, setSceneReady] = useState(false);
   const [cinematic, setCinematic] = useState(false);
-  const [navStack, setNavStack] = useState<string[]>(['Solar System', 'Earth']);
+  const [navStack, setNavStack] = useState<string[]>(isMobileInit ? ['Solar System'] : ['Solar System', 'Earth']);
   const [selMoonIdx, setSelMoonIdx] = useState<number | null>(null);
   const [cameraDistance, setCameraDistance] = useState(50);
-  const [camIdx, setCamIdx] = useState(2);
+  const [camIdx, setCamIdx] = useState(0);
   const positionsRef = useRef(new Map<number, [number, number, number]>());
 
   const jd = useMemo(() => julianDate(simTime), [simTime]);
@@ -48,11 +54,11 @@ function OrreryInner() {
     positionsRef.current = m;
   }, []);
 
-  // Start focused on Earth
+  // Start focused on Earth (camera follows even on mobile, just no info card)
   const didInitFocus = useRef(false);
   useEffect(() => {
     if (didInitFocus.current) return;
-    if (positionsRef.current.size > 0) return; // wait for first positions update
+    if (positionsRef.current.size > 0) return;
   }, []);
   useEffect(() => {
     if (didInitFocus.current) return;
@@ -70,11 +76,27 @@ function OrreryInner() {
     return () => clearInterval(id);
   }, [playing, speed]);
 
-  // Fetch today's near-Earth objects from NASA NeoWs
+  // Fetch today's near-Earth objects from NASA NeoWs (with sessionStorage caching)
   useEffect(() => {
     const d = new Date().toISOString().split('T')[0];
+    const cacheKey = `neo-${d}`;
+
+    // Check sessionStorage cache first
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        const list = JSON.parse(cached) as NEO[];
+        setNeos(list);
+        setNeoStatus('loaded');
+        return;
+      }
+    } catch { /* ignore */ }
+
     fetch(`https://api.nasa.gov/neo/rest/v1/feed?start_date=${d}&end_date=${d}&api_key=DEMO_KEY`)
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then(data => {
         const list: NEO[] = [];
         Object.values(data.near_earth_objects || {}).forEach((arr: any) => {
@@ -97,8 +119,13 @@ function OrreryInner() {
         });
         list.sort((a, b) => a.missLunar - b.missLunar);
         setNeos(list);
+        setNeoStatus('loaded');
+        // Cache in sessionStorage
+        try { sessionStorage.setItem(cacheKey, JSON.stringify(list)); } catch { /* ignore */ }
       })
-      .catch(() => {});
+      .catch(() => {
+        setNeoStatus('error');
+      });
   }, []);
 
   // Fetch asteroid orbital elements from NASA SBDB on NEO selection
@@ -142,7 +169,6 @@ function OrreryInner() {
     if (navStack.length <= 1) return;
 
     if (selMoonIdx !== null) {
-      // At moon level → back to planet
       setSelMoonIdx(null);
       setFocusTarget(prev => prev ? { planetIdx: prev.planetIdx, pos: prev.pos } : null);
       setNavStack(prev => prev.slice(0, -1));
@@ -158,13 +184,11 @@ function OrreryInner() {
   // Navigate to a specific breadcrumb level
   const navigateToLevel = useCallback((level: number) => {
     if (level === 0) {
-      // Solar System
       setSelPlanet(null);
       setSelMoonIdx(null);
       setFocusTarget(null);
       setNavStack(['Solar System']);
     } else if (level === 1 && navStack.length > 2) {
-      // Planet level when at moon level
       setSelMoonIdx(null);
       setFocusTarget(prev => prev ? { planetIdx: prev.planetIdx, pos: prev.pos } : null);
       setNavStack(prev => prev.slice(0, 2));
@@ -233,8 +257,8 @@ function OrreryInner() {
         return;
       }
 
-      // Camera presets 1-8
-      if (e.key >= '1' && e.key <= '8') {
+      // Camera presets 1-9
+      if (e.key >= '1' && e.key <= '9') {
         handlePresetSelect(parseInt(e.key) - 1);
         return;
       }
@@ -243,12 +267,11 @@ function OrreryInner() {
       if (k === 'd') setShowDwarf(p => !p);
       if (k === 's') setShowStars(p => !p);
       if (k === 'c') setShowConstellations(p => !p);
-      if (k === 'p') setShowPlanetList(p => !p);
       if (k === 'f') setCinematic(true);
       if (k === 'escape') {
         navigateBack();
         setSelNeo(null);
-        setShowPlanetList(false);
+        setShowAbout(false);
       }
       if (k === ' ') { e.preventDefault(); setPlaying(p => !p); }
     };
@@ -286,6 +309,9 @@ function OrreryInner() {
             showDwarf={showDwarf}
             showStars={showStars}
             showConstellations={showConstellations}
+            showAsteroidBelt={showAsteroidBelt}
+            showMilkyWay={showMilkyWay}
+            showDeepSpace={showDeepSpace}
             cinematic={cinematic}
             onMoonSelect={handleMoonSelect}
             selMoonIdx={selMoonIdx}
@@ -303,12 +329,15 @@ function OrreryInner() {
         playing={playing} setPlaying={setPlaying}
         focusTarget={focusTarget} setFocusTarget={setFocusTarget}
         selPlanet={selPlanet} setSelPlanet={handlePlanetSelect}
-        neos={neos} selNeo={selNeo} setSelNeo={setSelNeo}
+        neos={neos} neoStatus={neoStatus} selNeo={selNeo} setSelNeo={setSelNeo}
         showNeo={showNeo} setShowNeo={setShowNeo}
         showDwarf={showDwarf} setShowDwarf={setShowDwarf}
         showStars={showStars} setShowStars={setShowStars}
         showConstellations={showConstellations} setShowConstellations={setShowConstellations}
-        showPlanetList={showPlanetList} setShowPlanetList={setShowPlanetList}
+        showAsteroidBelt={showAsteroidBelt} setShowAsteroidBelt={setShowAsteroidBelt}
+        showMilkyWay={showMilkyWay} setShowMilkyWay={setShowMilkyWay}
+        showDeepSpace={showDeepSpace} setShowDeepSpace={setShowDeepSpace}
+        showAbout={showAbout} setShowAbout={setShowAbout}
         setSimTime={setSimTime}
         positionsRef={positionsRef}
         cinematic={cinematic}

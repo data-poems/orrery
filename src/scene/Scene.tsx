@@ -164,6 +164,9 @@ export interface SceneProps {
   showDwarf: boolean;
   showStars: boolean;
   showConstellations: boolean;
+  showAsteroidBelt: boolean;
+  showMilkyWay: boolean;
+  showDeepSpace: boolean;
   cinematic: boolean;
   onMoonSelect?: (planetIdx: number, moonIdx: number) => void;
   selMoonIdx?: number | null;

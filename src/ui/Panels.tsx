@@ -438,7 +438,7 @@ export default function Panels(props: PanelProps) {
       )}
 
       {/* ── Selected planet info card ── */}
-      {sp && !selectedMoon && !showPlanetList && (
+      {sp && !selectedMoon && (
         <div
           role="dialog"
           aria-label={`${sp.name} information`}

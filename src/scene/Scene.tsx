@@ -12,7 +12,7 @@ import type { PlanetDef, NEO, FocusTarget, CamPreset } from '../lib/kepler';
 import { planetXYZ } from '../lib/kepler';
 import { Sun, Planet, OrbitRing, Satellite, SatelliteOrbit } from './Bodies';
 import { AsteroidBelt, NeoDot, AsteroidOrbitLine } from './Asteroids';
-import { StarField, ConstellationLines, ConstellationLabels } from './Stars';
+import { StarField, ConstellationLines, ConstellationLabels, MilkyWayBand } from './Stars';
 import { ScaleMarkers, OortCloud, GalaxyDisc } from './DeepSpace';
 import { useTheme } from '../lib/themes';
 
@@ -177,8 +177,8 @@ export interface SceneProps {
 export default function Scene({
   jd, T, neos, selNeo, setSelNeo, selPlanet, setSelPlanet,
   focusTarget, onPositionsUpdate, showDwarf,
-  showStars, showConstellations, cinematic,
-  onMoonSelect, selMoonIdx, onCameraDistance, camPreset,
+  showStars, showConstellations, showAsteroidBelt, showMilkyWay, showDeepSpace,
+  cinematic, onMoonSelect, selMoonIdx, onCameraDistance, camPreset,
 }: SceneProps) {
   const [hov, setHov] = useState<number | null>(null);
   const [hovMoon, setHovMoon] = useState<number | null>(null);
@@ -209,7 +209,7 @@ export default function Scene({
       <ambientLight intensity={0.15} />
       <Sun />
       <AUGrid />
-      <AsteroidBelt />
+      {showAsteroidBelt && <AsteroidBelt />}
       {visibleBodies.map((p) => {
         const bodyIdx = ALL_BODIES.indexOf(p);
         return (
@@ -264,9 +264,10 @@ export default function Scene({
       <StarField visible={showStars} />
       <ConstellationLines visible={showConstellations} theme={theme} />
       <ConstellationLabels visible={showConstellations} />
-      <ScaleMarkers />
-      <OortCloud />
-      <GalaxyDisc />
+      {showMilkyWay && <MilkyWayBand visible={showStars} theme={theme} />}
+      {showDeepSpace && <ScaleMarkers />}
+      {showDeepSpace && <OortCloud />}
+      {showDeepSpace && <GalaxyDisc />}
       <CamCtrl
         focusTarget={focusTarget}
         positions={positions}

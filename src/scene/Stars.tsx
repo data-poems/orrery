@@ -301,7 +301,7 @@ export function ConstellationLabels({ visible }: { visible: boolean }) {
                 zIndexRange={[1, 0]}
               >
                 <div style={{
-                  color: 'rgba(255,255,255,0.35)',
+                  color: 'rgba(255,255,255,0.4)',
                   fontSize: 11,
                   fontFamily: "'Cormorant Garamond', serif",
                   fontStyle: 'italic',
@@ -311,8 +311,9 @@ export function ConstellationLabels({ visible }: { visible: boolean }) {
                   userSelect: 'none',
                   textAlign: 'center',
                   lineHeight: 1.3,
+                  textShadow: '0 0 8px rgba(0,0,0,0.8)',
                 }}>
-                  <span style={{ display: 'block', fontSize: 12, fontWeight: 400, fontStyle: 'normal' }}>{c.latin}</span>
+                  <span style={{ display: 'block', fontSize: 13, fontWeight: 400, fontStyle: 'normal' }}>{c.latin}</span>
                   {c.english && <span style={{ display: 'block', fontSize: 9, opacity: 0.6 }}>{c.english}</span>}
                 </div>
               </Html>

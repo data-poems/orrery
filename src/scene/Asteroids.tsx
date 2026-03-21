@@ -106,7 +106,7 @@ export function NeoDot({ neo, selected, onSelect, jd }: {
   return (
     <group position={pos}>
       <mesh onClick={e => { e.stopPropagation(); onSelect(); }}>
-        <icosahedronGeometry args={[r, 0]} />
+        <sphereGeometry args={[r, 8, 8]} />
         <meshBasicMaterial color={col} />
       </mesh>
       {selected && (

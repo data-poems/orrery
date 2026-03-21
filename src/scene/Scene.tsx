@@ -104,8 +104,11 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistanc
   useFrame(() => {
     const ctrl = ctrlRef.current;
     const trackIdx = focusTarget?.planetIdx ?? null;
-    // Slower lerp during cinematic — camera continuously drifts, never fully "arrives"
-    const lerp = cinematic ? 0.008 : 0.03;
+    // Adaptive lerp during cinematic — fast for huge scale transitions, slow dreamy drift close-up
+    const dist = camera.position.distanceTo(tPos.current);
+    const lerp = cinematic
+      ? (dist > 500 ? 0.04 : dist > 10 ? 0.02 : 0.008)
+      : 0.03;
 
     if (trackIdx !== null) {
       const pp = positions.get(trackIdx);

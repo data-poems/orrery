@@ -165,13 +165,13 @@ export function Planet({ planet, T, selected, onSelect, hovered, onHover }: {
       <Html
         position={[0, r + 0.02, 0]}
         center
-        distanceFactor={planet.isDwarf ? 3 : 5}
+        distanceFactor={planet.isDwarf ? 1 : 2}
         style={{ pointerEvents: 'none' }}
         zIndexRange={[1, 0]}
       >
         <div style={{
           color: hovered || selected ? '#fff' : 'rgba(255,255,255,0.85)',
-          fontSize: 16,
+          fontSize: 12,
           fontFamily: "'Cormorant Garamond', serif",
           fontWeight: selected ? 600 : 400,
           letterSpacing: 1,

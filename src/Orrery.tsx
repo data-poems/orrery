@@ -185,7 +185,6 @@ function OrreryInner() {
     };
   }, [cinematic, sceneReady, positionsReady, applyCinematicShot, cinematicShots]);
 
-  const [positionsReady, setPositionsReady] = useState(false);
   const handlePositionsUpdate = useCallback((m: Map<number, [number, number, number]>) => {
     positionsRef.current = m;
     if (m.size > 0 && !positionsReady) setPositionsReady(true);

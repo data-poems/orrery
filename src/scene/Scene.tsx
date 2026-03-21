@@ -267,10 +267,6 @@ export default function Scene({
 
   const visibleBodies = showDwarf ? ALL_BODIES : ALL_BODIES.filter(b => !b.isDwarf);
 
-  // Moons for the focused planet (only rendered when planet is selected)
-  const focusedMoons = selPlanet !== null ? getMoonsForPlanet(selPlanet) : [];
-  const focusedParentPos = selPlanet !== null ? positions.get(selPlanet) : null;
-
   const handleCameraDistance = onCameraDistance;
 
   return (

@@ -156,24 +156,52 @@ export function StarField({ visible }: { visible: boolean }) {
   );
 }
 
-// ─── Constellation lines ────────────────────────────────────────────────────
+// ─── HSL → RGB (for constellation palette) ──────────────────────────────
 
-interface LineData {
+function hslToRgb(h: number, s: number, l: number): [number, number, number] {
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h * 6) % 2) - 1));
+  const m = l - c / 2;
+  let r = 0, g = 0, b = 0;
+  const hue = h * 6;
+  if (hue < 1)      { r = c; g = x; }
+  else if (hue < 2) { r = x; g = c; }
+  else if (hue < 3) { g = c; b = x; }
+  else if (hue < 4) { g = x; b = c; }
+  else if (hue < 5) { r = x; b = c; }
+  else              { r = c; b = x; }
+  return [r + m, g + m, b + m];
+}
+
+/** Golden-angle hue spread with luminance variation for colorblind safety */
+function constellationColor(index: number): [number, number, number] {
+  const hue = ((index * 137.508) % 360) / 360;
+  const sat = 0.65 + (index % 3) * 0.12;
+  const light = 0.55 + (index % 5) * 0.06;
+  return hslToRgb(hue, sat, light);
+}
+
+// ─── Constellation lines (colored + glow) ───────────────────────────────
+
+interface ColoredLineData {
   positions: Float32Array;
+  colors: Float32Array;
   count: number;
 }
 
-function useConstellationLineData(): LineData | null {
-  const [data, setData] = useState<LineData | null>(null);
+function useConstellationLineData(): ColoredLineData | null {
+  const [data, setData] = useState<ColoredLineData | null>(null);
 
   useEffect(() => {
     fetch(BASE_PATH + 'constellations.lines.json')
       .then(r => r.json())
       .then((geojson: any) => {
-        // Collect all line segments
         const segments: number[] = [];
-        for (const feature of geojson.features) {
-          const coords = feature.geometry.coordinates; // MultiLineString: array of line strings
+        const segColors: number[] = [];
+
+        geojson.features.forEach((feature: any, featureIdx: number) => {
+          const [cr, cg, cb] = constellationColor(featureIdx);
+          const coords = feature.geometry.coordinates;
           for (const lineString of coords) {
             for (let i = 0; i < lineString.length - 1; i++) {
               const [ra1, dec1] = lineString[i];
@@ -181,11 +209,16 @@ function useConstellationLineData(): LineData | null {
               const [x1, y1, z1] = raDecTo3D(ra1, dec1);
               const [x2, y2, z2] = raDecTo3D(ra2, dec2);
               segments.push(x1, y1, z1, x2, y2, z2);
+              segColors.push(cr, cg, cb, cr, cg, cb);
             }
           }
-        }
-        const positions = new Float32Array(segments);
-        setData({ positions, count: segments.length / 3 });
+        });
+
+        setData({
+          positions: new Float32Array(segments),
+          colors: new Float32Array(segColors),
+          count: segments.length / 3,
+        });
       })
       .catch(() => {});
   }, []);
@@ -193,7 +226,48 @@ function useConstellationLineData(): LineData | null {
   return data;
 }
 
-export function ConstellationLines({ visible, theme }: { visible: boolean; theme: OrreryTheme }) {
+/** Glow line shader — additive blending with vertex colors */
+const glowLineVertexShader = `
+  attribute vec3 color;
+  varying vec3 vColor;
+  void main() {
+    vColor = color;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const glowLineFragmentShader = `
+  varying vec3 vColor;
+  uniform float opacity;
+  void main() {
+    gl_FragColor = vec4(vColor, opacity);
+  }
+`;
+
+/** Glow halo points at each vertex for soft bloom effect */
+const glowPointVertexShader = `
+  attribute vec3 color;
+  varying vec3 vColor;
+  void main() {
+    vColor = color;
+    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+    gl_PointSize = 4.0;
+    gl_Position = projectionMatrix * mvPosition;
+  }
+`;
+
+const glowPointFragmentShader = `
+  varying vec3 vColor;
+  uniform float opacity;
+  void main() {
+    float d = length(gl_PointCoord - vec2(0.5));
+    if (d > 0.5) discard;
+    float alpha = opacity * smoothstep(0.5, 0.0, d);
+    gl_FragColor = vec4(vColor, alpha);
+  }
+`;
+
+export function ConstellationLines({ visible }: { visible: boolean; theme: OrreryTheme }) {
   const lineData = useConstellationLineData();
   const { camera } = useThree();
 
@@ -201,33 +275,69 @@ export function ConstellationLines({ visible, theme }: { visible: boolean; theme
     if (!lineData) return null;
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(lineData.positions, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(lineData.colors, 3));
     return geo;
   }, [lineData]);
 
-  const material = useMemo(() => new THREE.LineBasicMaterial({
-    color: theme.constellationLine,
+  // Separate point geometry for glow halos (unique vertices only)
+  const glowGeo = useMemo(() => {
+    if (!lineData) return null;
+    // Deduplicate vertices for point halos
+    const seen = new Map<string, number>();
+    const pts: number[] = [];
+    const cols: number[] = [];
+    for (let i = 0; i < lineData.positions.length; i += 3) {
+      const key = `${lineData.positions[i].toFixed(1)},${lineData.positions[i + 1].toFixed(1)},${lineData.positions[i + 2].toFixed(1)}`;
+      if (!seen.has(key)) {
+        seen.set(key, pts.length / 3);
+        pts.push(lineData.positions[i], lineData.positions[i + 1], lineData.positions[i + 2]);
+        cols.push(lineData.colors[i], lineData.colors[i + 1], lineData.colors[i + 2]);
+      }
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts), 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(cols), 3));
+    return geo;
+  }, [lineData]);
+
+  const lineMat = useMemo(() => new THREE.ShaderMaterial({
+    vertexShader: glowLineVertexShader,
+    fragmentShader: glowLineFragmentShader,
+    uniforms: { opacity: { value: 0.5 } },
     transparent: true,
-    opacity: 0.35,
+    blending: THREE.AdditiveBlending,
     depthWrite: false,
     depthTest: true,
-  }), [theme.constellationLine]);
+  }), []);
 
-  // Distance-based fade: dim when zoomed in close (<3 AU) or far out (>200 AU)
+  const pointMat = useMemo(() => new THREE.ShaderMaterial({
+    vertexShader: glowPointVertexShader,
+    fragmentShader: glowPointFragmentShader,
+    uniforms: { opacity: { value: 0.2 } },
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    depthTest: true,
+  }), []);
+
+  // Distance-based fade
   useFrame(() => {
     const dist = camera.position.length();
-    let opacity = 0.35;
+    let opacity = 0.5;
     if (dist < 1) opacity = 0;
-    else if (dist < 5) opacity = 0.35 * ((dist - 1) / 4);
-    else if (dist > 500) opacity = 0.05;
-    else if (dist > 200) opacity = 0.35 - (dist - 200) / 300 * 0.3;
-    material.opacity = opacity;
+    else if (dist < 5) opacity = 0.5 * ((dist - 1) / 4);
+    else if (dist > 500) opacity = 0.08;
+    else if (dist > 200) opacity = 0.5 - (dist - 200) / 300 * 0.42;
+    lineMat.uniforms.opacity.value = opacity;
+    pointMat.uniforms.opacity.value = opacity * 0.35;
   });
 
-  if (!geometry) return null;
+  if (!geometry || !glowGeo) return null;
 
   return (
     <CelestialGroup visible={visible}>
-      <lineSegments geometry={geometry} material={material} />
+      <lineSegments geometry={geometry} material={lineMat} />
+      <points geometry={glowGeo} material={pointMat} />
     </CelestialGroup>
   );
 }
@@ -239,6 +349,7 @@ interface ConstellationCentroid {
   latin: string;
   english: string;
   pos: [number, number, number];
+  color: string;  // per-constellation color (CSS rgb)
 }
 
 function useConstellationCentroids(): ConstellationCentroid[] {

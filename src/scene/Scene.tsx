@@ -52,6 +52,19 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistanc
   const settling = useRef(true);
   const prevTrackPos = useRef(new THREE.Vector3());
 
+  // Compute camera offset from angle/elevation/distance
+  const offsetFromAngle = (dist: number, angle: number, elevation: number): [number, number, number] => {
+    const a = cinematicAngle ? cinematicAngle.angle : angle;
+    const el = cinematicAngle ? cinematicAngle.elevation : elevation;
+    const dm = cinematicAngle ? cinematicAngle.distMult : 1;
+    const d = dist * dm;
+    return [
+      d * Math.cos(el) * Math.cos(a),
+      d * Math.sin(el),
+      d * Math.cos(el) * Math.sin(a),
+    ];
+  };
+
   // Trigger transition on focus or preset changes
   useEffect(() => {
     settling.current = true;
@@ -62,16 +75,18 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistanc
           const moons = getMoonsForPlanet(focusTarget.planetIdx);
           const moon = moons[focusTarget.moonIdx];
           if (moon) {
-            const offset = moon.radius * 15;
+            const dist = moon.radius * 15;
+            const [ox, oy, oz] = offsetFromAngle(dist, 0.7, 0.4);
             tLook.current.set(...pp);
-            tPos.current.set(pp[0] + offset, pp[1] + offset * 0.4, pp[2] + offset);
+            tPos.current.set(pp[0] + ox, pp[1] + oy, pp[2] + oz);
             prevTrackPos.current.set(...pp);
           }
         } else {
           const planet = ALL_BODIES[focusTarget.planetIdx];
-          const offset = planet.radius * 8 + planet.a * 0.15;
+          const dist = planet.radius * 8 + planet.a * 0.15;
+          const [ox, oy, oz] = offsetFromAngle(dist, 0.7, 0.4);
           tLook.current.set(...pp);
-          tPos.current.set(pp[0] + offset, pp[1] + offset * 0.4, pp[2] + offset);
+          tPos.current.set(pp[0] + ox, pp[1] + oy, pp[2] + oz);
           prevTrackPos.current.set(...pp);
         }
       }
@@ -82,7 +97,7 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistanc
       tPos.current.set(...HOME_POS);
       tLook.current.set(...HOME_TGT);
     }
-  }, [focusTarget, camPreset]);
+  }, [focusTarget, camPreset, cinematicAngle]);
 
   // Stop transition when user grabs orbit controls
   useEffect(() => {
@@ -105,8 +120,9 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistanc
         if (settling.current) {
           if (focusTarget !== null && focusTarget.moonIdx === undefined) {
             const planet = ALL_BODIES[trackIdx];
-            const offset = planet.radius * 8 + planet.a * 0.15;
-            tPos.current.set(pp[0] + offset, pp[1] + offset * 0.4, pp[2] + offset);
+            const dist = planet.radius * 8 + planet.a * 0.15;
+            const [ox, oy, oz] = offsetFromAngle(dist, 0.7, 0.4);
+            tPos.current.set(pp[0] + ox, pp[1] + oy, pp[2] + oz);
           }
           tLook.current.copy(newTarget);
           camera.position.lerp(tPos.current, 0.03);
@@ -173,13 +189,14 @@ export interface SceneProps {
   selMoonIdx?: number | null;
   onCameraDistance?: (d: number) => void;
   camPreset?: CamPreset | null;
+  cinematicAngle?: { angle: number; elevation: number; distMult: number };
 }
 
 export default function Scene({
   jd, T, neos, selNeo, setSelNeo, selPlanet, setSelPlanet,
   focusTarget, onPositionsUpdate, showDwarf,
   showStars, showConstellations, showAsteroidBelt, showMilkyWay: _, showDeepSpace,
-  cinematic, onMoonSelect, selMoonIdx, onCameraDistance, camPreset,
+  cinematic, onMoonSelect, selMoonIdx, onCameraDistance, camPreset, cinematicAngle,
 }: SceneProps) {
   const [hov, setHov] = useState<number | null>(null);
   const [hovMoon, setHovMoon] = useState<number | null>(null);

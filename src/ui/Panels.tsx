@@ -596,7 +596,6 @@ export interface PanelProps {
 export default function Panels(props: PanelProps) {
   const {
     simTime, moon, speed,
-    focusTarget, setFocusTarget,
     selPlanet, setSelPlanet, neos, neoStatus, selNeo, setSelNeo,
     showNeo, setShowNeo,
     showDwarf, setShowDwarf,
@@ -606,9 +605,8 @@ export default function Panels(props: PanelProps) {
     showMilkyWay, setShowMilkyWay,
     showDeepSpace, setShowDeepSpace,
     showAbout, setShowAbout,
-    positionsRef,
     cinematic,
-    navStack, navigateBack,
+    navStack,
     selMoonIdx, cameraDistance,
     cams, camIdx, onPresetSelect,
     onMoonSelect,

@@ -320,6 +320,7 @@ function LayersDropdown({ accent, accentRgb, mobile, neoStatus, neoCount, ...tog
   neoCount: number;
   showStars: boolean; setShowStars: (fn: (p: boolean) => boolean) => void;
   showConstellations: boolean; setShowConstellations: (fn: (p: boolean) => boolean) => void;
+  constellationFocus: boolean; setConstellationFocus: (fn: (p: boolean) => boolean) => void;
   showDwarf: boolean; setShowDwarf: (fn: (p: boolean) => boolean) => void;
   showNeo: boolean; setShowNeo: (fn: (p: boolean) => boolean) => void;
   showAsteroidBelt: boolean; setShowAsteroidBelt: (fn: (p: boolean) => boolean) => void;
@@ -343,6 +344,7 @@ function LayersDropdown({ accent, accentRgb, mobile, neoStatus, neoCount, ...tog
   const layers = [
     { label: 'Stars', key: 'S', on: toggles.showStars, fn: () => toggles.setShowStars(p => !p) },
     { label: 'Constellations', key: 'C', on: toggles.showConstellations, fn: () => toggles.setShowConstellations(p => !p) },
+    { label: 'Stargazer', key: 'G', on: toggles.constellationFocus, fn: () => toggles.setConstellationFocus(p => !p) },
     { label: 'Dwarf Planets', key: 'D', on: toggles.showDwarf, fn: () => toggles.setShowDwarf(p => !p) },
     { label: neoLabel, key: 'N', on: toggles.showNeo, fn: () => toggles.setShowNeo(p => !p) },
     { label: 'Asteroid Belt', key: null, on: toggles.showAsteroidBelt, fn: () => toggles.setShowAsteroidBelt(p => !p) },

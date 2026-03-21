@@ -42,13 +42,13 @@ export function Sun() {
       <Html
         position={[0, 0.2, 0]}
         center
-        distanceFactor={2}
+        distanceFactor={4}
         style={{ pointerEvents: 'none' }}
         zIndexRange={[1, 0]}
       >
         <div style={{
           color: 'rgba(255,220,160,0.6)',
-          fontSize: 9,
+          fontSize: 16,
           fontFamily: "'Cormorant Garamond', serif",
           fontWeight: 400,
           letterSpacing: 1.5,
@@ -165,13 +165,13 @@ export function Planet({ planet, T, selected, onSelect, hovered, onHover }: {
       <Html
         position={[0, r + 0.02, 0]}
         center
-        distanceFactor={planet.isDwarf ? 1.5 : 2.5}
+        distanceFactor={planet.isDwarf ? 3 : 5}
         style={{ pointerEvents: 'none' }}
         zIndexRange={[1, 0]}
       >
         <div style={{
           color: hovered || selected ? '#fff' : 'rgba(255,255,255,0.55)',
-          fontSize: 9,
+          fontSize: 16,
           fontFamily: "'Cormorant Garamond', serif",
           fontWeight: selected ? 500 : 300,
           letterSpacing: 1,
@@ -231,13 +231,13 @@ export function Satellite({ moon, parentPos, jd, selected, onSelect, hovered, on
         <Html
           position={[0, moon.radius + 0.008, 0]}
           center
-          distanceFactor={1}
+          distanceFactor={2}
           style={{ pointerEvents: 'none' }}
           zIndexRange={[1, 0]}
         >
           <div style={{
             color: hovered || selected ? '#fff' : 'rgba(255,255,255,0.4)',
-            fontSize: 8,
+            fontSize: 14,
             fontFamily: "'Cormorant Garamond', serif",
             fontWeight: 300,
             fontStyle: 'italic',

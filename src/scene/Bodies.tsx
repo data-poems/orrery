@@ -47,7 +47,7 @@ export function Sun() {
         zIndexRange={[1, 0]}
       >
         <div style={{
-          color: 'rgba(255,220,160,0.6)',
+          color: 'rgba(255,220,160,0.9)',
           fontSize: 16,
           fontFamily: "'Cormorant Garamond', serif",
           fontWeight: 400,
@@ -170,10 +170,10 @@ export function Planet({ planet, T, selected, onSelect, hovered, onHover }: {
         zIndexRange={[1, 0]}
       >
         <div style={{
-          color: hovered || selected ? '#fff' : 'rgba(255,255,255,0.55)',
+          color: hovered || selected ? '#fff' : 'rgba(255,255,255,0.85)',
           fontSize: 16,
           fontFamily: "'Cormorant Garamond', serif",
-          fontWeight: selected ? 500 : 300,
+          fontWeight: selected ? 600 : 400,
           letterSpacing: 1,
           whiteSpace: 'nowrap',
           userSelect: 'none',

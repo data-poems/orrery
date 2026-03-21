@@ -278,12 +278,22 @@ export function ConstellationLabels({ visible }: { visible: boolean }) {
   const { camera } = useThree();
   const groupRef = useRef<THREE.Group>(null);
   const [visibleLabels, setVisibleLabels] = useState<Set<string>>(new Set());
+  const [labelOpacity, setLabelOpacity] = useState(0.4);
 
-  // Cull labels outside ~60° of camera look direction
+  // Cull labels outside ~60° of camera look direction + distance-based fade
   useFrame(() => {
     if (groupRef.current) {
       groupRef.current.position.copy(camera.position);
     }
+
+    const dist = camera.position.length();
+    // Fade out when zoomed close (<5 AU) or far (>200 AU)
+    let opacity = 0.4;
+    if (dist < 1) opacity = 0;
+    else if (dist < 5) opacity = 0.4 * ((dist - 1) / 4);
+    else if (dist > 500) opacity = 0.05;
+    else if (dist > 200) opacity = 0.4 - (dist - 200) / 300 * 0.35;
+    setLabelOpacity(opacity);
 
     const camDir = new THREE.Vector3();
     camera.getWorldDirection(camDir);
@@ -291,9 +301,7 @@ export function ConstellationLabels({ visible }: { visible: boolean }) {
 
     const vis = new Set<string>();
     for (const c of centroids) {
-      // Direction from camera to label (on the sphere around camera)
       const dir = new THREE.Vector3(c.pos[0], c.pos[1], c.pos[2]).normalize();
-      // Apply ecliptic tilt to match the rendered position
       const tiltedDir = dir.clone().applyAxisAngle(new THREE.Vector3(1, 0, 0), ECLIPTIC_TILT);
       if (tiltedDir.dot(camDir) > threshold) {
         vis.add(c.id);
@@ -302,7 +310,7 @@ export function ConstellationLabels({ visible }: { visible: boolean }) {
     setVisibleLabels(vis);
   });
 
-  if (!visible || centroids.length === 0) return null;
+  if (!visible || centroids.length === 0 || labelOpacity < 0.01) return null;
 
   return (
     <group ref={groupRef}>
@@ -317,7 +325,7 @@ export function ConstellationLabels({ visible }: { visible: boolean }) {
                 zIndexRange={[1, 0]}
               >
                 <div style={{
-                  color: 'rgba(255,255,255,0.4)',
+                  color: `rgba(255,255,255,${labelOpacity})`,
                   fontSize: 11,
                   fontFamily: "'Cormorant Garamond', serif",
                   fontStyle: 'italic',

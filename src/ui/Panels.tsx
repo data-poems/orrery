@@ -557,7 +557,7 @@ function AboutModal({ open, onClose, mobile }: {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <div style={kbdRow}><span style={kbd}>1-9</span> Camera presets</div>
           <div style={kbdRow}><span style={kbd}>S</span> Stars {'\u00b7'} <span style={kbd}>C</span> Constellations</div>
-          <div style={kbdRow}><span style={kbd}>D</span> Dwarf planets {'\u00b7'} <span style={kbd}>N</span> NEO</div>
+          <div style={kbdRow}><span style={kbd}>D</span> Dwarf planets {'\u00b7'} <span style={kbd}>N</span> NEO {'\u00b7'} <span style={kbd}>G</span> Stargazer</div>
           <div style={kbdRow}><span style={kbd}>F</span> Cinematic {'\u00b7'} <span style={kbd}>Space</span> Pause</div>
           <div style={kbdRow}><span style={kbd}>Esc</span> Back / Deselect</div>
         </div>
@@ -779,6 +779,7 @@ export default function Panels(props: PanelProps) {
             <BodiesDropdown selPlanet={selPlanet} setSelPlanet={setSelPlanet} accent={accent} accentRgb={accentRgb} mobile={false} onMoonSelect={onMoonSelect} />
             <LayersDropdown accent={accent} accentRgb={accentRgb} mobile={false} neoStatus={neoStatus} neoCount={neos.length}
               showStars={showStars} setShowStars={setShowStars} showConstellations={showConstellations} setShowConstellations={setShowConstellations}
+              constellationFocus={constellationFocus} setConstellationFocus={setConstellationFocus}
               showDwarf={showDwarf} setShowDwarf={setShowDwarf} showNeo={showNeo} setShowNeo={setShowNeo}
               showAsteroidBelt={showAsteroidBelt} setShowAsteroidBelt={setShowAsteroidBelt} showMilkyWay={showMilkyWay} setShowMilkyWay={setShowMilkyWay}
               showDeepSpace={showDeepSpace} setShowDeepSpace={setShowDeepSpace} />
@@ -799,6 +800,7 @@ export default function Panels(props: PanelProps) {
             <BodiesDropdown selPlanet={selPlanet} setSelPlanet={setSelPlanet} accent={accent} accentRgb={accentRgb} mobile={true} onMoonSelect={onMoonSelect} />
             <LayersDropdown accent={accent} accentRgb={accentRgb} mobile={true} neoStatus={neoStatus} neoCount={neos.length}
               showStars={showStars} setShowStars={setShowStars} showConstellations={showConstellations} setShowConstellations={setShowConstellations}
+              constellationFocus={constellationFocus} setConstellationFocus={setConstellationFocus}
               showDwarf={showDwarf} setShowDwarf={setShowDwarf} showNeo={showNeo} setShowNeo={setShowNeo}
               showAsteroidBelt={showAsteroidBelt} setShowAsteroidBelt={setShowAsteroidBelt} showMilkyWay={showMilkyWay} setShowMilkyWay={setShowMilkyWay}
               showDeepSpace={showDeepSpace} setShowDeepSpace={setShowDeepSpace} />

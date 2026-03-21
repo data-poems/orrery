@@ -75,7 +75,7 @@ export function AsteroidBelt() {
   return (
     <group ref={groupRef}>
       <instancedMesh ref={meshRef} args={[undefined, undefined, BELT_COUNT]}>
-        <icosahedronGeometry args={[1, 0]} />
+        <sphereGeometry args={[1, 6, 6]} />
         <meshStandardMaterial color="#887766" roughness={0.9} />
       </instancedMesh>
     </group>

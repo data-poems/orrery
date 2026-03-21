@@ -370,7 +370,7 @@ function OrreryInner() {
     };
     window.addEventListener('keydown', fn);
     return () => window.removeEventListener('keydown', fn);
-  }, [cinematic, navigateBack, handlePresetSelect]);
+  }, [cinematic, drawerOpen, navigateBack, handlePresetSelect]);
 
   // Exit cinematic mode on click
   const handleCinematicClick = useCallback(() => {

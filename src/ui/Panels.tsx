@@ -177,8 +177,8 @@ export default function Panels(props: PanelProps) {
   const mobile = useIsMobile();
   const sp = selPlanet !== null ? ALL_BODIES[selPlanet] : null;
 
-  // Expanded section tracking (only one open at a time on mobile)
-  const [expandedSection, setExpandedSection] = useState<'views' | 'bodies' | 'layers' | null>(null);
+  // Expanded section tracking — default "bodies" open on desktop so something is visible
+  const [expandedSection, setExpandedSection] = useState<'views' | 'bodies' | 'layers' | null>('bodies');
 
   // Selected moon info
   const selectedMoon = selPlanet !== null && selMoonIdx !== null

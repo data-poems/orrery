@@ -263,8 +263,6 @@ export default function Scene({
 
   useEffect(() => { onPositionsUpdate(positions); }, [positions, onPositionsUpdate]);
 
-  const ep = (positions.get(2) || [1, 0, 0]) as [number, number, number];
-
   const visibleBodies = showDwarf ? ALL_BODIES : ALL_BODIES.filter(b => !b.isDwarf);
 
   const handleCameraDistance = onCameraDistance;
@@ -294,28 +292,28 @@ export default function Scene({
           </group>
         );
       })}
-      {/* Render moons for focused planet */}
-      {focusedParentPos && focusedMoons.map((moon, mIdx) => (
-        <group key={moon.name}>
-          <SatelliteOrbit moon={moon} parentPos={focusedParentPos} />
-          <Satellite
-            moon={moon}
-            parentPos={focusedParentPos}
-            jd={jd}
-            selected={selMoonIdx === mIdx}
-            onSelect={onMoonSelect ? () => onMoonSelect(selPlanet!, mIdx) : undefined}
-            hovered={hovMoon === mIdx}
-            onHover={h => setHovMoon(h ? mIdx : null)}
-          />
-        </group>
-      ))}
-      {/* Always render Earth's Moon even when Earth isn't focused */}
-      {selPlanet !== 2 && (() => {
-        const earthMoons = getMoonsForPlanet(2);
-        return earthMoons.map(moon => (
-          <Satellite key={moon.name} moon={moon} parentPos={ep} jd={jd} />
+      {/* Render moons for all visible bodies */}
+      {visibleBodies.map((body) => {
+        const bodyIdx = ALL_BODIES.indexOf(body);
+        const moons = getMoonsForPlanet(bodyIdx);
+        const parentPos = positions.get(bodyIdx);
+        if (!parentPos || moons.length === 0) return null;
+        const isFocused = selPlanet === bodyIdx;
+        return moons.map((moon, mIdx) => (
+          <group key={moon.name}>
+            {isFocused && <SatelliteOrbit moon={moon} parentPos={parentPos} />}
+            <Satellite
+              moon={moon}
+              parentPos={parentPos}
+              jd={jd}
+              selected={isFocused && selMoonIdx === mIdx}
+              onSelect={isFocused && onMoonSelect ? () => onMoonSelect(bodyIdx, mIdx) : undefined}
+              hovered={isFocused && hovMoon === mIdx}
+              onHover={isFocused ? (h => setHovMoon(h ? mIdx : null)) : undefined}
+            />
+          </group>
         ));
-      })()}
+      })}
       {neos.map(neo => (
         <group key={neo.id}>
           <NeoDot

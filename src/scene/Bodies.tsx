@@ -146,18 +146,28 @@ export function Planet({ planet, T, selected, onSelect, hovered, onHover }: {
       </mesh>
       {planet.tex === 'earth' && <EarthClouds radius={r} />}
       {planet.hasRings && <SaturnRings radius={r} />}
-      {hovered && !selected && (
-        <Html distanceFactor={10} style={{ pointerEvents: 'none' }}>
-          <div style={{
-            color: '#fff', fontSize: 10, fontFamily: 'JetBrains Mono, monospace',
-            background: 'rgba(0,0,0,0.8)', padding: '2px 8px', borderRadius: 3,
-            whiteSpace: 'nowrap', transform: 'translateY(-20px)',
-            border: '1px solid rgba(255,255,255,0.15)',
-          }}>
-            {planet.name}
-          </div>
-        </Html>
-      )}
+      {/* Always-visible label */}
+      <Html
+        position={[0, r + 0.02, 0]}
+        center
+        distanceFactor={planet.isDwarf ? 8 : 10}
+        style={{ pointerEvents: 'none' }}
+        zIndexRange={[1, 0]}
+      >
+        <div style={{
+          color: hovered || selected ? '#fff' : 'rgba(255,255,255,0.55)',
+          fontSize: 11,
+          fontFamily: "'Cormorant Garamond', serif",
+          fontWeight: selected ? 500 : 300,
+          letterSpacing: 1,
+          whiteSpace: 'nowrap',
+          userSelect: 'none',
+          textShadow: '0 0 6px rgba(0,0,0,0.9)',
+          transition: 'color 0.2s',
+        }}>
+          {planet.name}
+        </div>
+      </Html>
     </group>
   );
 }
@@ -201,20 +211,31 @@ export function Satellite({ moon, parentPos, jd, selected, onSelect, hovered, on
           <meshStandardMaterial color={moon.color} roughness={0.9} depthWrite={true} />
         )}
       </mesh>
-      {hovered && !selected && (
-        <group position={pos}>
-          <Html distanceFactor={5} style={{ pointerEvents: 'none' }}>
-            <div style={{
-              color: '#fff', fontSize: 10, fontFamily: 'JetBrains Mono, monospace',
-              background: 'rgba(0,0,0,0.8)', padding: '2px 8px', borderRadius: 3,
-              whiteSpace: 'nowrap', transform: 'translateY(-20px)',
-              border: '1px solid rgba(255,255,255,0.15)',
-            }}>
-              {moon.name}
-            </div>
-          </Html>
-        </group>
-      )}
+      {/* Always-visible label */}
+      <group position={pos}>
+        <Html
+          position={[0, moon.radius + 0.008, 0]}
+          center
+          distanceFactor={4}
+          style={{ pointerEvents: 'none' }}
+          zIndexRange={[1, 0]}
+        >
+          <div style={{
+            color: hovered || selected ? '#fff' : 'rgba(255,255,255,0.4)',
+            fontSize: 9,
+            fontFamily: "'Cormorant Garamond', serif",
+            fontWeight: 300,
+            fontStyle: 'italic',
+            letterSpacing: 0.5,
+            whiteSpace: 'nowrap',
+            userSelect: 'none',
+            textShadow: '0 0 6px rgba(0,0,0,0.9)',
+            transition: 'color 0.2s',
+          }}>
+            {moon.name}
+          </div>
+        </Html>
+      </group>
     </group>
   );
 }

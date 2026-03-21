@@ -58,27 +58,36 @@ function OrreryInner() {
 
   // ─── Cinematic: continuous zoom cycle through scale levels ──────────────────
   const cinematicSteps = useMemo((): CinematicStep[] => [
-    // Zoom out: reveal layers progressively
-    { camPreset: 0, duration: 12000, label: 'Inner Planets',
+    // Start close — dramatic inner planets
+    { camPreset: 0, duration: 5000, label: 'Inner Planets',
       stars: true, constellations: false, asteroidBelt: false, milkyWay: false, deepSpace: false, dwarf: false },
-    { camPreset: 1, duration: 10000, label: 'Solar System',
-      asteroidBelt: true },
-    { camPreset: 2, duration: 8000, label: 'From Above',
-      constellations: true },
-    { camPreset: 3, duration: 8000, label: 'Ecliptic Plane' },
-    { camPreset: 4, duration: 10000, label: 'Outer Planets',
-      dwarf: true },
-    { camPreset: 5, duration: 10000, label: 'Kuiper Belt' },
-    { camPreset: 6, duration: 12000, label: 'Oort Cloud',
-      milkyWay: true },
-    { camPreset: 7, duration: 14000, label: 'Galactic View',
-      deepSpace: true },
-    // Zoom back in
-    { camPreset: 6, duration: 10000, label: 'Oort Cloud' },
-    { camPreset: 5, duration: 8000, label: 'Kuiper Belt' },
-    { camPreset: 4, duration: 8000, label: 'Outer Planets' },
-    { camPreset: 1, duration: 10000, label: 'Solar System' },
-    { camPreset: 0, duration: 12000, label: 'Inner Planets' },
+    // Fly to Earth
+    { focusPlanet: 2, duration: 6000, label: 'Earth' },
+    // Pull back, reveal asteroid belt
+    { camPreset: 1, duration: 5000, label: 'Solar System', asteroidBelt: true },
+    // Fly to Jupiter
+    { focusPlanet: 4, duration: 6000, label: 'Jupiter' },
+    // Top-down, reveal constellations
+    { camPreset: 2, duration: 5000, label: 'From Above', constellations: true },
+    // Fly to Saturn
+    { focusPlanet: 5, duration: 6000, label: 'Saturn' },
+    // Ecliptic plane sweep
+    { camPreset: 3, duration: 4000, label: 'Ecliptic Plane' },
+    // Outer view, reveal dwarfs
+    { camPreset: 4, duration: 5000, label: 'Outer Planets', dwarf: true },
+    // Kuiper belt
+    { camPreset: 5, duration: 5000, label: 'Kuiper Belt' },
+    // Oort cloud, reveal milky way
+    { camPreset: 6, duration: 6000, label: 'Oort Cloud', milkyWay: true },
+    // Galaxy view, reveal deep space
+    { camPreset: 7, duration: 7000, label: 'Galactic View', deepSpace: true },
+    // Sweep back in with planet flybys
+    { camPreset: 5, duration: 4000, label: 'Kuiper Belt' },
+    { focusPlanet: 7, duration: 5000, label: 'Neptune' },
+    { camPreset: 4, duration: 4000, label: 'Outer Planets' },
+    { focusPlanet: 3, duration: 5000, label: 'Mars' },
+    { camPreset: 1, duration: 4000, label: 'Solar System' },
+    { focusPlanet: 1, duration: 5000, label: 'Venus' },
   ], []);
 
   const cinematicIdx = useRef(0);

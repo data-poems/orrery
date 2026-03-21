@@ -37,12 +37,13 @@ function AUGrid() {
 
 // ─── Camera controller ──────────────────────────────────────────────────────────
 
-function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistance }: {
+function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistance, cinematicAngle }: {
   focusTarget: FocusTarget | null;
   positions: Map<number, [number, number, number]>;
   cinematic: boolean;
   camPreset?: CamPreset | null;
   onCameraDistance?: (d: number) => void;
+  cinematicAngle?: { angle: number; elevation: number; distMult: number };
 }) {
   const { camera } = useThree();
   const ctrlRef = useRef<any>(null);

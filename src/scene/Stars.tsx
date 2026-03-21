@@ -212,12 +212,15 @@ export function ConstellationLines({ visible, theme }: { visible: boolean; theme
     depthTest: true,
   }), [theme.constellationLine]);
 
-  // Distance-based fade: full opacity < 200 AU, dim > 500 AU
+  // Distance-based fade: dim when zoomed in close (<3 AU) or far out (>200 AU)
   useFrame(() => {
     const dist = camera.position.length();
-    if (dist < 200) material.opacity = 0.35;
-    else if (dist > 500) material.opacity = 0.05;
-    else material.opacity = 0.35 - (dist - 200) / 300 * 0.3;
+    let opacity = 0.35;
+    if (dist < 1) opacity = 0;
+    else if (dist < 5) opacity = 0.35 * ((dist - 1) / 4);
+    else if (dist > 500) opacity = 0.05;
+    else if (dist > 200) opacity = 0.35 - (dist - 200) / 300 * 0.3;
+    material.opacity = opacity;
   });
 
   if (!geometry) return null;

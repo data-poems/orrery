@@ -11,7 +11,8 @@
       "mcp__plugin_playwright_playwright__browser_press_key",
       "Bash(cp:*)",
       "Bash(mkdir:*)",
-      "mcp__plugin_playwright_playwright__browser_console_messages"
+      "mcp__plugin_playwright_playwright__browser_console_messages",
+      "Bash(pnpm build:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

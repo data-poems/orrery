@@ -84,7 +84,7 @@ function OrreryInner() {
   ], []);
 
   const cinematicIdx = useRef(0);
-  const cinematicTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cinematicStart = useRef(0);
 
   // Space weather state for cinematic overlay (NOAA SWPC, no auth needed)
   const [solarWind, setSolarWind] = useState<string | null>(null);
@@ -101,14 +101,12 @@ function OrreryInner() {
   // Apply a cinematic step (camera preset + layers)
   const applyCinematicStep = useCallback((idx: number) => {
     const step = cinematicSteps[idx % cinematicSteps.length];
-    // Set camera to the preset
     setCamIdx(step.camPreset);
     setSelPlanet(null);
     setSelMoonIdx(null);
     setFocusTarget(null);
     setCinematicAngle(undefined);
     setNavStack([step.label]);
-    // Apply layer changes (only if explicitly set in this step)
     if (step.stars !== undefined) setShowStars(() => step.stars!);
     if (step.constellations !== undefined) setShowConstellations(() => step.constellations!);
     if (step.asteroidBelt !== undefined) setShowAsteroidBelt(() => step.asteroidBelt!);
@@ -117,19 +115,16 @@ function OrreryInner() {
     if (step.dwarf !== undefined) setShowDwarf(() => step.dwarf!);
   }, [cinematicSteps]);
 
-  // Cinematic timer — wait for scene before starting
+  // Cinematic timer — poll-based to avoid fragile setTimeout chains
   useEffect(() => {
     if (!cinematic) {
-      if (cinematicTimer.current) clearTimeout(cinematicTimer.current);
       setCinematicAngle(undefined);
-      // Restore all layers when exiting
       setShowStars(() => true);
       setShowConstellations(() => true);
       setShowAsteroidBelt(() => true);
       setShowMilkyWay(() => true);
       setShowDeepSpace(() => true);
       setShowDwarf(() => true);
-      // Focus on Earth
       const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
       setSelPlanet(isMobile ? null : 2);
       setCamIdx(-1);
@@ -142,19 +137,21 @@ function OrreryInner() {
     if (!sceneReady) return;
 
     cinematicIdx.current = 0;
+    cinematicStart.current = Date.now();
     applyCinematicStep(0);
 
-    const advance = () => {
-      cinematicIdx.current = (cinematicIdx.current + 1) % cinematicSteps.length;
-      applyCinematicStep(cinematicIdx.current);
-      cinematicTimer.current = setTimeout(advance, cinematicSteps[cinematicIdx.current].duration);
-    };
+    // Use setInterval to poll elapsed time — robust against React re-renders
+    const id = setInterval(() => {
+      const elapsed = Date.now() - cinematicStart.current;
+      const dur = cinematicSteps[cinematicIdx.current % cinematicSteps.length].duration;
+      if (elapsed >= dur) {
+        cinematicIdx.current = (cinematicIdx.current + 1) % cinematicSteps.length;
+        cinematicStart.current = Date.now();
+        applyCinematicStep(cinematicIdx.current);
+      }
+    }, 500);
 
-    cinematicTimer.current = setTimeout(advance, cinematicSteps[0].duration);
-
-    return () => {
-      if (cinematicTimer.current) clearTimeout(cinematicTimer.current);
-    };
+    return () => clearInterval(id);
   }, [cinematic, sceneReady, applyCinematicStep, cinematicSteps]);
 
   const handlePositionsUpdate = useCallback((m: Map<number, [number, number, number]>) => {

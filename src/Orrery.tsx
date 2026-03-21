@@ -17,6 +17,12 @@ import Scene from './scene/Scene';
 import Panels from './ui/Panels';
 import LoadingScreen from './ui/LoadingScreen';
 
+type CinematicStep = {
+  camPreset: number; duration: number; label: string;
+  stars?: boolean; constellations?: boolean; asteroidBelt?: boolean;
+  milkyWay?: boolean; deepSpace?: boolean; dwarf?: boolean;
+};
+
 function OrreryInner() {
   const [neos, setNeos] = useState<NEO[]>([]);
   const [neoStatus, setNeoStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
@@ -51,12 +57,6 @@ function OrreryInner() {
   const camPreset = camIdx >= 0 && camIdx < CAMS.length ? CAMS[camIdx] : null;
 
   // ─── Cinematic: continuous zoom cycle through scale levels ──────────────────
-  // Each step: camera preset index + layer state. Zooms out then back in.
-  type CinematicStep = {
-    camPreset: number; duration: number; label: string;
-    stars?: boolean; constellations?: boolean; asteroidBelt?: boolean;
-    milkyWay?: boolean; deepSpace?: boolean; dwarf?: boolean;
-  };
   const cinematicSteps = useMemo((): CinematicStep[] => [
     // Zoom out: reveal layers progressively
     { camPreset: 0, duration: 12000, label: 'Inner Planets',
@@ -103,7 +103,6 @@ function OrreryInner() {
     setSelPlanet(null);
     setSelMoonIdx(null);
     setFocusTarget(null);
-    setCinematicAngle(undefined);
     setNavStack([step.label]);
     if (step.stars !== undefined) setShowStars(() => step.stars!);
     if (step.constellations !== undefined) setShowConstellations(() => step.constellations!);
@@ -116,7 +115,6 @@ function OrreryInner() {
   // Cinematic timer — poll-based to avoid fragile setTimeout chains
   useEffect(() => {
     if (!cinematic) {
-      setCinematicAngle(undefined);
       setShowStars(() => true);
       setShowConstellations(() => true);
       setShowAsteroidBelt(() => true);
@@ -154,10 +152,7 @@ function OrreryInner() {
 
   const handlePositionsUpdate = useCallback((m: Map<number, [number, number, number]>) => {
     positionsRef.current = m;
-    if (m.size > 0 && !positionsReady) setPositionsReady(true);
-  }, [positionsReady]);
-
-  // (Earth focus now handled by cinematic exit)
+  }, []);
 
   // Time tick (~60fps)
   useEffect(() => {
@@ -406,7 +401,6 @@ function OrreryInner() {
             showDeepSpace={showDeepSpace}
             constellationFocus={constellationFocus}
             cinematic={cinematic}
-            cinematicAngle={cinematicAngle}
             onMoonSelect={handleMoonSelect}
             selMoonIdx={selMoonIdx}
             onCameraDistance={setCameraDistance}

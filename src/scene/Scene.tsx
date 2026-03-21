@@ -37,13 +37,12 @@ function AUGrid() {
 
 // ─── Camera controller ──────────────────────────────────────────────────────────
 
-function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistance, cinematicAngle }: {
+function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistance }: {
   focusTarget: FocusTarget | null;
   positions: Map<number, [number, number, number]>;
   cinematic: boolean;
   camPreset?: CamPreset | null;
   onCameraDistance?: (d: number) => void;
-  cinematicAngle?: { angle: number; elevation: number; distMult: number };
 }) {
   const { camera } = useThree();
   const ctrlRef = useRef<any>(null);
@@ -53,17 +52,11 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistanc
   const prevTrackPos = useRef(new THREE.Vector3());
 
   // Compute camera offset from angle/elevation/distance
-  const offsetFromAngle = (dist: number, angle: number, elevation: number): [number, number, number] => {
-    const a = cinematicAngle ? cinematicAngle.angle : angle;
-    const el = cinematicAngle ? cinematicAngle.elevation : elevation;
-    const dm = cinematicAngle ? cinematicAngle.distMult : 1;
-    const d = dist * dm;
-    return [
-      d * Math.cos(el) * Math.cos(a),
-      d * Math.sin(el),
-      d * Math.cos(el) * Math.sin(a),
-    ];
-  };
+  const offsetFromAngle = (dist: number, angle: number, elevation: number): [number, number, number] => [
+    dist * Math.cos(elevation) * Math.cos(angle),
+    dist * Math.sin(elevation),
+    dist * Math.cos(elevation) * Math.sin(angle),
+  ];
 
   // Trigger transition on focus or preset changes
   useEffect(() => {
@@ -97,7 +90,7 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistanc
       tPos.current.set(...HOME_POS);
       tLook.current.set(...HOME_TGT);
     }
-  }, [focusTarget, camPreset, cinematicAngle]);
+  }, [focusTarget, camPreset]);
 
   // Stop transition when user grabs orbit controls
   useEffect(() => {
@@ -190,14 +183,13 @@ export interface SceneProps {
   selMoonIdx?: number | null;
   onCameraDistance?: (d: number) => void;
   camPreset?: CamPreset | null;
-  cinematicAngle?: { angle: number; elevation: number; distMult: number };
 }
 
 export default function Scene({
   jd, T, neos, selNeo, setSelNeo, selPlanet, setSelPlanet,
   focusTarget, onPositionsUpdate, showDwarf,
   showStars, showConstellations, showAsteroidBelt, showMilkyWay, showDeepSpace,
-  constellationFocus, cinematic, onMoonSelect, selMoonIdx, onCameraDistance, camPreset, cinematicAngle,
+  constellationFocus, cinematic, onMoonSelect, selMoonIdx, onCameraDistance, camPreset,
 }: SceneProps) {
   const [hov, setHov] = useState<number | null>(null);
   const [hovMoon, setHovMoon] = useState<number | null>(null);
@@ -293,7 +285,6 @@ export default function Scene({
         cinematic={cinematic}
         camPreset={camPreset}
         onCameraDistance={handleCameraDistance}
-        cinematicAngle={cinematicAngle}
       />
     </>
   );

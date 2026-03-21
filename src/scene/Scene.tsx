@@ -50,6 +50,9 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistanc
   const tLook = useRef(new THREE.Vector3(...HOME_TGT));
   const settling = useRef(true);
   const prevTrackPos = useRef(new THREE.Vector3());
+  // Goal refs for cinematic — tPos/tLook smoothly drift toward these
+  const goalPos = useRef(new THREE.Vector3(...HOME_POS));
+  const goalLook = useRef(new THREE.Vector3(...HOME_TGT));
 
   // Compute camera offset from angle/elevation/distance
   const offsetFromAngle = (dist: number, angle: number, elevation: number): [number, number, number] => [
@@ -58,39 +61,62 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistanc
     dist * Math.cos(elevation) * Math.sin(angle),
   ];
 
+  // Compute focus offset for a planet or moon
+  const computeFocusOffset = (pp: [number, number, number]) => {
+    if (focusTarget === null) return;
+    if (focusTarget.moonIdx !== undefined) {
+      const moons = getMoonsForPlanet(focusTarget.planetIdx);
+      const moon = moons[focusTarget.moonIdx];
+      if (moon) {
+        const d = moon.radius * 15;
+        const [ox, oy, oz] = offsetFromAngle(d, 0.7, 0.4);
+        return { pos: [pp[0] + ox, pp[1] + oy, pp[2] + oz] as [number, number, number], look: pp };
+      }
+    } else {
+      const planet = ALL_BODIES[focusTarget.planetIdx];
+      const d = planet.radius * 8 + planet.a * 0.15;
+      const [ox, oy, oz] = offsetFromAngle(d, 0.7, 0.4);
+      return { pos: [pp[0] + ox, pp[1] + oy, pp[2] + oz] as [number, number, number], look: pp };
+    }
+    return undefined;
+  };
+
   // Trigger transition on focus or preset changes
   useEffect(() => {
     settling.current = true;
     if (focusTarget !== null) {
       const pp = positions.get(focusTarget.planetIdx);
       if (pp) {
-        if (focusTarget.moonIdx !== undefined) {
-          const moons = getMoonsForPlanet(focusTarget.planetIdx);
-          const moon = moons[focusTarget.moonIdx];
-          if (moon) {
-            const dist = moon.radius * 15;
-            const [ox, oy, oz] = offsetFromAngle(dist, 0.7, 0.4);
-            tLook.current.set(...pp);
-            tPos.current.set(pp[0] + ox, pp[1] + oy, pp[2] + oz);
+        const off = computeFocusOffset(pp);
+        if (off) {
+          if (cinematic) {
+            goalLook.current.set(...off.look);
+            goalPos.current.set(...off.pos);
+          } else {
+            tLook.current.set(...off.look);
+            tPos.current.set(...off.pos);
             prevTrackPos.current.set(...pp);
           }
-        } else {
-          const planet = ALL_BODIES[focusTarget.planetIdx];
-          const dist = planet.radius * 8 + planet.a * 0.15;
-          const [ox, oy, oz] = offsetFromAngle(dist, 0.7, 0.4);
-          tLook.current.set(...pp);
-          tPos.current.set(pp[0] + ox, pp[1] + oy, pp[2] + oz);
-          prevTrackPos.current.set(...pp);
         }
       }
     } else if (camPreset) {
-      tPos.current.set(...camPreset.pos);
-      tLook.current.set(...camPreset.tgt);
+      if (cinematic) {
+        goalPos.current.set(...camPreset.pos);
+        goalLook.current.set(...camPreset.tgt);
+      } else {
+        tPos.current.set(...camPreset.pos);
+        tLook.current.set(...camPreset.tgt);
+      }
     } else {
-      tPos.current.set(...HOME_POS);
-      tLook.current.set(...HOME_TGT);
+      if (cinematic) {
+        goalPos.current.set(...HOME_POS);
+        goalLook.current.set(...HOME_TGT);
+      } else {
+        tPos.current.set(...HOME_POS);
+        tLook.current.set(...HOME_TGT);
+      }
     }
-  }, [focusTarget, camPreset]);
+  }, [focusTarget, camPreset, cinematic]);
 
   // Stop transition when user grabs orbit controls
   useEffect(() => {
@@ -104,47 +130,72 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistanc
   useFrame(() => {
     const ctrl = ctrlRef.current;
     const trackIdx = focusTarget?.planetIdx ?? null;
-    // Adaptive lerp during cinematic — fast for huge scale transitions, slow dreamy drift close-up
-    const dist = camera.position.distanceTo(tPos.current);
-    const lerp = cinematic
-      ? (dist > 500 ? 0.04 : dist > 10 ? 0.02 : 0.008)
-      : 0.03;
 
-    if (trackIdx !== null) {
-      const pp = positions.get(trackIdx);
-      if (pp) {
-        const newTarget = new THREE.Vector3(...pp);
+    if (cinematic) {
+      // ── Cinematic: two-stage smooth interpolation ──
+      // Stage 1: goalPos/goalLook are the destination (set on step change).
+      //          tPos/tLook drift smoothly toward goals — no snapping.
+      // Stage 2: Camera drifts toward the smoothly-moving tPos.
+      // Result: smooth curves between viewpoints, no abrupt direction changes.
 
-        if (settling.current) {
-          if (focusTarget !== null && focusTarget.moonIdx === undefined) {
-            const planet = ALL_BODIES[trackIdx];
-            const dist = planet.radius * 8 + planet.a * 0.15;
-            const [ox, oy, oz] = offsetFromAngle(dist, 0.7, 0.4);
-            tPos.current.set(pp[0] + ox, pp[1] + oy, pp[2] + oz);
-          }
-          tLook.current.copy(newTarget);
-          camera.position.lerp(tPos.current, lerp);
-          if (ctrl) ctrl.target.lerp(tLook.current, lerp);
-          // In cinematic, keep settling — camera always drifts toward target
-          if (!cinematic && camera.position.distanceTo(tPos.current) < 0.1) {
-            settling.current = false;
-          }
-        } else {
-          const delta = newTarget.clone().sub(prevTrackPos.current);
-          if (delta.length() > 0.00001) {
-            camera.position.add(delta);
-            if (ctrl) ctrl.target.add(delta);
+      // Update goal to track planet if focused
+      if (trackIdx !== null) {
+        const pp = positions.get(trackIdx);
+        if (pp) {
+          const off = computeFocusOffset(pp);
+          if (off) {
+            goalPos.current.set(...off.pos);
+            goalLook.current.set(...off.look);
           }
         }
-        prevTrackPos.current.copy(newTarget);
       }
+
+      // Stage 1: smooth goal tracking (adaptive rate based on distance)
+      const goalDist = tPos.current.distanceTo(goalPos.current);
+      const goalRate = goalDist > 1000 ? 0.025 : goalDist > 50 ? 0.012 : 0.006;
+      tPos.current.lerp(goalPos.current, goalRate);
+      tLook.current.lerp(goalLook.current, goalRate);
+
+      // Stage 2: camera follows the smoothly-moving waypoint
+      camera.position.lerp(tPos.current, 0.035);
+      if (ctrl) ctrl.target.lerp(tLook.current, 0.035);
+
     } else {
-      if (settling.current) {
-        camera.position.lerp(tPos.current, lerp);
-        if (ctrl) ctrl.target.lerp(tLook.current, lerp);
-        // In cinematic, keep settling — continuous drift through scale transitions
-        if (!cinematic && camera.position.distanceTo(tPos.current) < 0.05) {
-          settling.current = false;
+      // ── Interactive mode: existing behavior ──
+      if (trackIdx !== null) {
+        const pp = positions.get(trackIdx);
+        if (pp) {
+          const newTarget = new THREE.Vector3(...pp);
+
+          if (settling.current) {
+            if (focusTarget !== null && focusTarget.moonIdx === undefined) {
+              const planet = ALL_BODIES[trackIdx];
+              const d = planet.radius * 8 + planet.a * 0.15;
+              const [ox, oy, oz] = offsetFromAngle(d, 0.7, 0.4);
+              tPos.current.set(pp[0] + ox, pp[1] + oy, pp[2] + oz);
+            }
+            tLook.current.copy(newTarget);
+            camera.position.lerp(tPos.current, 0.03);
+            if (ctrl) ctrl.target.lerp(tLook.current, 0.03);
+            if (camera.position.distanceTo(tPos.current) < 0.1) {
+              settling.current = false;
+            }
+          } else {
+            const delta = newTarget.clone().sub(prevTrackPos.current);
+            if (delta.length() > 0.00001) {
+              camera.position.add(delta);
+              if (ctrl) ctrl.target.add(delta);
+            }
+          }
+          prevTrackPos.current.copy(newTarget);
+        }
+      } else {
+        if (settling.current) {
+          camera.position.lerp(tPos.current, 0.03);
+          if (ctrl) ctrl.target.lerp(tLook.current, 0.03);
+          if (camera.position.distanceTo(tPos.current) < 0.05) {
+            settling.current = false;
+          }
         }
       }
     }

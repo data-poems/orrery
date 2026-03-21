@@ -125,7 +125,7 @@ export function GalaxyDisc() {
 
 // ─── Galaxy star points (scattered along spiral arms) ────────────────────────
 
-const GALAXY_STAR_COUNT = 8000;
+const GALAXY_STAR_COUNT = 15000;
 
 function GalaxyStars() {
   const ref = useRef<THREE.Points>(null);
@@ -137,11 +137,12 @@ function GalaxyStars() {
 
     for (let i = 0; i < GALAXY_STAR_COUNT; i++) {
       const r = Math.pow(Math.random(), 0.6) * 90000;
-      const armAngle = Math.floor(Math.random() * 2) * Math.PI;
-      const spiralAngle = armAngle + r * 0.00008 + (Math.random() - 0.5) * 0.8;
+      // 4 spiral arms for richer structure
+      const armAngle = Math.floor(Math.random() * 4) * (Math.PI / 2);
+      const spiralAngle = armAngle + r * 0.00008 + (Math.random() - 0.5) * 0.6;
 
-      const x = r * Math.cos(spiralAngle) + (Math.random() - 0.5) * r * 0.3;
-      const z = r * Math.sin(spiralAngle) + (Math.random() - 0.5) * r * 0.3;
+      const x = r * Math.cos(spiralAngle) + (Math.random() - 0.5) * r * 0.25;
+      const z = r * Math.sin(spiralAngle) + (Math.random() - 0.5) * r * 0.25;
       const y = (Math.random() - 0.5) * Math.max(500, r * 0.05);
 
       const rx = x;
@@ -164,9 +165,19 @@ function GalaxyStars() {
     return geo;
   }, []);
 
+  // Fade in from 5000 AU for smooth Oort-to-Galaxy visual continuity
   useFrame(() => {
     if (!ref.current) return;
-    ref.current.visible = camera.position.length() > 20000;
+    const dist = camera.position.length();
+    ref.current.visible = dist > 5000;
+    if (ref.current.material && 'opacity' in ref.current.material) {
+      const mat = ref.current.material as THREE.PointsMaterial;
+      if (dist < 15000) {
+        mat.opacity = ((dist - 5000) / 10000) * 0.6;
+      } else {
+        mat.opacity = 0.6;
+      }
+    }
   });
 
   return (
@@ -175,7 +186,7 @@ function GalaxyStars() {
         vertexColors
         size={1.5}
         transparent
-        opacity={0.5}
+        opacity={0.6}
         depthWrite={false}
         depthTest={true}
         sizeAttenuation={false}

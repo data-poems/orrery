@@ -671,19 +671,6 @@ export default function Panels(props: PanelProps) {
 
   return (
     <>
-      {/* ── Bokeh blur overlay when planet/moon selected ── */}
-      {sp && (
-        <div style={{
-          position: 'absolute', inset: 0,
-          background: mobile
-            ? 'radial-gradient(ellipse at 50% 85%, rgba(0,0,0,0.4) 0%, transparent 60%)'
-            : 'radial-gradient(ellipse at 15% 50%, rgba(0,0,0,0.4) 0%, transparent 60%)',
-          pointerEvents: 'none',
-          zIndex: 19,
-          transition: 'opacity 0.3s',
-        }} />
-      )}
-
       {/* ── Top bar: date + controls row ── */}
       <div style={{
         position: 'absolute', top: 8, left: 8, right: 8, zIndex: 10,

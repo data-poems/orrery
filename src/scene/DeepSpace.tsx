@@ -182,10 +182,11 @@ export function GalaxyDisc() {
   useFrame(() => {
     if (!ref.current) return;
     const dist = camera.position.length();
-    ref.current.visible = dist > 500;
-    if (dist > 500 && dist < 2000) {
-      material.opacity = (dist - 500) / 1500;
-    } else if (dist >= 2000) {
+    // Only show galaxy at distances where it looks like a galaxy, not a blurry wash
+    ref.current.visible = dist > 8000;
+    if (dist > 8000 && dist < 30000) {
+      material.opacity = (dist - 8000) / 22000;
+    } else if (dist >= 30000) {
       material.opacity = 1;
     }
   });
@@ -243,7 +244,7 @@ function GalaxyStars() {
 
   useFrame(() => {
     if (!ref.current) return;
-    ref.current.visible = camera.position.length() > 500;
+    ref.current.visible = camera.position.length() > 8000;
   });
 
   return (

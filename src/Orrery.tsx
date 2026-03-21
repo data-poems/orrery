@@ -31,6 +31,7 @@ function OrreryInner() {
   const [showAsteroidBelt, setShowAsteroidBelt] = useState(true);
   const [showMilkyWay, setShowMilkyWay] = useState(true);
   const [showDeepSpace, setShowDeepSpace] = useState(true);
+  const [constellationFocus, setConstellationFocus] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [simTime, setSimTime] = useState(new Date());
@@ -356,6 +357,7 @@ function OrreryInner() {
       if (k === 'd') setShowDwarf(p => !p);
       if (k === 's') setShowStars(p => !p);
       if (k === 'c') setShowConstellations(p => !p);
+      if (k === 'g') setConstellationFocus(p => !p);
       if (k === 'f') setCinematic(true);
       if (k === 'escape') {
         navigateBack();
@@ -401,6 +403,7 @@ function OrreryInner() {
             showAsteroidBelt={showAsteroidBelt}
             showMilkyWay={showMilkyWay}
             showDeepSpace={showDeepSpace}
+            constellationFocus={constellationFocus}
             cinematic={cinematic}
             cinematicAngle={cinematicAngle}
             onMoonSelect={handleMoonSelect}

@@ -580,6 +580,7 @@ export interface PanelProps {
   showDwarf: boolean; setShowDwarf: (fn: (p: boolean) => boolean) => void;
   showStars: boolean; setShowStars: (fn: (p: boolean) => boolean) => void;
   showConstellations: boolean; setShowConstellations: (fn: (p: boolean) => boolean) => void;
+  constellationFocus: boolean; setConstellationFocus: (fn: (p: boolean) => boolean) => void;
   showAsteroidBelt: boolean; setShowAsteroidBelt: (fn: (p: boolean) => boolean) => void;
   showMilkyWay: boolean; setShowMilkyWay: (fn: (p: boolean) => boolean) => void;
   showDeepSpace: boolean; setShowDeepSpace: (fn: (p: boolean) => boolean) => void;
@@ -607,6 +608,7 @@ export default function Panels(props: PanelProps) {
     showDwarf, setShowDwarf,
     showStars, setShowStars,
     showConstellations, setShowConstellations,
+    constellationFocus, setConstellationFocus,
     showAsteroidBelt, setShowAsteroidBelt,
     showMilkyWay, setShowMilkyWay,
     showDeepSpace, setShowDeepSpace,

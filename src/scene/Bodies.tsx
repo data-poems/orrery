@@ -170,7 +170,7 @@ export function Planet({ planet, T, selected, onSelect, hovered, onHover }: {
       <Html
         position={[0, r + 0.02, 0]}
         center
-        distanceFactor={planet.isDwarf ? 2 : 3}
+        distanceFactor={planet.isDwarf ? 1 : 1.5}
         style={{ pointerEvents: 'none' }}
         zIndexRange={[1, 0]}
       >

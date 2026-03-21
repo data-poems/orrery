@@ -96,7 +96,7 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistanc
   useEffect(() => {
     const ctrl = ctrlRef.current;
     if (!ctrl) return;
-    const stop = () => { settling.current = false; };
+    const stop = () => { if (!cinematic) settling.current = false; };
     ctrl.addEventListener('start', stop);
     return () => ctrl.removeEventListener('start', stop);
   });
@@ -104,6 +104,8 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistanc
   useFrame(() => {
     const ctrl = ctrlRef.current;
     const trackIdx = focusTarget?.planetIdx ?? null;
+    // Slower lerp during cinematic — camera continuously drifts, never fully "arrives"
+    const lerp = cinematic ? 0.008 : 0.03;
 
     if (trackIdx !== null) {
       const pp = positions.get(trackIdx);
@@ -118,9 +120,10 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistanc
             tPos.current.set(pp[0] + ox, pp[1] + oy, pp[2] + oz);
           }
           tLook.current.copy(newTarget);
-          camera.position.lerp(tPos.current, 0.03);
-          if (ctrl) ctrl.target.lerp(tLook.current, 0.03);
-          if (camera.position.distanceTo(tPos.current) < 0.1) {
+          camera.position.lerp(tPos.current, lerp);
+          if (ctrl) ctrl.target.lerp(tLook.current, lerp);
+          // In cinematic, keep settling — camera always drifts toward target
+          if (!cinematic && camera.position.distanceTo(tPos.current) < 0.1) {
             settling.current = false;
           }
         } else {
@@ -134,9 +137,10 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistanc
       }
     } else {
       if (settling.current) {
-        camera.position.lerp(tPos.current, 0.03);
-        if (ctrl) ctrl.target.lerp(tLook.current, 0.03);
-        if (camera.position.distanceTo(tPos.current) < 0.05) {
+        camera.position.lerp(tPos.current, lerp);
+        if (ctrl) ctrl.target.lerp(tLook.current, lerp);
+        // In cinematic, keep settling — continuous drift through scale transitions
+        if (!cinematic && camera.position.distanceTo(tPos.current) < 0.05) {
           settling.current = false;
         }
       }
@@ -158,7 +162,7 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistanc
       minDistance={0.05}
       maxDistance={100000}
       autoRotate={cinematic || camPreset?.autoRotate || false}
-      autoRotateSpeed={cinematic ? 0.3 : camPreset?.autoRotate ? 0.15 : 0}
+      autoRotateSpeed={cinematic ? 0.5 : camPreset?.autoRotate ? 0.15 : 0}
     />
   );
 }

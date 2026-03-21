@@ -108,11 +108,20 @@ function OrreryInner() {
   // Apply a cinematic step (camera preset + layers)
   const applyCinematicStep = useCallback((idx: number) => {
     const step = cinematicSteps[idx % cinematicSteps.length];
-    setCamIdx(step.camPreset);
-    setSelPlanet(null);
     setSelMoonIdx(null);
-    setFocusTarget(null);
     setNavStack([step.label]);
+
+    if (step.focusPlanet !== undefined) {
+      setCamIdx(-1);
+      setSelPlanet(step.focusPlanet);
+      const pos = positionsRef.current.get(step.focusPlanet);
+      if (pos) setFocusTarget({ planetIdx: step.focusPlanet, pos });
+    } else {
+      setSelPlanet(null);
+      setFocusTarget(null);
+      if (step.camPreset !== undefined) setCamIdx(step.camPreset);
+    }
+
     if (step.stars !== undefined) setShowStars(() => step.stars!);
     if (step.constellations !== undefined) setShowConstellations(() => step.constellations!);
     if (step.asteroidBelt !== undefined) setShowAsteroidBelt(() => step.asteroidBelt!);

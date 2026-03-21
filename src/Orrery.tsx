@@ -44,6 +44,7 @@ function OrreryInner() {
   const [selMoonIdx, setSelMoonIdx] = useState<number | null>(null);
   const [cameraDistance, setCameraDistance] = useState(50);
   const [camIdx, setCamIdx] = useState(0);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const positionsRef = useRef(new Map<number, [number, number, number]>());
 
   const jd = useMemo(() => julianDate(simTime), [simTime]);
@@ -353,6 +354,7 @@ function OrreryInner() {
         return;
       }
 
+      if (k === 'm') { setDrawerOpen(p => !p); return; }
       if (k === 'n') setShowNeo(p => !p);
       if (k === 'd') setShowDwarf(p => !p);
       if (k === 's') setShowStars(p => !p);
@@ -360,9 +362,9 @@ function OrreryInner() {
       if (k === 'g') setConstellationFocus(p => !p);
       if (k === 'f') setCinematic(true);
       if (k === 'escape') {
+        if (drawerOpen) { setDrawerOpen(false); return; }
         navigateBack();
         setSelNeo(null);
-        setShowAbout(false);
       }
       if (k === ' ') { e.preventDefault(); setPlaying(p => !p); }
     };

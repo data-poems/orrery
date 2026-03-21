@@ -163,7 +163,6 @@ export function moonPhase(jd: number) {
   const p = ((days % syn) + syn) % syn / syn;
   const ill = Math.round((1 - Math.cos(p * 2 * Math.PI)) / 2 * 100);
   const names = ['New Moon', 'Waxing Crescent', 'First Quarter', 'Waxing Gibbous', 'Full Moon', 'Waning Gibbous', 'Last Quarter', 'Waning Crescent'];
-  const emojis = ['\u{1F311}', '\u{1F312}', '\u{1F313}', '\u{1F314}', '\u{1F315}', '\u{1F316}', '\u{1F317}', '\u{1F318}'];
   const idx = Math.floor(p * 8) % 8;
-  return { name: names[idx], emoji: emojis[idx], ill };
+  return { name: names[idx], ill };
 }

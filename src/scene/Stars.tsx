@@ -361,19 +361,22 @@ function useConstellationCentroids(): ConstellationCentroid[] {
       .then((geojson: any) => {
         const items: ConstellationCentroid[] = [];
         const seenIds = new Set<string>();
+        let featureIdx = 0;
         for (const feature of geojson.features) {
           const coords = feature.geometry.coordinates;
-          // Point geometry: [ra, dec]
           if (feature.geometry.type === 'Point') {
             let uid = feature.id;
             if (seenIds.has(uid)) uid = `${uid}_${seenIds.size}`;
             seenIds.add(uid);
+            const [r, g, b] = constellationColor(featureIdx);
             items.push({
               id: uid,
               latin: feature.properties.name || feature.id,
               english: feature.properties.en || '',
               pos: raDecTo3D(coords[0], coords[1]),
+              color: `rgb(${Math.round(r * 255)},${Math.round(g * 255)},${Math.round(b * 255)})`,
             });
+            featureIdx++;
           }
         }
         setCentroids(items);
@@ -436,7 +439,8 @@ export function ConstellationLabels({ visible }: { visible: boolean }) {
                 zIndexRange={[1, 0]}
               >
                 <div style={{
-                  color: `rgba(255,255,255,${labelOpacity})`,
+                  color: c.color,
+                  opacity: labelOpacity,
                   fontSize: 11,
                   fontFamily: "'Cormorant Garamond', serif",
                   fontStyle: 'italic',
@@ -446,7 +450,7 @@ export function ConstellationLabels({ visible }: { visible: boolean }) {
                   userSelect: 'none',
                   textAlign: 'center',
                   lineHeight: 1.3,
-                  textShadow: '0 0 8px rgba(0,0,0,0.8)',
+                  textShadow: `0 0 10px ${c.color}, 0 0 20px rgba(0,0,0,0.9)`,
                 }}>
                   <span style={{ display: 'block', fontSize: 13, fontWeight: 400, fontStyle: 'normal' }}>{c.latin}</span>
                   {c.english && <span style={{ display: 'block', fontSize: 9, opacity: 0.6 }}>{c.english}</span>}

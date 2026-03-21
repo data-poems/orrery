@@ -510,7 +510,6 @@ export interface PanelProps {
   showDeepSpace: boolean; setShowDeepSpace: (fn: (p: boolean) => boolean) => void;
   drawerOpen: boolean; setDrawerOpen: (fn: boolean | ((p: boolean) => boolean)) => void;
   cinematic: boolean;
-  cinematicDesc: string;
   setCinematic: (c: boolean) => void;
   navStack: string[];
   navigateBack: () => void;
@@ -536,7 +535,7 @@ export default function Panels(props: PanelProps) {
     showMilkyWay, setShowMilkyWay,
     showDeepSpace, setShowDeepSpace,
     drawerOpen, setDrawerOpen,
-    cinematic, cinematicDesc,
+    cinematic,
     navStack,
     selMoonIdx, cameraDistance,
     cams, camIdx, onPresetSelect,

@@ -466,7 +466,6 @@ function OrreryInner() {
         constellationFocus={constellationFocus} setConstellationFocus={setConstellationFocus}
         drawerOpen={drawerOpen} setDrawerOpen={setDrawerOpen}
         cinematic={cinematic}
-        cinematicDesc={cinematicDesc}
         setCinematic={setCinematic}
         navStack={navStack}
         navigateBack={navigateBack}

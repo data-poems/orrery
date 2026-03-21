@@ -451,7 +451,6 @@ function OrreryInner() {
         simTime={simTime} moon={moon} solarWind={solarWind}
         speed={speed} setSpeed={setSpeed}
         playing={playing} setPlaying={setPlaying}
-        focusTarget={focusTarget} setFocusTarget={setFocusTarget}
         selPlanet={selPlanet} setSelPlanet={handlePlanetSelect}
         neos={neos} neoStatus={neoStatus} selNeo={selNeo} setSelNeo={setSelNeo}
         showNeo={showNeo} setShowNeo={setShowNeo}
@@ -463,8 +462,6 @@ function OrreryInner() {
         showDeepSpace={showDeepSpace} setShowDeepSpace={setShowDeepSpace}
         constellationFocus={constellationFocus} setConstellationFocus={setConstellationFocus}
         drawerOpen={drawerOpen} setDrawerOpen={setDrawerOpen}
-        setSimTime={setSimTime}
-        positionsRef={positionsRef}
         cinematic={cinematic}
         cinematicDesc={cinematicDesc}
         setCinematic={setCinematic}

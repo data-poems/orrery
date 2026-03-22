@@ -214,7 +214,7 @@ export function Planet({ planet, T, selected, onSelect, hovered, onHover, moonFo
       {/* Distance-adaptive glow beacon */}
       {cameraDistance > 30 && (
         <sprite scale={[r * glow * 2, r * glow * 2, 1]}>
-          <spriteMaterial color={planet.color} transparent opacity={0.4} blending={THREE.AdditiveBlending} toneMapped={false} />
+          <spriteMaterial map={getGlowTexture()} color={planet.color} transparent opacity={0.4} blending={THREE.AdditiveBlending} toneMapped={false} />
         </sprite>
       )}
       {/* Always-visible label */}

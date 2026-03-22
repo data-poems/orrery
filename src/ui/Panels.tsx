@@ -1138,6 +1138,7 @@ export default function Panels(props: PanelProps) {
         {selComet ? `Selected comet ${selComet.name}. Perihelion: ${selComet.q.toFixed(3)} AU.` : ''}
         {selMeteor ? `Selected meteor shower ${selMeteor.name}. Velocity: ${selMeteor.vg.toFixed(1)} km per second.` : ''}
         {selSatellite ? `Selected satellite ${selSatellite.name}. Altitude: ${selSatellite.alt.toFixed(0)} km.` : ''}
+        {selSpacecraft ? `Selected spacecraft ${selSpacecraft.name}. Distance: ${selSpacecraft.distAU} AU. ${selSpacecraft.desc}` : ''}
         {navStack.length > 1 ? `Navigated to ${navStack[navStack.length - 1]}` : ''}
       </div>
     </>

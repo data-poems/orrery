@@ -43,7 +43,7 @@ function SatDot({ sat, selected, onSelect }: {
         <Html
           position={[0, size + 0.008, 0]}
           center
-          distanceFactor={4}
+          distanceFactor={10}
           style={{ pointerEvents: 'none' }}
           zIndexRange={[1, 0]}
         >

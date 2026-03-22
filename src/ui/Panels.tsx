@@ -776,6 +776,7 @@ export default function Panels(props: PanelProps) {
           const layers = [
             { label: 'Stars', key: 'S', on: showStars, fn: () => setShowStars((p: boolean) => !p) },
             { label: 'Constellations', key: 'L', on: showConstellations, fn: () => setShowConstellations((p: boolean) => !p) },
+            { label: 'Deep Sky', key: 'K', on: showDeepSky, fn: () => setShowDeepSky((p: boolean) => !p) },
             { label: 'Asteroid Belt', key: 'B', on: showAsteroidBelt, fn: () => setShowAsteroidBelt((p: boolean) => !p) },
             { label: 'Dwarf Planets', key: 'D', on: showDwarf, fn: () => setShowDwarf((p: boolean) => !p) },
             { label: 'Near-Earth', key: 'N', on: showNeo, fn: () => setShowNeo((p: boolean) => !p) },
@@ -887,6 +888,7 @@ export default function Panels(props: PanelProps) {
           showComets={showComets} setShowComets={setShowComets}
           showMeteors={showMeteors} setShowMeteors={setShowMeteors}
           showSatellites={showSatellites} setShowSatellites={setShowSatellites}
+          showDeepSky={showDeepSky} setShowDeepSky={setShowDeepSky}
         />
       </div>
 

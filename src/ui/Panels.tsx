@@ -1118,6 +1118,9 @@ export default function Panels(props: PanelProps) {
         {sp ? `Selected ${sp.name}, ${sp.type}. ${sp.desc}` : ''}
         {selectedMoon ? `Selected moon ${selectedMoon.name}. ${selectedMoon.desc}` : ''}
         {selNeo ? `Selected asteroid ${selNeo.name}. Miss distance: ${selNeo.missLunar.toFixed(1)} lunar distances.` : ''}
+        {selComet ? `Selected comet ${selComet.name}. Perihelion: ${selComet.q.toFixed(3)} AU.` : ''}
+        {selMeteor ? `Selected meteor shower ${selMeteor.name}. Velocity: ${selMeteor.vg.toFixed(1)} km per second.` : ''}
+        {selSatellite ? `Selected satellite ${selSatellite.name}. Altitude: ${selSatellite.alt.toFixed(0)} km.` : ''}
         {navStack.length > 1 ? `Navigated to ${navStack[navStack.length - 1]}` : ''}
       </div>
     </>

@@ -36,6 +36,7 @@ and conductor-style orchestration from a single canonical source.
 - Safe execution primitives adapted from local infrastructure patterns
 - Manifest generation for Codex-oriented packaging metadata
 - Claude marketplace and `SKILL.md` generation from the same command registry
+- Claude project skill generation for bare slash commands like `/thinkagain`
 - Codex skill generation, including a Swarm conductor skill and command-specific skills
 - Unit tests for command coverage and behavior contracts
 
@@ -53,6 +54,7 @@ The manifest build also writes:
 - `.claude-plugin/plugin.json`
 - `.claude-plugin/marketplace.json`
 - `skills/*/SKILL.md`
+- `.claude/skills/*/SKILL.md`
 - `codex-skills/*/SKILL.md`
 
 ## Design Constraints

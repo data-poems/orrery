@@ -16,6 +16,7 @@ from .manifests import (
     build_local_sources_manifest,
     build_route_manifest,
 )
+from .project_skills import materialize_project_skills
 
 
 def _json_dump(data: object) -> str:
@@ -56,6 +57,8 @@ def _write_manifest(output_dir: Path) -> None:
         (output_dir / filename).write_text(_json_dump(payload), encoding="utf-8")
         print(f"wrote {output_dir / filename}")
     for path in materialize_claude_plugin(output_dir):
+        print(f"wrote {path}")
+    for path in materialize_project_skills(output_dir):
         print(f"wrote {path}")
     for path in materialize_codex_skills(output_dir):
         print(f"wrote {path}")

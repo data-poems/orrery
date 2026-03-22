@@ -158,9 +158,12 @@ function SideDrawer({
   neos, neoStatus, selNeo, setSelNeo,
   showNeo, showStars, showConstellations, constellationFocus, showDwarf,
   showAsteroidBelt, showComets, showMeteors, showSatellites, showDeepSky,
+  showDeepSpace,
   setShowNeo, setShowStars, setShowConstellations, setConstellationFocus,
   setShowDwarf, setShowAsteroidBelt, setShowComets, setShowMeteors, setShowSatellites, setShowDeepSky,
+  setShowDeepSpace,
   selConstellation, setSelConstellation,
+  selSpacecraft, setSelSpacecraft,
 }: {
   open: boolean;
   accent: string;
@@ -184,7 +187,10 @@ function SideDrawer({
   showMeteors: boolean; setShowMeteors: (fn: (p: boolean) => boolean) => void;
   showSatellites: boolean; setShowSatellites: (fn: (p: boolean) => boolean) => void;
   showDeepSky: boolean; setShowDeepSky: (fn: (p: boolean) => boolean) => void;
+  showDeepSpace: boolean; setShowDeepSpace: (fn: (p: boolean) => boolean) => void;
   selConstellation: string | null; setSelConstellation: (id: string | null) => void;
+  selSpacecraft: import('../data/deepspace').Spacecraft | null;
+  setSelSpacecraft: (s: import('../data/deepspace').Spacecraft | null) => void;
 }) {
   const { theme, setTheme } = useTheme();
 
@@ -1011,7 +1017,9 @@ export default function Panels(props: PanelProps) {
           showMeteors={showMeteors} setShowMeteors={setShowMeteors}
           showSatellites={showSatellites} setShowSatellites={setShowSatellites}
           showDeepSky={showDeepSky} setShowDeepSky={setShowDeepSky}
+          showDeepSpace={showDeepSpace} setShowDeepSpace={setShowDeepSpace}
           selConstellation={selConstellation} setSelConstellation={setSelConstellation}
+          selSpacecraft={selSpacecraft} setSelSpacecraft={setSelSpacecraft}
         />
       </div>
 

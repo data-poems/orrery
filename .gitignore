@@ -22,3 +22,20 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Screenshots and images (keep public/ assets)
+*.png
+*.PNG
+!public/*.png
+screenshots/
+
+# Playwright
+.playwright-mcp/
+
+# Python
+__pycache__/
+*.pyc
+
+# Agent cruft
+HANDOFF.md
+*_RECOMMENDATIONS.md

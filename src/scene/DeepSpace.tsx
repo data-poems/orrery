@@ -2,8 +2,8 @@
  * Deep space layer — Oort Cloud, spacecraft, nearby stars, galaxy markers
  */
 
-import { useMemo, useRef, useState } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useMemo, useRef, useState, useEffect } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Html, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import {
@@ -11,140 +11,116 @@ import {
   PC_TO_AU, STAR_DISPLAY_CAP_AU,
   heliocentricXYZ, raDecToSphere,
 } from '../data/deepspace';
+import { DEG, ECLIPTIC_TILT } from '../lib/kepler';
 import type { Spacecraft } from '../data/deepspace';
 
 const DEEP_SPACE_SPHERE_RADIUS = 920;
+const MW_DATA_PATH = import.meta.env.BASE_URL + 'data/mw.json';
 
-const milkyWayVertexShader = `
-  varying vec3 vWorldPos;
-  varying vec3 vLocalDir;
-
-  void main() {
-    vec4 worldPos = modelMatrix * vec4(position, 1.0);
-    vWorldPos = worldPos.xyz;
-    vLocalDir = normalize(position);
-    gl_Position = projectionMatrix * viewMatrix * worldPos;
-  }
-`;
-
-const milkyWayFragmentShader = `
-  varying vec3 vWorldPos;
-  varying vec3 vLocalDir;
-
-  uniform vec3 centerDir;
-  uniform float bandOpacity;
-
-  void main() {
-    vec3 dir = normalize(vWorldPos);
-    float latitude = abs(vLocalDir.y);
-    float band = smoothstep(0.32, 0.04, latitude);
-
-    float centerFalloff = max(dot(dir, normalize(centerDir)), 0.0);
-    centerFalloff = pow(centerFalloff, 8.0);
-
-    float dust = 0.7 + 0.3 * sin(dir.x * 28.0 + dir.z * 15.0) * sin(dir.y * 24.0 + dir.x * 11.0);
-    float opacity = band * bandOpacity * dust + centerFalloff * 0.38;
-
-    vec3 bandColor = vec3(0.16, 0.24, 0.34);
-    vec3 coreColor = vec3(0.96, 0.78, 0.54);
-    vec3 color = mix(bandColor, coreColor, centerFalloff * 0.9);
-
-    gl_FragColor = vec4(color, opacity);
-  }
-`;
-
-function makeGlowTexture() {
-  const size = 128;
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return null;
-
-  const gradient = ctx.createRadialGradient(
-    size / 2,
-    size / 2,
-    0,
-    size / 2,
-    size / 2,
-    size / 2,
-  );
-  gradient.addColorStop(0, 'rgba(255,255,255,1)');
-  gradient.addColorStop(0.25, 'rgba(255,255,255,0.95)');
-  gradient.addColorStop(0.55, 'rgba(255,255,255,0.35)');
-  gradient.addColorStop(1, 'rgba(255,255,255,0)');
-
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, size, size);
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.needsUpdate = true;
-  return texture;
-}
-
-function GlowSprite({
-  color,
-  opacity,
-  position,
-  scale,
-}: {
-  color: string;
-  opacity: number;
-  position: [number, number, number];
-  scale: [number, number, number];
-}) {
-  const texture = useMemo(() => makeGlowTexture(), []);
-
-  if (!texture) return null;
-
-  return (
-    <sprite position={position} scale={scale}>
-      <spriteMaterial
-        color={color}
-        map={texture}
-        alphaMap={texture}
-        transparent
-        opacity={opacity}
-        depthWrite={false}
-        blending={THREE.AdditiveBlending}
-        toneMapped={false}
-      />
-    </sprite>
-  );
+interface MwGeoJson {
+  features: {
+    geometry: {
+      type: 'MultiPolygon';
+      coordinates: [number, number][][][];
+    };
+  }[];
 }
 
 function MilkyWayBackdrop() {
+  const [geometry, setGeometry] = useState<THREE.BufferGeometry | null>(null);
   const materialRef = useRef<THREE.ShaderMaterial | null>(null);
-  const centerDir = useMemo(() => new THREE.Vector3(...raDecToSphere(266.4, -29.0, 1)).normalize(), []);
-  const uniforms = useMemo(() => ({
-    centerDir: { value: centerDir },
-    bandOpacity: { value: 0.24 },
-  }), [centerDir]);
+  const { camera } = useThree();
 
-  useFrame((_, dt) => {
-    if (!materialRef.current) return;
-    const t = performance.now() * 0.00005;
-    materialRef.current.uniforms.bandOpacity.value = 0.23 + Math.sin(t + dt) * 0.02;
+  useEffect(() => {
+    fetch(MW_DATA_PATH)
+      .then(r => r.json())
+      .then((data: MwGeoJson) => {
+        const positions: number[] = [];
+        const opacities: number[] = [];
+
+        data.features.forEach((feature) => {
+          feature.geometry.coordinates.forEach((polygon) => {
+            polygon.forEach((ring) => {
+              // Create triangles for the polygon ring (simple fan for GeoJSON outlines)
+              const centerRa = ring.reduce((sum, p) => sum + p[0], 0) / ring.length;
+              const centerDec = ring.reduce((sum, p) => sum + p[1], 0) / ring.length;
+              const centerPos = raDecToSphere(centerRa, centerDec, DEEP_SPACE_SPHERE_RADIUS);
+
+              for (let i = 0; i < ring.length - 1; i++) {
+                const p1 = raDecToSphere(ring[i][0], ring[i][1], DEEP_SPACE_SPHERE_RADIUS);
+                const p2 = raDecToSphere(ring[i+1][0], ring[i+1][1], DEEP_SPACE_SPHERE_RADIUS);
+
+                positions.push(...centerPos, ...p1, ...p2);
+                // Edge-to-center fade for soft look
+                opacities.push(0.4, 0.1, 0.1);
+              }
+            });
+          });
+        });
+
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
+        geo.setAttribute('opacity', new THREE.BufferAttribute(new Float32Array(opacities), 1));
+        setGeometry(geo);
+      });
+  }, []);
+
+  const uniforms = useMemo(() => ({
+    time: { value: 0 },
+    globalOpacity: { value: 0.18 },
+  }), []);
+
+  useFrame((state) => {
+    if (materialRef.current) {
+      materialRef.current.uniforms.time.value = state.clock.elapsedTime;
+    }
   });
 
+  if (!geometry) return null;
+
   return (
-    <group rotation={[0.98, 0.54, -0.22]}>
-      <mesh>
-        <sphereGeometry args={[DEEP_SPACE_SPHERE_RADIUS, 96, 96]} />
+    <group rotation={[ECLIPTIC_TILT, 0, 0]}>
+      <mesh geometry={geometry}>
         <shaderMaterial
           ref={materialRef}
-          vertexShader={milkyWayVertexShader}
-          fragmentShader={milkyWayFragmentShader}
-          uniforms={uniforms}
           transparent
           depthWrite={false}
           blending={THREE.AdditiveBlending}
           side={THREE.DoubleSide}
+          uniforms={uniforms}
+          vertexShader={`
+            attribute float opacity;
+            varying float vOpacity;
+            varying vec3 vNormal;
+            void main() {
+              vOpacity = opacity;
+              vNormal = normalize(position);
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+          `}
+          fragmentShader={`
+            varying float vOpacity;
+            varying vec3 vNormal;
+            uniform float time;
+            uniform float globalOpacity;
+
+            // Simple noise for "dusty" texture
+            float noise(vec3 p) {
+              return fract(sin(dot(p, vec3(12.9898, 78.233, 45.164))) * 43758.5453);
+            }
+
+            void main() {
+              float n = noise(vNormal * 100.0 + time * 0.05);
+              float finalAlpha = vOpacity * globalOpacity * (0.8 + 0.2 * n);
+              
+              // Soft blue-white galactic color
+              vec3 color = mix(vec3(0.05, 0.08, 0.15), vec3(0.85, 0.9, 1.0), vOpacity * 1.5);
+              
+              gl_FragColor = vec4(color, finalAlpha);
+            }
+          `}
         />
       </mesh>
-      <GlowSprite color="#ffd29a" opacity={0.3} position={raDecToSphere(266.4, -29.0, DEEP_SPACE_SPHERE_RADIUS - 20)} scale={[240, 160, 1]} />
-      <GlowSprite color="#8fbaff" opacity={0.12} position={raDecToSphere(85.0, 0.0, DEEP_SPACE_SPHERE_RADIUS - 10)} scale={[340, 110, 1]} />
     </group>
   );
 }

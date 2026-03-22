@@ -87,5 +87,5 @@ export const CAMS: CamPreset[] = [
   { key: '8', label: 'Sun',       pos: [0.3, 0.15, 0.4],   tgt: [0, 0, 0] },
   { key: '9', label: 'Belt',      pos: [0, 5, 8],          tgt: [2.7, 0, 0] },
   { key: '0', label: 'Oort',      pos: [0, 900, 1400],     tgt: [0, 0, 0] },
-  { key: '-', label: 'Stargazer', pos: [0, 0.01, 0.01],    tgt: [200, 80, 0] },
+  { key: '-', label: 'Stargazer', pos: [0, 3, 6],         tgt: [0, 0, 0] },
 ];

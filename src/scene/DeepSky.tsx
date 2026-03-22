@@ -7,9 +7,9 @@ import { useRef, useState, useEffect, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
+import { raDecTo3D, ECLIPTIC_TILT } from '../lib/kepler';
 
 const DEG = Math.PI / 180;
-const ECLIPTIC_TILT = 23.4 * DEG;
 const SPHERE_RADIUS = 300;
 const BASE_PATH = import.meta.env.BASE_URL + 'data/';
 const LABEL_UPDATE_INTERVAL_MS = 120;
@@ -20,16 +20,6 @@ function setsEqual<T>(a: Set<T>, b: Set<T>) {
     if (!b.has(value)) return false;
   }
   return true;
-}
-
-function raDecTo3D(raDeg: number, decDeg: number, r: number = SPHERE_RADIUS): [number, number, number] {
-  const ra = raDeg * DEG;
-  const dec = decDeg * DEG;
-  return [
-    r * Math.cos(dec) * Math.cos(ra),
-    r * Math.sin(dec),
-    -r * Math.cos(dec) * Math.sin(ra),
-  ];
 }
 
 interface DeepSkyObj {
@@ -68,7 +58,7 @@ function useDeepSkyData(): DeepSkyObj[] | null {
       .then(r => r.json())
       .then((objects: DeepSkyObj[]) => {
         for (const obj of objects) {
-          obj.pos = raDecTo3D(obj.ra, obj.dec);
+          obj.pos = raDecTo3D(obj.ra, obj.dec, SPHERE_RADIUS, false);
         }
         setData(objects);
       })
@@ -78,10 +68,14 @@ function useDeepSkyData(): DeepSkyObj[] | null {
   return data;
 }
 
-export function DeepSkyField({ visible }: { visible: boolean }) {
+export function DeepSkyField({ visible, onLoad }: { visible: boolean; onLoad?: () => void }) {
   const objects = useDeepSkyData();
   const groupRef = useRef<THREE.Group>(null);
   const { camera } = useThree();
+
+  useEffect(() => {
+    if (objects) onLoad?.();
+  }, [objects, onLoad]);
   const [visibleIds, setVisibleIds] = useState<Set<string>>(new Set());
   const visibleIdsRef = useRef(new Set<string>());
   const lastLabelUpdateRef = useRef(0);

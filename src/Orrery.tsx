@@ -25,7 +25,11 @@ type CinematicStep = {
   camPreset?: number; focusPlanet?: number; focusMoon?: number;
   duration: number; label: string;
   desc?: string;
-  stars?: boolean; constellations?: boolean; constellationFocus?: boolean;
+  stars?: boolean;
+  constellations?: boolean;
+  asterisms?: boolean;
+  constellationFocus?: boolean;
+
   asteroidBelt?: boolean; dwarf?: boolean;
   deepSky?: boolean; deepSpace?: boolean;
   comets?: boolean; satellites?: boolean; meteors?: boolean;
@@ -127,6 +131,7 @@ function OrreryInner() {
   const [showDwarf, setShowDwarf] = useState(false);
   const [showStars, setShowStars] = useState(true);
   const [showConstellations, setShowConstellations] = useState(false);
+  const [showAsterisms, setShowAsterisms] = useState(false);
   const [showAsteroidBelt, setShowAsteroidBelt] = useState(false);
   const [showComets, setShowComets] = useState(false);
   const [showMeteors, setShowMeteors] = useState(false);
@@ -143,7 +148,34 @@ function OrreryInner() {
   const [simTime, setSimTime] = useState(new Date());
   const [playing, setPlaying] = useState(true);
   const [focusTarget, setFocusTarget] = useState<FocusTarget | null>(null);
-  const [sceneReady, setSceneReady] = useState(false);
+  const [canvasCreated, setCanvasCreated] = useState(false);
+  const [loadingTasks, setLoadingTasks] = useState<Record<string, boolean>>({
+    stars: false,
+    deepsky: false,
+    asteroids: false,
+    constellations: false,
+    constellationLines: false,
+    comets: false,
+    meteors: false,
+    satellites: false,
+  });
+
+  const completeLoadingTask = useCallback((id: string) => {
+    setLoadingTasks(prev => {
+      if (prev[id]) return prev;
+      return { ...prev, [id]: true };
+    });
+  }, []);
+
+  const loadingProgress = useMemo(() => {
+    const values = Object.values(loadingTasks);
+    const completed = values.filter(v => v).length;
+    return (completed / values.length) * 100;
+  }, [loadingTasks]);
+
+  const sceneReady = useMemo(() => {
+    return Object.values(loadingTasks).every(v => v) && canvasCreated;
+  }, [loadingTasks, canvasCreated]);
   const [cinematic, setCinematic] = useState(true);
   const [navStack, setNavStack] = useState<string[]>(['Solar System']);
   const [selMoonIdx, setSelMoonIdx] = useState<number | null>(null);
@@ -151,6 +183,7 @@ function OrreryInner() {
   const [camIdx, setCamIdx] = useState(0);
   const [panelOpen, setPanelOpen] = useState(false);
   const [cinematicRotateSpeed, setCinematicRotateSpeed] = useState(0.5);
+  const [stepDuration, setStepDuration] = useState(6000);
   const positionsRef = useRef(new Map<number, [number, number, number]>());
 
   const jd = useMemo(() => julianDate(simTime), [simTime]);
@@ -178,7 +211,7 @@ function OrreryInner() {
       comets: false, satellites: false, meteors: false, autoRotateSpeed: 0.35 },
     // 4. Get the constellation reveal out of the way early
     { camPreset: 10, duration: 7000, label: 'Stargazer',
-      stars: true, constellations: true, constellationFocus: true,
+      stars: true, constellations: true, asterisms: false, constellationFocus: true,
       asteroidBelt: false, dwarf: false, deepSky: false, deepSpace: false,
       comets: false, satellites: false, meteors: false, autoRotateSpeed: 0.14 },
     // 5. Re-establish the whole system
@@ -240,6 +273,7 @@ function OrreryInner() {
     const step = cinematicSteps[idx % cinematicSteps.length];
     setSelMoonIdx(null);
     setNavStack([step.label]);
+    setStepDuration(step.duration);
 
     if (step.focusPlanet !== undefined) {
       setCamIdx(-1);
@@ -259,6 +293,7 @@ function OrreryInner() {
 
     if (step.stars !== undefined) setShowStars(() => step.stars!);
     if (step.constellations !== undefined) setShowConstellations(() => step.constellations!);
+    if (step.asterisms !== undefined) setShowAsterisms(() => step.asterisms!);
     if (step.constellationFocus !== undefined) setConstellationFocus(() => step.constellationFocus!);
     if (step.asteroidBelt !== undefined) setShowAsteroidBelt(() => step.asteroidBelt!);
     if (step.dwarf !== undefined) setShowDwarf(() => step.dwarf!);
@@ -515,7 +550,7 @@ function OrreryInner() {
 
       const k = e.key.toLowerCase();
       const isPresetKey = (e.key >= '1' && e.key <= '9') || e.key === '0' || e.key === '-';
-      const isInteractiveShortcut = isPresetKey || ['m', 'n', 'd', 's', 'l', 'g', 'k', 'c', 'r', 'i', 'o', 'escape', ' '].includes(k);
+      const isInteractiveShortcut = isPresetKey || ['m', 'n', 'd', 's', 'l', 'a', 'g', 'k', 'c', 'r', 'i', 'o', 'escape', ' '].includes(k);
 
       if (k === 'f') {
         startCinematicTour();
@@ -548,6 +583,7 @@ function OrreryInner() {
       if (k === 'd') setShowDwarf(p => !p);
       if (k === 's') setShowStars(p => !p);
       if (k === 'l') setShowConstellations(p => !p);
+      if (k === 'a') setShowAsterisms(p => !p);
       if (k === 'g') setConstellationFocus(p => !p);
       if (k === 'k') setShowDeepSky(p => !p);
       if (k === 'c') setShowComets(p => !p);
@@ -587,13 +623,14 @@ function OrreryInner() {
         style={{ position: 'absolute', inset: 0 }}
         gl={{ antialias: true, logarithmicDepthBuffer: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.2 }}
         onCreated={() => {
-          setSceneReady(true);
+          setCanvasCreated(true);
           if (cinematic) startCinematicTour();
         }}
       >
         <Suspense fallback={null}>
           <Scene
             jd={jd} T={T} simTime={simTime}
+            onLoadComplete={completeLoadingTask}
             neos={showNeo ? neos : []} selNeo={selNeo} setSelNeo={handleNeoSelect}
             selPlanet={selPlanet} setSelPlanet={handlePlanetSelect}
             focusTarget={focusTarget}
@@ -601,6 +638,7 @@ function OrreryInner() {
             showDwarf={showDwarf}
             showStars={showStars}
             showConstellations={showConstellations}
+            showAsterisms={showAsterisms}
             showAsteroidBelt={showAsteroidBelt}
             showComets={showComets}
             showMeteors={showMeteors}
@@ -611,6 +649,7 @@ function OrreryInner() {
             constellationFocus={constellationFocus}
             cinematic={cinematic}
             cinematicRotateSpeed={cinematicRotateSpeed}
+            stepDuration={stepDuration}
             onMoonSelect={handleMoonSelect}
             selMoonIdx={selMoonIdx}
             onCameraDistance={setCameraDistance}
@@ -625,7 +664,7 @@ function OrreryInner() {
         </Suspense>
       </Canvas>
 
-      <LoadingScreen ready={sceneReady} />
+      <LoadingScreen ready={sceneReady} progress={loadingProgress} />
 
       <Panels
         simTime={simTime} moon={moon} solarWind={solarWind}
@@ -637,6 +676,7 @@ function OrreryInner() {
         showDwarf={showDwarf} setShowDwarf={setShowDwarf}
         showStars={showStars} setShowStars={setShowStars}
         showConstellations={showConstellations} setShowConstellations={setShowConstellations}
+        showAsterisms={showAsterisms} setShowAsterisms={setShowAsterisms}
         showAsteroidBelt={showAsteroidBelt} setShowAsteroidBelt={setShowAsteroidBelt}
         showComets={showComets} setShowComets={setShowComets}
         showMeteors={showMeteors} setShowMeteors={setShowMeteors}

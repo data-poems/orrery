@@ -262,6 +262,38 @@ export function solarLongitude(jd: number): number {
   return norm(L0 + C);
 }
 
+// ─── Celestial coordinates (RA/Dec → Three.js) ──────────────────────────────
+
+export const ECLIPTIC_TILT = 23.4 * DEG;
+
+/**
+ * Convert Right Ascension (degrees), Declination (degrees) and Radius
+ * to heliocentric Three.js coords [x, y, z].
+ * By default includes the 23.4° tilt of the celestial equator relative
+ * to the ecliptic plane used by the scene.
+ */
+export function raDecTo3D(raDeg: number, decDeg: number, r: number, applyTilt = true): [number, number, number] {
+  const ra = raDeg * DEG;
+  const dec = decDeg * DEG;
+  // Equatorial → Three.js (x, y_up, z_back)
+  // Standard: x = r cos dec cos ra, y = r sin dec, z = -r cos dec sin ra
+  const xEq = r * Math.cos(dec) * Math.cos(ra);
+  const yEq = r * Math.sin(dec);
+  const zEq = -r * Math.cos(dec) * Math.sin(ra);
+
+  if (!applyTilt) return [xEq, yEq, zEq];
+
+  // Rotate by ecliptic tilt (rotation around X axis)
+  // x' = x
+  // y' = y cos(T) + z sin(T)
+  // z' = -y sin(T) + z cos(T)
+  return [
+    xEq,
+    yEq * Math.cos(ECLIPTIC_TILT) + zEq * Math.sin(ECLIPTIC_TILT),
+    -yEq * Math.sin(ECLIPTIC_TILT) + zEq * Math.cos(ECLIPTIC_TILT)
+  ];
+}
+
 // ─── Moon phase ─────────────────────────────────────────────────────────────────
 
 export function moonPhase(jd: number) {

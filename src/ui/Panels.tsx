@@ -267,10 +267,11 @@ function SideDrawer({
   cams, camIdx, onPresetSelect,
   selPlanet, setSelPlanet, onMoonSelect,
   neos, neoStatus, selNeo, setSelNeo,
-  showNeo, showStars, showConstellations, constellationFocus, showDwarf,
+  showNeo, showStars, showConstellations, showAsterisms, constellationFocus, showDwarf,
   showAsteroidBelt, showComets, showMeteors, showSatellites, showDeepSky,
   showDeepSpace,
-  setShowNeo, setShowStars, setShowConstellations, setConstellationFocus,
+  setShowNeo, setShowStars, setShowConstellations, setShowAsterisms, setConstellationFocus,
+
   setShowDwarf, setShowAsteroidBelt, setShowComets, setShowMeteors, setShowSatellites, setShowDeepSky,
   setShowDeepSpace,
   selConstellation, setSelConstellation,
@@ -303,6 +304,7 @@ function SideDrawer({
   showNeo: boolean; setShowNeo: (fn: (p: boolean) => boolean) => void;
   showStars: boolean; setShowStars: (fn: (p: boolean) => boolean) => void;
   showConstellations: boolean; setShowConstellations: (fn: (p: boolean) => boolean) => void;
+  showAsterisms: boolean; setShowAsterisms: (fn: (p: boolean) => boolean) => void;
   constellationFocus: boolean; setConstellationFocus: (fn: (p: boolean) => boolean) => void;
   showDwarf: boolean; setShowDwarf: (fn: (p: boolean) => boolean) => void;
   showAsteroidBelt: boolean; setShowAsteroidBelt: (fn: (p: boolean) => boolean) => void;
@@ -329,6 +331,7 @@ function SideDrawer({
   const layers = [
     { label: 'Stars', key: 'S', on: showStars, fn: () => setShowStars(p => !p) },
     { label: 'Constellations', key: 'L', on: showConstellations, fn: () => setShowConstellations(p => !p) },
+    { label: 'Asterisms', key: 'A', on: showAsterisms, fn: () => setShowAsterisms(p => !p) },
     { label: 'Stargazer', key: 'G', on: constellationFocus, fn: () => setConstellationFocus(p => !p) },
     { label: 'Deep Sky', key: 'K', on: showDeepSky, fn: () => setShowDeepSky(p => !p) },
     { label: 'Dwarf Planets', key: 'D', on: showDwarf, fn: () => setShowDwarf(p => !p) },
@@ -929,6 +932,7 @@ export interface PanelProps {
   showDwarf: boolean; setShowDwarf: (fn: (p: boolean) => boolean) => void;
   showStars: boolean; setShowStars: (fn: (p: boolean) => boolean) => void;
   showConstellations: boolean; setShowConstellations: (fn: (p: boolean) => boolean) => void;
+  showAsterisms: boolean; setShowAsterisms: (fn: (p: boolean) => boolean) => void;
   constellationFocus: boolean; setConstellationFocus: (fn: (p: boolean) => boolean) => void;
   showAsteroidBelt: boolean; setShowAsteroidBelt: (fn: (p: boolean) => boolean) => void;
   showComets: boolean; setShowComets: (fn: (p: boolean) => boolean) => void;
@@ -963,6 +967,7 @@ export default function Panels(props: PanelProps) {
     showDwarf, setShowDwarf,
     showStars, setShowStars,
     showConstellations, setShowConstellations,
+    showAsterisms, setShowAsterisms,
     constellationFocus, setConstellationFocus,
     showAsteroidBelt, setShowAsteroidBelt,
     showComets, setShowComets,
@@ -1187,6 +1192,7 @@ export default function Panels(props: PanelProps) {
         showNeo={showNeo} setShowNeo={setShowNeo}
         showStars={showStars} setShowStars={setShowStars}
         showConstellations={showConstellations} setShowConstellations={setShowConstellations}
+        showAsterisms={showAsterisms} setShowAsterisms={setShowAsterisms}
         constellationFocus={constellationFocus} setConstellationFocus={setConstellationFocus}
         showDwarf={showDwarf} setShowDwarf={setShowDwarf}
         showAsteroidBelt={showAsteroidBelt} setShowAsteroidBelt={setShowAsteroidBelt}

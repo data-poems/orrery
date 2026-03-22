@@ -151,18 +151,21 @@ export interface CometFieldProps {
   visible: boolean;
   selComet: CometDef | null;
   setSelComet: (c: CometDef | null) => void;
+  onLoad?: () => void;
 }
 
-export function CometField({ jd, visible, selComet, setSelComet }: CometFieldProps) {
+export function CometField({ jd, visible, selComet, setSelComet, onLoad }: CometFieldProps) {
   const [comets, setComets] = useState<CometDef[]>([]);
 
   useEffect(() => {
-    if (!visible) return;
     fetch(BASE_PATH + 'comets.json')
       .then(r => r.json())
-      .then(setComets)
+      .then(d => {
+        setComets(d);
+        onLoad?.();
+      })
       .catch(() => {});
-  }, [visible]);
+  }, [onLoad]);
 
   if (!visible || comets.length === 0) return null;
 

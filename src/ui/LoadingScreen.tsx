@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 
-export default function LoadingScreen({ ready }: { ready: boolean }) {
+export default function LoadingScreen({ ready, progress = 0 }: { ready: boolean; progress?: number }) {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
@@ -40,13 +40,32 @@ export default function LoadingScreen({ ready }: { ready: boolean }) {
       }}>
         Orrery
       </div>
-      <div className="loading-bar" />
+      
+      <div style={{
+        width: 120, height: 1,
+        background: 'rgba(255,255,255,0.1)',
+        position: 'relative',
+        overflow: 'hidden',
+        marginBottom: 12,
+      }}>
+        <div style={{
+          position: 'absolute', left: 0, top: 0, bottom: 0,
+          width: `${progress}%`,
+          background: 'rgba(0,255,204,0.5)',
+          transition: 'width 0.3s ease-out',
+        }} />
+      </div>
+
+      <div style={{
+        color: 'rgba(0,255,204,0.4)',
+        fontSize: 9,
+        letterSpacing: 2,
+        textTransform: 'uppercase',
+      }}>
+        {ready ? 'Ready' : `Initializing ${Math.round(progress)}%`}
+      </div>
+
       <style>{`
-        .loading-bar {
-          width: 40px; height: 1px;
-          background: rgba(0,255,204,0.3);
-          animation: pulse 1.5s ease-in-out infinite;
-        }
         @keyframes pulse {
           0%, 100% { opacity: 0.3; transform: scaleX(1); }
           50% { opacity: 1; transform: scaleX(2); }

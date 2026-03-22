@@ -91,7 +91,7 @@ interface AsteroidData {
 
 const REAL_BELT_PATH = import.meta.env.BASE_URL + 'data/main-belt.json';
 
-export function RealAsteroidBelt({ jd }: { jd: number }) {
+export function RealAsteroidBelt({ jd, visible, onLoad }: { jd: number; visible: boolean; onLoad?: () => void }) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const [data, setData] = useState<AsteroidData[] | null>(null);
   const lastJd = useRef(0);
@@ -99,13 +99,16 @@ export function RealAsteroidBelt({ jd }: { jd: number }) {
   useEffect(() => {
     fetch(REAL_BELT_PATH)
       .then(r => r.json())
-      .then(setData)
+      .then(d => {
+        setData(d);
+        onLoad?.();
+      })
       .catch(() => {});
-  }, []);
+  }, [onLoad]);
 
   // Recompute positions when jd changes by >0.5 days
   useEffect(() => {
-    if (!data || !meshRef.current) return;
+    if (!data || !meshRef.current || !visible) return;
     if (Math.abs(jd - lastJd.current) < 0.5 && lastJd.current !== 0) return;
     lastJd.current = jd;
 
@@ -122,9 +125,9 @@ export function RealAsteroidBelt({ jd }: { jd: number }) {
       meshRef.current!.setMatrixAt(idx, dummy.matrix);
     }
     meshRef.current!.instanceMatrix.needsUpdate = true;
-  }, [data, jd]);
+  }, [data, jd, visible]);
 
-  if (!data) return null;
+  if (!data || !visible) return null;
 
   const count = Math.min(data.length, 5000);
 

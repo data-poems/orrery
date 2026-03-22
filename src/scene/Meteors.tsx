@@ -5,17 +5,14 @@
  * Shape: starburst (6-pointed cross), distinct from all other object types.
  * Color: #ffbb33 (amber, colorblind-safe).
  */
-
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
-import { solarLongitude } from '../lib/kepler';
+import { solarLongitude, raDecTo3D, ECLIPTIC_TILT, DEG } from '../lib/kepler';
 
 const BASE_PATH = import.meta.env.BASE_URL + 'data/';
 const METEOR_COLOR = '#ffbb33';
-const DEG = Math.PI / 180;
-const ECLIPTIC_TILT = 23.4 * DEG;
 const SPHERE_RADIUS = 295; // Slightly inside star sphere
 
 interface MeteorShower {
@@ -29,16 +26,6 @@ interface MeteorShower {
   solarLonEnd: number;
   vg: number;
   parent: string;
-}
-
-function raDecTo3D(raDeg: number, decDeg: number): [number, number, number] {
-  const ra = raDeg * DEG;
-  const dec = decDeg * DEG;
-  return [
-    SPHERE_RADIUS * Math.cos(dec) * Math.cos(ra),
-    SPHERE_RADIUS * Math.sin(dec),
-    -SPHERE_RADIUS * Math.cos(dec) * Math.sin(ra),
-  ];
 }
 
 /** Check if a solar longitude falls within a shower's activity window */
@@ -55,7 +42,7 @@ function RadiantMarker({ shower, active, selected, onSelect }: {
   shower: MeteorShower; active: boolean;
   selected: boolean; onSelect: () => void;
 }) {
-  const pos = useMemo(() => raDecTo3D(shower.ra, shower.dec), [shower.ra, shower.dec]);
+  const pos = useMemo(() => raDecTo3D(shower.ra, shower.dec, SPHERE_RADIUS, false), [shower.ra, shower.dec]);
   const size = active ? 2.5 : 1.2;
   const opacity = active ? 0.9 : 0.15;
 
@@ -112,22 +99,25 @@ export interface MeteorFieldProps {
   visible: boolean;
   selMeteor: MeteorShower | null;
   setSelMeteor: (m: MeteorShower | null) => void;
+  onLoad?: () => void;
 }
 
 export type { MeteorShower };
 
-export function MeteorField({ jd, visible, selMeteor, setSelMeteor }: MeteorFieldProps) {
+export function MeteorField({ jd, visible, selMeteor, setSelMeteor, onLoad }: MeteorFieldProps) {
   const [showers, setShowers] = useState<MeteorShower[]>([]);
   const groupRef = useRef<THREE.Group>(null);
   const { camera } = useThree();
 
   useEffect(() => {
-    if (!visible) return;
     fetch(BASE_PATH + 'meteor-showers.json')
       .then(r => r.json())
-      .then(setShowers)
+      .then(d => {
+        setShowers(d);
+        onLoad?.();
+      })
       .catch(() => {});
-  }, [visible]);
+  }, [onLoad]);
 
   const solLon = useMemo(() => solarLongitude(jd), [jd]);
 

@@ -11,7 +11,6 @@ import { BODY_SYMBOLS } from '../data/body-symbols';
 import type { PlanetDef } from '../lib/kepler';
 import { planetXYZ, orbitPath } from '../lib/kepler';
 import type { MoonDef } from '../data/moons';
-import { useTheme } from '../lib/themes';
 
 // ─── Sun ────────────────────────────────────────────────────────────────────────
 
@@ -405,14 +404,15 @@ export function OrbitRing({ planet, T, dim, highlighted, cameraDistance = 0 }: {
   planet: PlanetDef; T: number; dim: boolean; highlighted: boolean; cameraDistance?: number;
 }) {
   const pts = useMemo(() => orbitPath(planet, T), [planet, T]);
-  const { theme } = useTheme();
   const glow = Math.min(cameraDistance / 50, 4);
   const baseWidth = highlighted ? 1.2 : dim ? 0.3 : 0.6;
   const baseOpacity = highlighted ? 0.6 : dim ? 0.08 : 0.25;
+  // Use grayscale: #ffffff for highlighted/active, #888888 for dim
+  const color = highlighted ? '#ffffff' : '#999999';
   return (
     <Line
       points={pts}
-      color={highlighted ? theme.selectedRing : planet.color}
+      color={color}
       lineWidth={baseWidth * (1 + glow * 0.18)}
       transparent
       opacity={Math.min(baseOpacity * (1 + glow * 0.32), 0.5)}

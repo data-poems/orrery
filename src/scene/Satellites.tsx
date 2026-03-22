@@ -72,22 +72,25 @@ export interface SatelliteFieldProps {
   cameraDistance: number;
   selSatellite: SatellitePosition | null;
   setSelSatellite: (s: SatellitePosition | null) => void;
+  onLoad?: () => void;
 }
 
-export function SatelliteField({ visible, simTime, earthPos, cameraDistance, selSatellite, setSelSatellite }: SatelliteFieldProps) {
+export function SatelliteField({ visible, simTime, earthPos, cameraDistance, selSatellite, setSelSatellite, onLoad }: SatelliteFieldProps) {
   const [records, setRecords] = useState<SatelliteRecord[]>([]);
   const [positions, setPositions] = useState<SatellitePosition[]>([]);
   const simTimeRef = useRef(simTime);
   const earthPosRef = useRef(earthPos);
   const shouldRender = visible && cameraDistance <= SATELLITE_MAX_CAMERA_DISTANCE;
 
-  // Fetch TLEs once when visible
+  // Fetch TLEs once on mount
   useEffect(() => {
-    if (!shouldRender) return;
     fetchTLEs()
-      .then(setRecords)
+      .then(d => {
+        setRecords(d);
+        onLoad?.();
+      })
       .catch(() => {});
-  }, [shouldRender]);
+  }, [onLoad]);
 
   useEffect(() => {
     simTimeRef.current = simTime;

@@ -946,7 +946,7 @@ export default function Panels(props: PanelProps) {
                         width: '100%', padding: mobile ? '10px 14px' : '6px 14px',
                         background: l.on ? `rgba(${accentRgb},0.1)` : 'transparent',
                         border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                        fontSize: mobile ? 13 : 12, color: l.on ? accent : 'rgba(255,255,255,0.4)',
+                        fontSize: mobile ? 15 : 14, color: l.on ? accent : 'rgba(255,255,255,0.4)',
                         fontWeight: l.on ? 400 : 300, textAlign: 'left',
                         minHeight: mobile ? 40 : 'auto',
                       }}

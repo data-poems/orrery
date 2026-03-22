@@ -334,6 +334,12 @@ function OrreryInner() {
       setFocusTarget(null);
       setNavStack(['Solar System']);
     }
+    // Screensaver preset: enable constellations + stars for ambient display
+    if (preset.autoRotate && preset.follow !== undefined) {
+      setShowStars(true);
+      setShowConstellations(true);
+      setShowMilkyWay(true);
+    }
   }, []);
 
   // Keyboard shortcuts

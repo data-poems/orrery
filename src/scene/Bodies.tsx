@@ -18,28 +18,37 @@ export function Sun({ cameraDistance = 0 }: { cameraDistance?: number }) {
   const ref = useRef<THREE.Mesh>(null);
   const tex = useLoader(THREE.TextureLoader, TEX.sun);
   useFrame((_, dt) => { if (ref.current) ref.current.rotation.y += dt * 0.02; });
-  const glow = Math.min(cameraDistance / 50, 4);
+  const farGlow = Math.min(cameraDistance / 50, 4);
   return (
     <group>
-      {/* Solid bright core — prevents see-through effect */}
+      {/* Solid bright core */}
       <mesh>
         <sphereGeometry args={[0.12, 32, 32]} />
-        <meshBasicMaterial color="#fffaf0" toneMapped={false} />
+        <meshBasicMaterial color="#fffcf0" toneMapped={false} />
       </mesh>
+      {/* Textured surface */}
       <mesh ref={ref}>
         <sphereGeometry args={[0.15, 48, 48]} />
-        <meshBasicMaterial map={tex} toneMapped={false} color="#fffff0" />
+        <meshBasicMaterial map={tex} toneMapped={false} color="#ffffff" />
       </mesh>
-      {/* Distance-adaptive glow beacon */}
+      {/* Inner warm glow — always visible */}
+      <sprite scale={[0.6, 0.6, 1]}>
+        <spriteMaterial color="#fff8e0" transparent opacity={0.6} blending={THREE.AdditiveBlending} toneMapped={false} />
+      </sprite>
+      {/* Outer soft corona glow — always visible */}
+      <sprite scale={[1.2, 1.2, 1]}>
+        <spriteMaterial color="#ffcc66" transparent opacity={0.2} blending={THREE.AdditiveBlending} toneMapped={false} />
+      </sprite>
+      {/* Distance-adaptive beacon for far zoom */}
       {cameraDistance > 30 && (
-        <sprite scale={[0.15 * glow * 3, 0.15 * glow * 3, 1]}>
+        <sprite scale={[0.15 * farGlow * 3, 0.15 * farGlow * 3, 1]}>
           <spriteMaterial color="#ffdd88" transparent opacity={0.5} blending={THREE.AdditiveBlending} toneMapped={false} />
         </sprite>
       )}
       <pointLight intensity={5} color="#fff5e0" distance={200} />
       <pointLight intensity={2} color="#ffcc80" distance={100} />
       <Html
-        position={[0, 0.2, 0]}
+        position={[0, 0.25, 0]}
         center
         distanceFactor={3}
         style={{ pointerEvents: 'none' }}

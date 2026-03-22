@@ -267,7 +267,7 @@ export default function Scene({
       <ambientLight intensity={0.15} />
       <Sun />
       <AUGrid />
-      {showAsteroidBelt && <AsteroidBelt />}
+      {showAsteroidBelt && !showComets && <AsteroidBelt />}
       {visibleBodies.map((p) => {
         const bodyIdx = ALL_BODIES.indexOf(p);
         return (
@@ -323,6 +323,26 @@ export default function Scene({
       <StarField visible={showStars} />
       <ConstellationLines visible={showConstellations} focus={constellationFocus} />
       <ConstellationLabels visible={showConstellations} focus={constellationFocus} />
+      <CometField
+        jd={jd}
+        visible={showComets}
+        selComet={selComet}
+        setSelComet={setSelComet}
+      />
+      <MeteorField
+        jd={jd}
+        visible={showMeteors}
+        selMeteor={selMeteor}
+        setSelMeteor={setSelMeteor}
+      />
+      <SatelliteField
+        visible={showSatellites}
+        simTime={simTime}
+        earthPos={positions.get(2) ?? null}
+        selSatellite={selSatellite}
+        setSelSatellite={setSelSatellite}
+      />
+      {showAsteroidBelt && <RealAsteroidBelt jd={jd} />}
       <CamCtrl
         focusTarget={focusTarget}
         positions={positions}

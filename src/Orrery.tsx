@@ -386,6 +386,9 @@ function OrreryInner() {
         if (drawerOpen) { setDrawerOpen(false); return; }
         navigateBack();
         setSelNeo(null);
+        setSelComet(null);
+        setSelMeteor(null);
+        setSelSatellite(null);
       }
       if (k === ' ') { e.preventDefault(); setPlaying(p => !p); }
     };

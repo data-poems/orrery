@@ -3,7 +3,7 @@
  */
 
 import { useMemo, useRef, useState, useEffect } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import { Html, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import {
@@ -11,8 +11,27 @@ import {
   PC_TO_AU, STAR_DISPLAY_CAP_AU,
   heliocentricXYZ, raDecToSphere,
 } from '../data/deepspace';
-import { DEG, ECLIPTIC_TILT } from '../lib/kepler';
+import { ECLIPTIC_TILT } from '../lib/kepler';
 import type { Spacecraft } from '../data/deepspace';
+
+// Simple additive-blended glow sphere used throughout deep space markers
+function GlowSphere({ color, opacity, position, scale }: {
+  color: string; opacity: number; position: [number, number, number]; scale: [number, number, number];
+}) {
+  return (
+    <mesh position={position} scale={scale}>
+      <sphereGeometry args={[0.5, 8, 8]} />
+      <meshBasicMaterial
+        color={color}
+        transparent
+        opacity={opacity}
+        blending={THREE.AdditiveBlending}
+        depthWrite={false}
+        toneMapped={false}
+      />
+    </mesh>
+  );
+}
 
 const DEEP_SPACE_SPHERE_RADIUS = 920;
 const MW_DATA_PATH = import.meta.env.BASE_URL + 'data/mw.json';
@@ -29,7 +48,6 @@ interface MwGeoJson {
 function MilkyWayBackdrop() {
   const [geometry, setGeometry] = useState<THREE.BufferGeometry | null>(null);
   const materialRef = useRef<THREE.ShaderMaterial | null>(null);
-  const { camera } = useThree();
 
   useEffect(() => {
     fetch(MW_DATA_PATH)
@@ -225,7 +243,7 @@ function SpacecraftDot({ craft, selected, onSelect }: {
         <meshBasicMaterial color={color} toneMapped={false} />
       </mesh>
       {/* Glow */}
-      <GlowSprite color={color} opacity={0.3} position={pos} scale={[size * 4, size * 4, 1]} />
+      <GlowSphere color={color} opacity={0.3} position={pos} scale={[size * 4, size * 4, 1]} />
       {/* Label */}
       <Html position={[pos[0], pos[1] + 3, pos[2]]} center distanceFactor={50} style={{ pointerEvents: 'none' }} zIndexRange={[1, 0]}>
         <div style={{
@@ -289,7 +307,7 @@ function NearStarMarkers() {
               <meshBasicMaterial color={color} toneMapped={false} />
             </mesh>
             {/* Glow sprite */}
-            <GlowSprite color={color} opacity={0.25} position={pos} scale={[size * 6, size * 6, 1]} />
+            <GlowSphere color={color} opacity={0.25} position={pos} scale={[size * 6, size * 6, 1]} />
             <Html position={[pos[0], pos[1] + 4, pos[2]]} center distanceFactor={200} style={{ pointerEvents: 'none' }} zIndexRange={[1, 0]}>
               <div style={{
                 color: 'rgba(255,255,255,0.7)',
@@ -335,7 +353,7 @@ function GalaxyMarkers() {
               <meshBasicMaterial color={color} toneMapped={false} />
             </mesh>
             {/* Diffuse glow */}
-            <GlowSprite color={color} opacity={0.15} position={pos} scale={[size * 8, size * 5, 1]} />
+            <GlowSphere color={color} opacity={0.15} position={pos} scale={[size * 8, size * 5, 1]} />
             <Html position={[pos[0], pos[1] + 5, pos[2]]} center distanceFactor={200} style={{ pointerEvents: 'none' }} zIndexRange={[1, 0]}>
               <div style={{
                 color: 'rgba(200,180,255,0.7)',

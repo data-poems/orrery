@@ -214,6 +214,7 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistanc
 
 export interface SceneProps {
   jd: number; T: number;
+  simTime: Date;
   neos: NEO[]; selNeo: NEO | null; setSelNeo: (n: NEO | null) => void;
   selPlanet: number | null; setSelPlanet: (i: number | null) => void;
   focusTarget: FocusTarget | null;
@@ -222,19 +223,27 @@ export interface SceneProps {
   showStars: boolean;
   showConstellations: boolean;
   showAsteroidBelt: boolean;
+  showComets: boolean;
+  showMeteors: boolean;
+  showSatellites: boolean;
   constellationFocus: boolean;
   cinematic: boolean;
   onMoonSelect?: (planetIdx: number, moonIdx: number) => void;
   selMoonIdx?: number | null;
   onCameraDistance?: (d: number) => void;
   camPreset?: CamPreset | null;
+  selComet: CometDef | null; setSelComet: (c: CometDef | null) => void;
+  selMeteor: MeteorShower | null; setSelMeteor: (m: MeteorShower | null) => void;
+  selSatellite: SatellitePosition | null; setSelSatellite: (s: SatellitePosition | null) => void;
 }
 
 export default function Scene({
-  jd, T, neos, selNeo, setSelNeo, selPlanet, setSelPlanet,
+  jd, T, simTime, neos, selNeo, setSelNeo, selPlanet, setSelPlanet,
   focusTarget, onPositionsUpdate, showDwarf,
   showStars, showConstellations, showAsteroidBelt,
+  showComets, showMeteors, showSatellites,
   constellationFocus, cinematic, onMoonSelect, selMoonIdx, onCameraDistance, camPreset,
+  selComet, setSelComet, selMeteor, setSelMeteor, selSatellite, setSelSatellite,
 }: SceneProps) {
   const [hov, setHov] = useState<number | null>(null);
   const [hovMoon, setHovMoon] = useState<number | null>(null);
@@ -289,7 +298,7 @@ export default function Scene({
         return moons.map((moon, mIdx) => (
           <group key={moon.name}>
             {isFocused && <SatelliteOrbit moon={moon} parentPos={parentPos} />}
-            <Satellite
+            <MoonSatellite
               moon={moon}
               parentPos={parentPos}
               jd={jd}

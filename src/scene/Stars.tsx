@@ -65,12 +65,38 @@ interface NamedStar {
   mag: number;
 }
 
+interface BayerStar {
+  designation: string; // e.g. "α Ori"
+  pos: [number, number, number];
+  mag: number;
+  con: string;
+}
+
 interface StarData {
   positions: Float32Array;
   sizes: Float32Array;
   colors: Float32Array;
   count: number;
   namedStars: NamedStar[];
+  bayerStars: BayerStar[];
+}
+
+/** Convert 3-letter bayer abbreviation to Greek symbol */
+const BAYER_GREEK: Record<string, string> = {
+  Alp: 'α', Bet: 'β', Gam: 'γ', Del: 'δ', Eps: 'ε', Zet: 'ζ',
+  Eta: 'η', The: 'θ', Iot: 'ι', Kap: 'κ', Lam: 'λ', Mu: 'μ',
+  Nu: 'ν', Xi: 'ξ', Omi: 'ο', Pi: 'π', Rho: 'ρ', Sig: 'σ',
+  Tau: 'τ', Ups: 'υ', Phi: 'φ', Chi: 'χ', Psi: 'ψ', Ome: 'ω',
+};
+
+function bayerToGreek(bayer: string): string | null {
+  // Handle "Alp-1" → "α¹", "Bet" → "β", etc.
+  const match = bayer.match(/^([A-Z][a-z]{1,2})(?:-(\d))?$/);
+  if (!match) return null;
+  const greek = BAYER_GREEK[match[1]];
+  if (!greek) return null;
+  const superscripts = ['', '¹', '²', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹'];
+  return greek + (match[2] ? superscripts[parseInt(match[2])] || '' : '');
 }
 
 function useStarData(): StarData | null {
@@ -86,6 +112,8 @@ function useStarData(): StarData | null {
         const sizes = new Float32Array(count);
         const colors = new Float32Array(count * 3);
         const namedStars: NamedStar[] = [];
+        const bayerStars: BayerStar[] = [];
+        const namedSet = new Set<string>(); // track named stars to avoid double labels
 
         for (let i = 0; i < count; i++) {
           const f = features[i];
@@ -109,10 +137,29 @@ function useStarData(): StarData | null {
           const name = f.properties.name;
           if (name && mag < 3.0) {
             namedStars.push({ name, pos: [x, y, z], mag });
+            namedSet.add(`${ra.toFixed(2)},${dec.toFixed(2)}`);
+          }
+
+          // Collect Bayer-designated stars (skip if already named)
+          const bayer = f.properties.bayer;
+          const con = f.properties.con;
+          if (bayer && con && mag < 4.5) {
+            const key = `${ra.toFixed(2)},${dec.toFixed(2)}`;
+            if (!namedSet.has(key)) {
+              const greek = bayerToGreek(bayer);
+              if (greek) {
+                bayerStars.push({
+                  designation: `${greek} ${con}`,
+                  pos: [x, y, z],
+                  mag,
+                  con,
+                });
+              }
+            }
           }
         }
 
-        setData({ positions, sizes, colors, count, namedStars });
+        setData({ positions, sizes, colors, count, namedStars, bayerStars });
       })
       .catch(() => {});
   }, []);
@@ -120,10 +167,11 @@ function useStarData(): StarData | null {
   return data;
 }
 
-export function StarField({ visible }: { visible: boolean }) {
+export function StarField({ visible, showDesignations }: { visible: boolean; showDesignations?: boolean }) {
   const starData = useStarData();
   const { camera } = useThree();
   const [visibleNames, setVisibleNames] = useState<Set<string>>(new Set());
+  const [visibleDesignations, setVisibleDesignations] = useState<Set<number>>(new Set());
 
   // Pre-allocated vectors for culling (perf fix)
   const camDirRef = useRef(new THREE.Vector3());

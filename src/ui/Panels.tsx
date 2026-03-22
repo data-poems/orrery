@@ -291,7 +291,7 @@ function SideDrawer({
                     padding: mobile ? '8px 16px 8px 36px' : '4px 16px 4px 34px',
                     background: 'transparent', border: 'none', cursor: 'pointer',
                     fontFamily: 'inherit', color: 'rgba(255,255,255,0.45)',
-                    fontSize: mobile ? 13 : 12, fontStyle: 'italic', fontWeight: 300,
+                    fontSize: mobile ? 15 : 14, fontStyle: 'italic', fontWeight: 300,
                     minHeight: mobile ? 40 : 'auto', textAlign: 'left',
                   }}
                 >

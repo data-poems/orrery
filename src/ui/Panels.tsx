@@ -851,6 +851,9 @@ export default function Panels(props: PanelProps) {
           constellationFocus={constellationFocus} setConstellationFocus={setConstellationFocus}
           showDwarf={showDwarf} setShowDwarf={setShowDwarf}
           showAsteroidBelt={showAsteroidBelt} setShowAsteroidBelt={setShowAsteroidBelt}
+          showComets={showComets} setShowComets={setShowComets}
+          showMeteors={showMeteors} setShowMeteors={setShowMeteors}
+          showSatellites={showSatellites} setShowSatellites={setShowSatellites}
         />
       </div>
 

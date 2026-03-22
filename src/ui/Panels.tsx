@@ -781,6 +781,9 @@ export default function Panels(props: PanelProps) {
           </div>
         </div>
 
+        {/* Camera + Layers dropdowns — side by side */}
+        <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+
         {/* Camera view selector — dropdown */}
         <div style={{ position: 'relative' }}>
           <button
@@ -894,6 +897,7 @@ export default function Panels(props: PanelProps) {
             </div>
           );
         })()}
+        </div>{/* end Camera + Layers row */}
       </div>
 
       {/* ── Drawer toggle tab ── */}

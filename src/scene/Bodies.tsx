@@ -16,7 +16,7 @@ import { useTheme } from '../lib/themes';
 
 export function Sun({ cameraDistance = 0 }: { cameraDistance?: number }) {
   const ref = useRef<THREE.Mesh>(null);
-  const tex = useLoader(THREE.TextureLoader, import.meta.env.BASE_URL + 'textures/sun_4k.jpg');
+  const tex = useLoader(THREE.TextureLoader, TEX.sun);
   useFrame((_, dt) => { if (ref.current) ref.current.rotation.y += dt * 0.02; });
   const farGlow = Math.min(cameraDistance / 50, 4);
   return (

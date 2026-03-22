@@ -11,18 +11,21 @@ import type { PlanetDef, TexKey, CamPreset } from '../lib/kepler';
 
 // ─── CDN texture URLs ───────────────────────────────────────────────────────────
 
+const B = import.meta.env.BASE_URL + 'textures/';
+const CDN = 'https://d2xsxph8kpxj0f.cloudfront.net/310419663029916604/boBVkWMKnM6d26ztuVrLrs/';
+
 export const TEX: Record<string, string> = {
-  sun:        'https://d2xsxph8kpxj0f.cloudfront.net/310419663029916604/boBVkWMKnM6d26ztuVrLrs/2k_sun_5dda6323.jpg',
-  mercury:    'https://d2xsxph8kpxj0f.cloudfront.net/310419663029916604/boBVkWMKnM6d26ztuVrLrs/2k_mercury_3a544532.jpg',
-  venus:      'https://d2xsxph8kpxj0f.cloudfront.net/310419663029916604/boBVkWMKnM6d26ztuVrLrs/2k_venus_surface_64d32f16.jpg',
-  earth:      'https://d2xsxph8kpxj0f.cloudfront.net/310419663029916604/boBVkWMKnM6d26ztuVrLrs/2k_earth_daymap_92ee265f.jpg',
-  earthClouds:'https://d2xsxph8kpxj0f.cloudfront.net/310419663029916604/boBVkWMKnM6d26ztuVrLrs/2k_earth_clouds_8894a3d4.jpg',
-  mars:       'https://d2xsxph8kpxj0f.cloudfront.net/310419663029916604/boBVkWMKnM6d26ztuVrLrs/2k_mars_31a2dde3.jpg',
-  jupiter:    'https://d2xsxph8kpxj0f.cloudfront.net/310419663029916604/boBVkWMKnM6d26ztuVrLrs/2k_jupiter_119eb97c.jpg',
-  saturn:     'https://d2xsxph8kpxj0f.cloudfront.net/310419663029916604/boBVkWMKnM6d26ztuVrLrs/2k_saturn_920011fe.jpg',
-  uranus:     'https://d2xsxph8kpxj0f.cloudfront.net/310419663029916604/boBVkWMKnM6d26ztuVrLrs/2k_uranus_a5872335.jpg',
-  neptune:    'https://d2xsxph8kpxj0f.cloudfront.net/310419663029916604/boBVkWMKnM6d26ztuVrLrs/2k_neptune_d38c09d9.jpg',
-  moon:       'https://d2xsxph8kpxj0f.cloudfront.net/310419663029916604/boBVkWMKnM6d26ztuVrLrs/2k_moon_d6e624fa.jpg',
+  sun:        B + 'sun_4k.jpg',
+  mercury:    B + 'mercury_4k.jpg',
+  venus:      B + 'venus_4k.jpg',
+  earth:      B + 'earth_daymap_4k.jpg',
+  earthClouds: B + 'earth_clouds_4k.jpg',
+  mars:       B + 'mars_4k.jpg',
+  jupiter:    B + 'jupiter_4k.jpg',
+  saturn:     B + 'saturn_4k.jpg',
+  uranus:     CDN + '2k_uranus_a5872335.jpg',
+  neptune:    CDN + '2k_neptune_d38c09d9.jpg',
+  moon:       B + 'moon_4k.jpg',
 };
 
 // ─── Planets (JPL J2000 + secular rates per century) ────────────────────────────

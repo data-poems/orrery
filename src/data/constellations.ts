@@ -143,7 +143,7 @@ export const CONSTELLATIONS: ConstellationMeta[] = [
     brightestStar: 'Alpha Centauri (-0.27)', season: 'Spring', area: 1060, zodiac: false,
   },
   {
-    id: 'Crx', name: 'Crux', nameEn: 'Southern Cross',
+    id: 'Cru', name: 'Crux', nameEn: 'Southern Cross',
     mythology: 'The smallest constellation but culturally vital for southern hemisphere navigation. European explorers named it during the Age of Discovery. Its long axis points roughly toward the south celestial pole.',
     brightestStar: 'Acrux (0.77)', season: 'Spring', area: 68, zodiac: false,
   },
@@ -303,7 +303,7 @@ export const CONSTELLATIONS: ConstellationMeta[] = [
     brightestStar: 'Alnair (1.73)', season: 'Autumn', area: 366, zodiac: false,
   },
   {
-    id: 'Scu', name: 'Sculptor', nameEn: 'The Sculptor',
+    id: 'Scl', name: 'Sculptor', nameEn: 'The Sculptor',
     mythology: 'Originally "Apparatus Sculptoris" (the sculptor\'s workshop), created by Lacaille in 1751-52 during his expedition to the Cape of Good Hope. The south galactic pole lies within its borders. The Sculptor Dwarf Galaxy, a satellite of the Milky Way, was discovered here.',
     brightestStar: 'Alpha Sculptoris (4.31)', season: 'Autumn', area: 475, zodiac: false,
   },

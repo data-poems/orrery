@@ -143,12 +143,12 @@ for (const line of lines) {
 
 console.log(`Parsed ${allComets.length} comets from MPC data`);
 
-// Filter: notable comets + perihelion within 5 years of now
-const fiveYearsJD = 5 * 365.25;
+// Filter: notable comets + bright comets with perihelion within 3 years
+const threeYearsJD = 3 * 365.25;
 const filtered = allComets.filter(c => {
   if (c.notable) return true;
-  // Perihelion within 5 years
-  if (Math.abs(c.tp_jd - currentJD) < fiveYearsJD) return true;
+  // Bright comets (H < 12) with perihelion within 3 years
+  if (c.H < 12 && Math.abs(c.tp_jd - currentJD) < threeYearsJD) return true;
   return false;
 });
 

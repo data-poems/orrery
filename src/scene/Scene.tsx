@@ -10,9 +10,15 @@ import { ALL_BODIES } from '../data/planets';
 import { getMoonsForPlanet } from '../data/moons';
 import type { PlanetDef, NEO, FocusTarget, CamPreset } from '../lib/kepler';
 import { planetXYZ } from '../lib/kepler';
-import { Sun, Planet, OrbitRing, Satellite, SatelliteOrbit } from './Bodies';
-import { AsteroidBelt, NeoDot, AsteroidOrbitLine } from './Asteroids';
+import { Sun, Planet, OrbitRing, Satellite as MoonSatellite, SatelliteOrbit } from './Bodies';
+import { AsteroidBelt, RealAsteroidBelt, NeoDot, AsteroidOrbitLine } from './Asteroids';
 import { StarField, ConstellationLines, ConstellationLabels } from './Stars';
+import { CometField } from './Comets';
+import { MeteorField } from './Meteors';
+import { SatelliteField } from './Satellites';
+import type { CometDef } from '../data/comets';
+import type { MeteorShower } from './Meteors';
+import type { SatellitePosition } from '../lib/satellites';
 
 // Default home camera position (replaces CAMS[1] "System" view)
 const HOME_POS: [number, number, number] = [0, 30, 40];

@@ -157,9 +157,9 @@ function SideDrawer({
   selPlanet, setSelPlanet, onMoonSelect,
   neos, neoStatus, selNeo, setSelNeo,
   showNeo, showStars, showConstellations, constellationFocus, showDwarf,
-  showAsteroidBelt,
+  showAsteroidBelt, showComets, showMeteors, showSatellites,
   setShowNeo, setShowStars, setShowConstellations, setConstellationFocus,
-  setShowDwarf, setShowAsteroidBelt,
+  setShowDwarf, setShowAsteroidBelt, setShowComets, setShowMeteors, setShowSatellites,
 }: {
   open: boolean;
   accent: string;
@@ -178,6 +178,9 @@ function SideDrawer({
   constellationFocus: boolean; setConstellationFocus: (fn: (p: boolean) => boolean) => void;
   showDwarf: boolean; setShowDwarf: (fn: (p: boolean) => boolean) => void;
   showAsteroidBelt: boolean; setShowAsteroidBelt: (fn: (p: boolean) => boolean) => void;
+  showComets: boolean; setShowComets: (fn: (p: boolean) => boolean) => void;
+  showMeteors: boolean; setShowMeteors: (fn: (p: boolean) => boolean) => void;
+  showSatellites: boolean; setShowSatellites: (fn: (p: boolean) => boolean) => void;
 }) {
   const { theme, setTheme } = useTheme();
 
@@ -189,11 +192,14 @@ function SideDrawer({
 
   const layers = [
     { label: 'Stars', key: 'S', on: showStars, fn: () => setShowStars(p => !p) },
-    { label: 'Constellations', key: 'C', on: showConstellations, fn: () => setShowConstellations(p => !p) },
+    { label: 'Constellations', key: 'L', on: showConstellations, fn: () => setShowConstellations(p => !p) },
     { label: 'Stargazer', key: 'G', on: constellationFocus, fn: () => setConstellationFocus(p => !p) },
     { label: 'Dwarf Planets', key: 'D', on: showDwarf, fn: () => setShowDwarf(p => !p) },
     { label: neoLabel, key: 'N', on: showNeo, fn: () => setShowNeo(p => !p) },
     { label: 'Asteroid Belt', key: null, on: showAsteroidBelt, fn: () => setShowAsteroidBelt(p => !p) },
+    { label: 'Comets', key: 'C', on: showComets, fn: () => setShowComets(p => !p) },
+    { label: 'Meteor Showers', key: 'R', on: showMeteors, fn: () => setShowMeteors(p => !p) },
+    { label: 'Satellites', key: 'I', on: showSatellites, fn: () => setShowSatellites(p => !p) },
   ];
 
   // Shared styles

@@ -255,6 +255,8 @@ function OrreryInner() {
     setShowConstellations(true);
     setShowAsteroidBelt(true);
     setShowDwarf(true);
+    setShowDeepSky(!isMobile);
+    setShowDeepSpace(!isMobile);
     setSelPlanet(isMobile ? null : 2);
     setCamIdx(-1);
     setSelMoonIdx(null);
@@ -329,6 +331,17 @@ function OrreryInner() {
 
     return () => clearInterval(id);
   }, [cinematic, sceneReady, applyCinematicStep, cinematicSteps]);
+
+  // Prefetch tour-essential datasets when cinematic starts
+  useEffect(() => {
+    if (!cinematic) return;
+    const urls = [
+      import.meta.env.BASE_URL + 'data/main-belt.json',
+      import.meta.env.BASE_URL + 'data/mw.json',
+      import.meta.env.BASE_URL + 'data/deepsky.json',
+    ];
+    urls.forEach(url => fetch(url).catch(() => {}));
+  }, [cinematic]);
 
   const handlePositionsUpdate = useCallback((m: Map<number, [number, number, number]>) => {
     positionsRef.current = m;
@@ -620,7 +633,7 @@ function OrreryInner() {
     >
       <Canvas
         dpr={[1, 1.5]}
-        camera={{ position: [0, 3, 4], fov: 55, near: 0.005, far: 120000 }}
+        camera={{ position: [0, 3, 4], fov: 55, near: 0.005, far: 250000 }}
         style={{ position: 'absolute', inset: 0 }}
         gl={{ antialias: true, logarithmicDepthBuffer: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.2 }}
         onCreated={() => {

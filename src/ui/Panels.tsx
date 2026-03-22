@@ -37,8 +37,8 @@ function Btn({ children, onClick, style, label }: {
 function Stat({ label, val, c }: { label: string; val: string | number; c?: string }) {
   return (
     <div>
-      <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 9, letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 300 }}>{label}</div>
-      <div style={{ color: c || '#fff', fontSize: 12, marginTop: 1 }}>{val}</div>
+      <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 300 }}>{label}</div>
+      <div style={{ color: c || '#fff', fontSize: 13, marginTop: 1 }}>{val}</div>
     </div>
   );
 }
@@ -251,7 +251,7 @@ function SideDrawer({
                   background: selPlanet === idx ? `rgba(${accentRgb},0.08)` : 'transparent',
                   border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                   color: selPlanet === idx ? accent : 'rgba(255,255,255,0.7)',
-                  fontSize: mobile ? 13 : 12, fontWeight: selPlanet === idx ? 500 : 300,
+                  fontSize: mobile ? 14 : 13, fontWeight: selPlanet === idx ? 500 : 300,
                   minHeight: mobile ? 44 : 'auto', textAlign: 'left',
                   transition: 'background 0.1s',
                 }}
@@ -269,7 +269,7 @@ function SideDrawer({
                     padding: mobile ? '8px 16px 8px 36px' : '4px 16px 4px 34px',
                     background: 'transparent', border: 'none', cursor: 'pointer',
                     fontFamily: 'inherit', color: 'rgba(255,255,255,0.45)',
-                    fontSize: mobile ? 12 : 11, fontStyle: 'italic', fontWeight: 300,
+                    fontSize: mobile ? 13 : 12, fontStyle: 'italic', fontWeight: 300,
                     minHeight: mobile ? 40 : 'auto', textAlign: 'left',
                   }}
                 >
@@ -301,7 +301,7 @@ function SideDrawer({
                   background: selPlanet === idx ? `rgba(${accentRgb},0.08)` : 'transparent',
                   border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                   color: selPlanet === idx ? accent : 'rgba(255,255,255,0.7)',
-                  fontSize: mobile ? 13 : 12, fontWeight: selPlanet === idx ? 500 : 300,
+                  fontSize: mobile ? 14 : 13, fontWeight: selPlanet === idx ? 500 : 300,
                   minHeight: mobile ? 44 : 'auto', textAlign: 'left',
                   transition: 'background 0.1s',
                 }}
@@ -319,7 +319,7 @@ function SideDrawer({
                     padding: mobile ? '8px 16px 8px 36px' : '4px 16px 4px 34px',
                     background: 'transparent', border: 'none', cursor: 'pointer',
                     fontFamily: 'inherit', color: 'rgba(255,255,255,0.45)',
-                    fontSize: mobile ? 12 : 11, fontStyle: 'italic', fontWeight: 300,
+                    fontSize: mobile ? 13 : 12, fontStyle: 'italic', fontWeight: 300,
                     minHeight: mobile ? 40 : 'auto', textAlign: 'left',
                   }}
                 >
@@ -346,7 +346,7 @@ function SideDrawer({
               display: 'flex', alignItems: 'center', gap: 10, width: '100%',
               padding: mobile ? '10px 16px' : '6px 16px',
               background: 'transparent', border: 'none', cursor: 'pointer',
-              fontFamily: 'inherit', fontSize: mobile ? 13 : 12,
+              fontFamily: 'inherit', fontSize: mobile ? 14 : 13,
               color: l.on ? accent : 'rgba(255,255,255,0.5)',
               fontWeight: l.on ? 400 : 300, textAlign: 'left',
               minHeight: mobile ? 44 : 'auto',
@@ -701,7 +701,7 @@ export default function Panels(props: PanelProps) {
               ...glass, padding: mobile ? '6px 14px' : '5px 14px',
               display: 'flex', alignItems: 'center', gap: 8,
               cursor: 'pointer', border: '1px solid rgba(255,255,255,0.08)',
-              fontFamily: 'inherit', fontSize: mobile ? 11 : 12,
+              fontFamily: 'inherit', fontSize: mobile ? 12 : 13,
               color: 'rgba(255,255,255,0.7)', fontWeight: 300, letterSpacing: 0.5,
               borderRadius: 4, minHeight: mobile ? 36 : 28,
             }}
@@ -761,7 +761,7 @@ export default function Panels(props: PanelProps) {
                 background: l.on ? `rgba(${accentRgb},0.12)` : 'transparent',
                 border: `1px solid ${l.on ? `rgba(${accentRgb},0.3)` : 'rgba(255,255,255,0.06)'}`,
                 borderRadius: 12, padding: mobile ? '5px 10px' : '3px 8px',
-                fontSize: mobile ? 10 : 9, cursor: 'pointer', fontFamily: 'inherit',
+                fontSize: mobile ? 11 : 10, cursor: 'pointer', fontFamily: 'inherit',
                 color: l.on ? accent : 'rgba(255,255,255,0.35)',
                 fontWeight: l.on ? 400 : 300, letterSpacing: 0.5,
                 minHeight: mobile ? 32 : 'auto',

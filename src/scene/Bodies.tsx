@@ -21,12 +21,27 @@ export function Sun({ cameraDistance = 0 }: { cameraDistance?: number }) {
   const farGlow = Math.min(cameraDistance / 50, 4);
   return (
     <group>
-      {/* Textured sun sphere — emissive bright, no blending tricks */}
+      {/* Textured sun sphere */}
       <mesh ref={ref}>
         <sphereGeometry args={[0.15, 48, 48]} />
         <meshBasicMaterial map={tex} toneMapped={false} color="#ffffff" />
       </mesh>
-      {/* Distance-adaptive beacon for far zoom only */}
+      {/* Inner corona glow — sphere mesh, no square artifacts */}
+      <mesh>
+        <sphereGeometry args={[0.20, 32, 32]} />
+        <meshBasicMaterial color="#ffeecc" transparent opacity={0.12} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
+      </mesh>
+      {/* Middle corona */}
+      <mesh>
+        <sphereGeometry args={[0.28, 32, 32]} />
+        <meshBasicMaterial color="#ffcc66" transparent opacity={0.06} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
+      </mesh>
+      {/* Outer soft glow */}
+      <mesh>
+        <sphereGeometry args={[0.40, 32, 32]} />
+        <meshBasicMaterial color="#ffaa44" transparent opacity={0.03} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
+      </mesh>
+      {/* Distance-adaptive beacon for far zoom */}
       {cameraDistance > 30 && (
         <mesh>
           <sphereGeometry args={[0.15 * farGlow * 1.5, 16, 16]} />

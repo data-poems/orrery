@@ -447,6 +447,16 @@ export const CONSTELLATIONS: ConstellationMeta[] = [
     brightestStar: 'Alpha Antliae (4.25)', season: 'Spring', area: 239, zodiac: false,
   },
   {
+    id: 'Ara', name: 'Ara', nameEn: 'The Altar',
+    mythology: 'The altar on which the Olympian gods swore their alliance before battling the Titans. After their victory, Zeus placed it among the stars with its smoke trailing southward into the Milky Way. It is one of the original 48 Ptolemaic constellations.',
+    brightestStar: 'Beta Arae (2.84)', season: 'Summer', area: 237, zodiac: false,
+  },
+  {
+    id: 'LMi', name: 'Leo Minor', nameEn: 'Little Lion',
+    mythology: 'Created by Hevelius in 1687 from faint stars between Leo and Ursa Major. Unlike most constellations, its brightest star has no Bayer alpha designation due to a cataloging oversight. It is one of the few modern constellations that has endured to the present day.',
+    brightestStar: 'Praecipua (3.83)', season: 'Spring', area: 232, zodiac: false,
+  },
+  {
     id: 'Cam', name: 'Camelopardalis', nameEn: 'Giraffe',
     mythology: 'Created by Plancius in 1612, representing the camel that carried Rebecca to Isaac in the Bible, or perhaps the giraffe the Romans called "camelopardalis" (camel-leopard). A vast, dim circumpolar constellation with few notable features but enormous empty skies.',
     brightestStar: 'Beta Camelopardalis (4.03)', season: 'Winter', area: 757, zodiac: false,

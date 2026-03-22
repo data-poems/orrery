@@ -13,19 +13,20 @@ import type { PlanetDef, TexKey, CamPreset } from '../lib/kepler';
 
 const B = import.meta.env.BASE_URL + 'textures/';
 const CDN = 'https://d2xsxph8kpxj0f.cloudfront.net/310419663029916604/boBVkWMKnM6d26ztuVrLrs/';
+const RES = typeof window !== 'undefined' && window.innerWidth < 768 ? '2k' : '4k';
 
 export const TEX: Record<string, string> = {
-  sun:        B + 'sun_4k.jpg',
-  mercury:    B + 'mercury_4k.jpg',
-  venus:      B + 'venus_4k.jpg',
-  earth:      B + 'earth_daymap_4k.jpg',
-  earthClouds: B + 'earth_clouds_4k.jpg',
-  mars:       B + 'mars_4k.jpg',
-  jupiter:    B + 'jupiter_4k.jpg',
-  saturn:     B + 'saturn_4k.jpg',
+  sun:        B + `sun_${RES}.jpg`,
+  mercury:    B + `mercury_${RES}.jpg`,
+  venus:      B + `venus_${RES}.jpg`,
+  earth:      B + `earth_daymap_${RES}.jpg`,
+  earthClouds: B + `earth_clouds_${RES}.jpg`,
+  mars:       B + `mars_${RES}.jpg`,
+  jupiter:    B + `jupiter_${RES}.jpg`,
+  saturn:     B + `saturn_${RES}.jpg`,
   uranus:     CDN + '2k_uranus_a5872335.jpg',
   neptune:    CDN + '2k_neptune_d38c09d9.jpg',
-  moon:       B + 'moon_4k.jpg',
+  moon:       B + `moon_${RES}.jpg`,
 };
 
 // ─── Planets (JPL J2000 + secular rates per century) ────────────────────────────

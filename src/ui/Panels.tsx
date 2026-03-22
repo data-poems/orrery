@@ -753,8 +753,6 @@ export default function Panels(props: PanelProps) {
             { label: 'Const', on: showConstellations, fn: () => setShowConstellations((p: boolean) => !p) },
             { label: 'Belt', on: showAsteroidBelt, fn: () => setShowAsteroidBelt((p: boolean) => !p) },
             { label: 'Dwarf', on: showDwarf, fn: () => setShowDwarf((p: boolean) => !p) },
-            { label: 'Milky Way', on: showMilkyWay, fn: () => setShowMilkyWay((p: boolean) => !p) },
-            { label: 'Deep', on: showDeepSpace, fn: () => setShowDeepSpace((p: boolean) => !p) },
             { label: `NEO`, on: showNeo, fn: () => setShowNeo((p: boolean) => !p) },
           ].map(l => (
             <button
@@ -827,8 +825,6 @@ export default function Panels(props: PanelProps) {
           constellationFocus={constellationFocus} setConstellationFocus={setConstellationFocus}
           showDwarf={showDwarf} setShowDwarf={setShowDwarf}
           showAsteroidBelt={showAsteroidBelt} setShowAsteroidBelt={setShowAsteroidBelt}
-          showMilkyWay={showMilkyWay} setShowMilkyWay={setShowMilkyWay}
-          showDeepSpace={showDeepSpace} setShowDeepSpace={setShowDeepSpace}
         />
       </div>
 

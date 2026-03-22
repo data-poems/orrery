@@ -86,8 +86,6 @@ function OrreryInner() {
     // 6. Saturn
     { focusPlanet: 5, duration: 5000, label: 'Saturn',
       constellations: false },
-    // 7. Pluto
-    { focusPlanet: 9, duration: 5000, label: 'Pluto' },
   ], []);
 
   const cinematicIdx = useRef(0);

@@ -14,10 +14,11 @@ import { useTheme } from '../lib/themes';
 
 // ─── Sun ────────────────────────────────────────────────────────────────────────
 
-export function Sun() {
+export function Sun({ cameraDistance = 0 }: { cameraDistance?: number }) {
   const ref = useRef<THREE.Mesh>(null);
   const tex = useLoader(THREE.TextureLoader, TEX.sun);
   useFrame((_, dt) => { if (ref.current) ref.current.rotation.y += dt * 0.02; });
+  const glow = Math.min(cameraDistance / 50, 4);
   return (
     <group>
       {/* Solid bright core — prevents see-through effect */}
@@ -29,6 +30,12 @@ export function Sun() {
         <sphereGeometry args={[0.15, 48, 48]} />
         <meshBasicMaterial map={tex} toneMapped={false} color="#fffff0" />
       </mesh>
+      {/* Distance-adaptive glow beacon */}
+      {cameraDistance > 30 && (
+        <sprite scale={[0.15 * glow * 3, 0.15 * glow * 3, 1]}>
+          <spriteMaterial color="#ffdd88" transparent opacity={0.5} blending={THREE.AdditiveBlending} toneMapped={false} />
+        </sprite>
+      )}
       <pointLight intensity={5} color="#fff5e0" distance={200} />
       <pointLight intensity={2} color="#ffcc80" distance={100} />
       <Html

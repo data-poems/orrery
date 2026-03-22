@@ -42,13 +42,13 @@ export function Sun() {
       <Html
         position={[0, 0.2, 0]}
         center
-        distanceFactor={6}
+        distanceFactor={8}
         style={{ pointerEvents: 'none' }}
         zIndexRange={[1, 0]}
       >
         <div style={{
           color: 'rgba(255,220,160,0.9)',
-          fontSize: 16,
+          fontSize: 13,
           fontFamily: "'Cormorant Garamond', serif",
           fontWeight: 400,
           letterSpacing: 1.5,
@@ -134,9 +134,9 @@ function SaturnRings({ radius }: { radius: number }) {
 
 // ─── Planet ─────────────────────────────────────────────────────────────────────
 
-export function Planet({ planet, T, selected, onSelect, hovered, onHover }: {
+export function Planet({ planet, T, selected, onSelect, hovered, onHover, moonFocused }: {
   planet: PlanetDef; T: number; selected: boolean; onSelect: () => void;
-  hovered: boolean; onHover: (h: boolean) => void;
+  hovered: boolean; onHover: (h: boolean) => void; moonFocused?: boolean;
 }) {
   const ref = useRef<THREE.Mesh>(null);
   const pos = useMemo(() => planetXYZ(planet, T), [planet, T]);
@@ -165,13 +165,13 @@ export function Planet({ planet, T, selected, onSelect, hovered, onHover }: {
       <Html
         position={[0, r + 0.02, 0]}
         center
-        distanceFactor={planet.isDwarf ? 3 : 6}
+        distanceFactor={planet.isDwarf ? 4 : 8}
         style={{ pointerEvents: 'none' }}
         zIndexRange={[1, 0]}
       >
         <div style={{
           color: hovered || selected ? '#fff' : 'rgba(255,255,255,0.85)',
-          fontSize: 16,
+          fontSize: 13,
           fontFamily: "'Cormorant Garamond', serif",
           fontWeight: selected ? 600 : 400,
           letterSpacing: 1,
@@ -231,13 +231,13 @@ export function Satellite({ moon, parentPos, jd, selected, onSelect, hovered, on
         <Html
           position={[0, moon.radius + 0.008, 0]}
           center
-          distanceFactor={4}
+          distanceFactor={5}
           style={{ pointerEvents: 'none' }}
           zIndexRange={[1, 0]}
         >
           <div style={{
             color: hovered || selected ? '#fff' : 'rgba(255,255,255,0.75)',
-            fontSize: 14,
+            fontSize: 12,
             fontFamily: "'Cormorant Garamond', serif",
             fontWeight: 400,
             fontStyle: 'italic',

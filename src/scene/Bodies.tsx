@@ -20,22 +20,27 @@ export function Sun() {
   useFrame((_, dt) => { if (ref.current) ref.current.rotation.y += dt * 0.02; });
   return (
     <group>
+      {/* Solid bright core — prevents see-through effect */}
+      <mesh>
+        <sphereGeometry args={[0.12, 32, 32]} />
+        <meshBasicMaterial color="#fffaf0" toneMapped={false} />
+      </mesh>
       <mesh ref={ref}>
         <sphereGeometry args={[0.15, 48, 48]} />
-        <meshBasicMaterial map={tex} toneMapped={false} />
+        <meshBasicMaterial map={tex} toneMapped={false} color="#ffffee" />
       </mesh>
-      {/* Corona glow layers */}
+      {/* Corona glow layers — more opaque inner, subtle outer */}
       <mesh>
         <sphereGeometry args={[0.19, 32, 32]} />
-        <meshBasicMaterial color="#ffcc66" transparent opacity={0.18} toneMapped={false} />
+        <meshBasicMaterial color="#ffdd88" transparent opacity={0.4} toneMapped={false} />
       </mesh>
       <mesh>
         <sphereGeometry args={[0.26, 32, 32]} />
-        <meshBasicMaterial color="#ffaa33" transparent opacity={0.08} toneMapped={false} />
+        <meshBasicMaterial color="#ffbb55" transparent opacity={0.12} toneMapped={false} />
       </mesh>
       <mesh>
         <sphereGeometry args={[0.35, 32, 32]} />
-        <meshBasicMaterial color="#ff8800" transparent opacity={0.03} />
+        <meshBasicMaterial color="#ff9922" transparent opacity={0.04} toneMapped={false} />
       </mesh>
       <pointLight intensity={5} color="#fff5e0" distance={200} />
       <pointLight intensity={2} color="#ffcc80" distance={100} />

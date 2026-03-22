@@ -376,8 +376,11 @@ function OrreryInner() {
       if (k === 'n') setShowNeo(p => !p);
       if (k === 'd') setShowDwarf(p => !p);
       if (k === 's') setShowStars(p => !p);
-      if (k === 'c') setShowConstellations(p => !p);
+      if (k === 'l') setShowConstellations(p => !p);
       if (k === 'g') setConstellationFocus(p => !p);
+      if (k === 'c') setShowComets(p => !p);
+      if (k === 'r') setShowMeteors(p => !p);
+      if (k === 'i') setShowSatellites(p => !p);
       if (k === 'f') setCinematic(true);
       if (k === 'escape') {
         if (drawerOpen) { setDrawerOpen(false); return; }
@@ -412,7 +415,7 @@ function OrreryInner() {
       >
         <Suspense fallback={null}>
           <Scene
-            jd={jd} T={T}
+            jd={jd} T={T} simTime={simTime}
             neos={showNeo ? neos : []} selNeo={selNeo} setSelNeo={setSelNeo}
             selPlanet={selPlanet} setSelPlanet={handlePlanetSelect}
             focusTarget={focusTarget}
@@ -421,12 +424,18 @@ function OrreryInner() {
             showStars={showStars}
             showConstellations={showConstellations}
             showAsteroidBelt={showAsteroidBelt}
+            showComets={showComets}
+            showMeteors={showMeteors}
+            showSatellites={showSatellites}
             constellationFocus={constellationFocus}
             cinematic={cinematic}
             onMoonSelect={handleMoonSelect}
             selMoonIdx={selMoonIdx}
             onCameraDistance={setCameraDistance}
             camPreset={camPreset}
+            selComet={selComet} setSelComet={setSelComet}
+            selMeteor={selMeteor} setSelMeteor={setSelMeteor}
+            selSatellite={selSatellite} setSelSatellite={setSelSatellite}
           />
         </Suspense>
       </Canvas>

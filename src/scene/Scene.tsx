@@ -267,7 +267,7 @@ export default function Scene({
       <ambientLight intensity={0.15} />
       <Sun />
       <AUGrid />
-      {showAsteroidBelt && <AsteroidBelt />}
+      {showAsteroidBelt && <RealAsteroidBelt jd={jd} />}
       {visibleBodies.map((p) => {
         const bodyIdx = ALL_BODIES.indexOf(p);
         return (
@@ -342,7 +342,6 @@ export default function Scene({
         selSatellite={selSatellite}
         setSelSatellite={setSelSatellite}
       />
-      {showAsteroidBelt && <RealAsteroidBelt jd={jd} />}
       <CamCtrl
         focusTarget={focusTarget}
         positions={positions}

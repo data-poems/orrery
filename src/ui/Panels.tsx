@@ -968,7 +968,7 @@ export default function Panels(props: PanelProps) {
             background: mobile
               ? 'radial-gradient(ellipse at 50% 80%, rgba(0,0,0,0.45) 0%, transparent 60%)'
               : 'radial-gradient(ellipse at 15% 60%, rgba(0,0,0,0.45) 0%, transparent 55%)',
-            ...(mobile ? {} : { backdropFilter: 'blur(1.5px)', WebkitBackdropFilter: 'blur(1.5px)' }),
+            /* No blur — vignette gradient alone provides visual hierarchy */
             pointerEvents: 'none',
             zIndex: 19,
             transition: 'opacity 0.3s',

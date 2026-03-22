@@ -41,7 +41,7 @@ export default function LoadingScreen({ ready, progress = 0 }: { ready: boolean;
         setShownFacts(prev => [...prev, FACTS[factIdx.current]]);
         factIdx.current++;
       }
-    }, isMobile ? 600 : 450);
+    }, isMobile ? 1800 : 1400);
     return () => clearInterval(id);
   }, [ready, isMobile]);
 

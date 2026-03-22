@@ -515,6 +515,55 @@ function SideDrawer({
         );
       })()}
 
+      {/* ── Spacecraft Info (when selected) ── */}
+      {selSpacecraft && (() => {
+        const craft = selSpacecraft;
+        return (
+          <>
+            <SectionHeader>
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                <span>Spacecraft</span>
+                <button
+                  onClick={() => setSelSpacecraft(null)}
+                  aria-label="Close spacecraft info"
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: 'rgba(255,255,255,0.3)', fontSize: 14, fontFamily: 'inherit',
+                    padding: '0 4px', lineHeight: 1,
+                  }}
+                >
+                  {'\u00d7'}
+                </button>
+              </span>
+            </SectionHeader>
+            <div style={{ padding: '0 16px 12px' }}>
+              <div style={{ color: accent, fontSize: 15, fontWeight: 500, letterSpacing: 1 }}>
+                {craft.name}
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 300, marginTop: 2, letterSpacing: 1 }}>
+                {craft.status === 'active' ? 'Active' : 'Inactive'} {'\u00b7'} Launched {craft.launchYear}
+              </div>
+              <div style={{
+                color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: 300,
+                marginTop: 10, lineHeight: 1.6, fontStyle: 'italic',
+              }}>
+                {craft.desc}
+              </div>
+              <div style={{
+                display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px',
+                marginTop: 12, color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 300,
+              }}>
+                <div>Distance <span style={{ color: '#fff', fontWeight: 400 }}>{craft.distAU} AU</span></div>
+                <div>Speed <span style={{ color: '#fff', fontWeight: 400 }}>{craft.speedAUyr} AU/yr</span></div>
+                <div>Light-hours <span style={{ color: '#fff', fontWeight: 400 }}>{(craft.distAU / 7.2).toFixed(1)}</span></div>
+                <div>Light-years <span style={{ color: '#fff', fontWeight: 400 }}>{(craft.distAU / 63241).toFixed(4)}</span></div>
+              </div>
+            </div>
+            <div style={sectionDivider} />
+          </>
+        );
+      })()}
+
       {/* ── About ── */}
       <SectionHeader>About</SectionHeader>
       <div style={{ padding: '0 16px 20px' }}>

@@ -42,13 +42,13 @@ export function Sun() {
       <Html
         position={[0, 0.2, 0]}
         center
-        distanceFactor={8}
+        distanceFactor={12}
         style={{ pointerEvents: 'none' }}
         zIndexRange={[1, 0]}
       >
         <div style={{
           color: 'rgba(255,220,160,0.9)',
-          fontSize: 13,
+          fontSize: 11,
           fontFamily: "'Cormorant Garamond', serif",
           fontWeight: 400,
           letterSpacing: 1.5,
@@ -231,13 +231,13 @@ export function Satellite({ moon, parentPos, jd, selected, onSelect, hovered, on
         <Html
           position={[0, moon.radius + 0.008, 0]}
           center
-          distanceFactor={5}
+          distanceFactor={8}
           style={{ pointerEvents: 'none' }}
           zIndexRange={[1, 0]}
         >
           <div style={{
             color: hovered || selected ? '#fff' : 'rgba(255,255,255,0.75)',
-            fontSize: 12,
+            fontSize: 10,
             fontFamily: "'Cormorant Garamond', serif",
             fontWeight: 400,
             fontStyle: 'italic',

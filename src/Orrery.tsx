@@ -74,23 +74,39 @@ function OrreryInner() {
 
   // ─── Cinematic: continuous zoom cycle through scale levels ──────────────────
   const cinematicSteps = useMemo((): CinematicStep[] => [
-    // 1. Start at inner system
-    { camPreset: 0, duration: 5000, label: 'Inner Planets',
+    // 1. Open on the Sun close-up
+    { camPreset: 7, duration: 6000, label: 'Sol',
       stars: true, constellations: false, constellationFocus: false,
-      asteroidBelt: false, dwarf: false },
-    // 2. Zoom to Earth
-    { focusPlanet: 2, duration: 5000, label: 'Earth',
-      constellations: true },
-    // 3. Pull out to full system with asteroid belt
-    { camPreset: 1, duration: 5000, label: 'Solar System',
-      asteroidBelt: true, dwarf: true },
-    // 4. Jupiter
+      asteroidBelt: false, dwarf: false, deepSky: false, deepSpace: false },
+    // 2. Pull out to inner planets
+    { camPreset: 0, duration: 5000, label: 'Inner Planets' },
+    // 3. Earth
+    { focusPlanet: 2, duration: 5000, label: 'Earth' },
+    // 4. Mars
+    { focusPlanet: 3, duration: 4000, label: 'Mars' },
+    // 5. Pull out — reveal asteroid belt
+    { camPreset: 8, duration: 5000, label: 'Asteroid Belt',
+      asteroidBelt: true },
+    // 6. Jupiter
     { focusPlanet: 4, duration: 5000, label: 'Jupiter' },
-    // 5. Ganymede
-    { focusPlanet: 4, focusMoon: 3, duration: 5000, label: 'Ganymede' },
-    // 6. Saturn
-    { focusPlanet: 5, duration: 5000, label: 'Saturn',
-      constellations: false },
+    // 7. Saturn and its rings
+    { focusPlanet: 5, duration: 6000, label: 'Saturn' },
+    // 8. Full system — reveal dwarf planets and constellations
+    { camPreset: 1, duration: 5000, label: 'Solar System',
+      dwarf: true, constellations: true },
+    // 9. Ecliptic sweep
+    { camPreset: 3, duration: 5000, label: 'Ecliptic' },
+    // 10. Top-down view
+    { camPreset: 2, duration: 4000, label: 'Top Down' },
+    // 11. Outer reaches — Kuiper belt
+    { camPreset: 5, duration: 5000, label: 'Kuiper Belt',
+      deepSpace: true },
+    // 12. Stargazer — constellations and deep sky in full glory
+    { camPreset: 10, duration: 7000, label: 'Stargazer',
+      constellationFocus: true, deepSky: true },
+    // 13. Screensaver orbit — gentle auto-rotate following Earth
+    { camPreset: 6, duration: 8000, label: 'Screensaver',
+      constellations: false, constellationFocus: false, deepSky: false, deepSpace: false },
   ], []);
 
   const cinematicIdx = useRef(0);

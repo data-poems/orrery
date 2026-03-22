@@ -50,12 +50,25 @@ function Stat({ label, val, c }: { label: string; val: string | number; c?: stri
 // ─── Speed label formatter ──────────────────────────────────────────────────────
 
 function speedLabel(s: number) {
-  if (s === 1) return '1\u00d7';
-  if (s < 1000) return `${s}\u00d7`;
-  if (s < 86400) return `${(s / 3600).toFixed(1)}h/s`;
-  if (s < 86400 * 365) return `${(s / 86400).toFixed(1)}d/s`;
-  return `${(s / (86400 * 365)).toFixed(1)}yr/s`;
+  if (s === 1) return 'Real-time';
+  if (s <= 60) return `${s}\u00d7`;
+  if (s < 3600) return `${Math.round(s / 60)} min/s`;
+  if (s < 86400) return `${(s / 3600).toFixed(1)} hr/s`;
+  if (s < 86400 * 30) return `${(s / 86400).toFixed(1)} day/s`;
+  if (s < 86400 * 365) return `${(s / (86400 * 30)).toFixed(1)} mo/s`;
+  if (s < 86400 * 365 * 100) return `${(s / (86400 * 365)).toFixed(1)} yr/s`;
+  return `${(s / (86400 * 365 * 100)).toFixed(0)} cent/s`;
 }
+
+const SPEED_PRESETS = [
+  { label: '1\u00d7', value: 1 },
+  { label: '1 hr/s', value: 3600 },
+  { label: '1 day/s', value: 86400 },
+  { label: '1 mo/s', value: 86400 * 30 },
+  { label: '1 yr/s', value: 86400 * 365 },
+  { label: '10 yr/s', value: 86400 * 365 * 10 },
+  { label: '100 yr/s', value: 86400 * 365 * 100 },
+];
 
 // ─── Date formatter ─────────────────────────────────────────────────────────────
 
@@ -810,15 +823,21 @@ export default function Panels(props: PanelProps) {
           <span style={{ color: '#fff', fontSize: mobile ? 18 : 24, fontWeight: 300, letterSpacing: 3, fontFamily: "'Cormorant', serif" }}>{fmtTime(simTime)}</span>
           <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: mobile ? 12 : 14, fontStyle: 'italic', fontWeight: 300 }}>{fmtDate(simTime)}</span>
           {!mobile && <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14, fontStyle: 'italic', fontWeight: 300 }}>{moon.name}, {moon.ill}%</span>}
-          {speed !== 1 && <span style={{ color: accent, fontSize: 14, fontWeight: 400 }}>{speedLabel(speed)}</span>}
+          <span style={{ color: accent, fontSize: 14, fontWeight: 400, minWidth: 70, textAlign: 'center' }}>{speedLabel(speed)}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 4 }}>
             <button
-              onClick={() => props.setSpeed(s => Math.max(1, Math.round(s / 10) || 1))}
+              onClick={() => {
+                const presetVals = SPEED_PRESETS.map(p => p.value);
+                props.setSpeed(s => {
+                  const idx = presetVals.findIndex(v => v >= s);
+                  return idx > 0 ? presetVals[idx - 1] : 1;
+                });
+              }}
               aria-label="Slow down"
               style={{
-                background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)',
-                fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', padding: '2px 5px',
-                minWidth: 28, minHeight: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)',
+                fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', padding: '2px 6px',
+                minWidth: 32, minHeight: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
             >{'\u00ab'}</button>
             <button
@@ -826,20 +845,38 @@ export default function Panels(props: PanelProps) {
               aria-label={props.playing ? 'Pause simulation' : 'Play simulation'}
               style={{
                 background: 'none', border: 'none', color: props.playing ? accent : 'rgba(255,255,255,0.5)',
-                fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', padding: '2px 5px',
-                minWidth: 28, minHeight: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 16, cursor: 'pointer', fontFamily: 'inherit', padding: '2px 6px',
+                minWidth: 32, minHeight: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 letterSpacing: props.playing ? 2 : 0,
               }}
-            >{props.playing ? 'II' : '>'}</button>
+            >{props.playing ? '\u23F8' : '\u25B6'}</button>
             <button
-              onClick={() => props.setSpeed(s => Math.min(86400 * 365, s * 10))}
+              onClick={() => {
+                const presetVals = SPEED_PRESETS.map(p => p.value);
+                props.setSpeed(s => {
+                  const idx = presetVals.findIndex(v => v > s);
+                  return idx >= 0 ? presetVals[idx] : presetVals[presetVals.length - 1];
+                });
+              }}
               aria-label="Speed up"
               style={{
-                background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)',
-                fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', padding: '2px 5px',
-                minWidth: 28, minHeight: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)',
+                fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', padding: '2px 6px',
+                minWidth: 32, minHeight: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
             >{'\u00bb'}</button>
+            <button
+              onClick={() => props.setSpeed(() => 1)}
+              aria-label="Reset to real-time"
+              title="Reset to 1\u00d7"
+              style={{
+                background: speed !== 1 ? `rgba(${accentRgb},0.15)` : 'none',
+                border: 'none', color: speed !== 1 ? accent : 'rgba(255,255,255,0.3)',
+                fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', padding: '2px 6px',
+                minWidth: 32, minHeight: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                borderRadius: 4,
+              }}
+            >1\u00d7</button>
           </div>
         </div>
 

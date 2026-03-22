@@ -854,6 +854,7 @@ export default function Panels(props: PanelProps) {
             { label: 'Comets', key: 'C', on: showComets, fn: () => setShowComets((p: boolean) => !p) },
             { label: 'Meteor Showers', key: 'R', on: showMeteors, fn: () => setShowMeteors((p: boolean) => !p) },
             { label: 'Satellites', key: 'I', on: showSatellites, fn: () => setShowSatellites((p: boolean) => !p) },
+            { label: 'Deep Space', key: 'O', on: showDeepSpace, fn: () => setShowDeepSpace((p: boolean) => !p) },
           ];
           const activeCount = layers.filter(l => l.on).length;
           return (

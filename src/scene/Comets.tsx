@@ -158,6 +158,7 @@ export function CometField({ jd, visible, selComet, setSelComet, onLoad }: Comet
   const [comets, setComets] = useState<CometDef[]>([]);
 
   useEffect(() => {
+    if (!visible) { onLoad?.(); return; }
     fetch(BASE_PATH + 'comets.json')
       .then(r => r.json())
       .then(d => {
@@ -165,7 +166,7 @@ export function CometField({ jd, visible, selComet, setSelComet, onLoad }: Comet
         onLoad?.();
       })
       .catch(() => {});
-  }, [onLoad]);
+  }, [visible, onLoad]);
 
   if (!visible || comets.length === 0) return null;
 

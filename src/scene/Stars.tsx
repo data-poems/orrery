@@ -18,7 +18,6 @@ import { raDecTo3D, ECLIPTIC_TILT, DEG } from '../lib/kepler';
 const SPHERE_RADIUS = 300;
 const BASE_PATH = import.meta.env.BASE_URL + 'data/';
 const LABEL_UPDATE_INTERVAL_MS = 120;
-const IS_MOBILE = typeof window !== 'undefined' && window.innerWidth < 768;
 
 interface StarFeature {
   geometry: {
@@ -108,9 +107,8 @@ function CelestialGroup({ children, visible }: { children: React.ReactNode; visi
   const { camera } = useThree();
 
   useFrame(() => {
-    if (groupRef.current) {
-      groupRef.current.position.copy(camera.position);
-    }
+    if (!visible || !groupRef.current) return;
+    groupRef.current.position.copy(camera.position);
   });
 
   return (
@@ -171,11 +169,12 @@ function bayerToGreek(bayer: string): string | null {
   return greek + (match[2] ? superscripts[parseInt(match[2])] || '' : '');
 }
 
-function useStarData(): StarData | null {
+function useStarData(visible: boolean): StarData | null {
   const [data, setData] = useState<StarData | null>(null);
 
   useEffect(() => {
-    fetch(BASE_PATH + (IS_MOBILE ? 'stars.mobile.json' : 'stars.hyg-8.json'))
+    if (!visible || data) return;
+    fetch(BASE_PATH + 'stars.hyg-8.json')
       .then(r => r.json())
       .then((geojson: StarGeoJson) => {
         const features = geojson.features;
@@ -234,18 +233,18 @@ function useStarData(): StarData | null {
         setData({ positions, sizes, colors, count, namedStars, bayerStars });
       })
       .catch(() => {});
-  }, []);
+  }, [visible, data]);
 
   return data;
 }
 
 export function StarField({ visible, showDesignations, onLoad }: { visible: boolean; showDesignations?: boolean; onLoad?: () => void }) {
-  const starData = useStarData();
+  const starData = useStarData(visible);
   const { camera } = useThree();
 
   useEffect(() => {
-    if (starData) onLoad?.();
-  }, [starData, onLoad]);
+    if (starData || !visible) onLoad?.();
+  }, [starData, visible, onLoad]);
   const [visibleNames, setVisibleNames] = useState<Set<string>>(new Set());
   const [visibleDesignations, setVisibleDesignations] = useState<Set<number>>(new Set());
   const visibleNamesRef = useRef(new Set<string>());
@@ -296,7 +295,7 @@ export function StarField({ visible, showDesignations, onLoad }: { visible: bool
 
   // Cull named star labels + bayer designations to ~60° cone around camera direction
   useFrame(() => {
-    if (!starData) return;
+    if (!visible || !starData) return;
     const now = performance.now();
     if (now - lastLabelUpdateRef.current < LABEL_UPDATE_INTERVAL_MS) return;
     lastLabelUpdateRef.current = now;
@@ -554,6 +553,7 @@ export function ConstellationLines({ visible, focus, onLoad }: { visible: boolea
 
   // Distance-based fade (boosted in focus mode)
   useFrame(() => {
+    if (!visible) return;
     const dist = camera.position.length();
     const base = focus ? 0.92 : 0.34;
     const minFade = focus ? 0.42 : 0.03;
@@ -664,6 +664,7 @@ export function ConstellationLabels({ visible, focus, onSelect, onLoad }: { visi
 
   // Cull labels outside ~60° of camera look direction + distance-based fade
   useFrame(() => {
+    if (!visible) return;
     if (groupRef.current) {
       groupRef.current.position.copy(camera.position);
     }

@@ -82,15 +82,16 @@ export function SatelliteField({ visible, simTime, earthPos, cameraDistance, sel
   const earthPosRef = useRef(earthPos);
   const shouldRender = visible && cameraDistance <= SATELLITE_MAX_CAMERA_DISTANCE;
 
-  // Fetch TLEs once on mount
+  // Fetch TLEs when first made visible
   useEffect(() => {
+    if (!visible) { onLoad?.(); return; }
     fetchTLEs()
       .then(d => {
         setRecords(d);
         onLoad?.();
       })
       .catch(() => {});
-  }, [onLoad]);
+  }, [visible, onLoad]);
 
   useEffect(() => {
     simTimeRef.current = simTime;

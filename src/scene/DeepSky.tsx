@@ -50,10 +50,11 @@ const TYPE_SYMBOLS: Record<string, string> = {
   nebula: '\u2B1A',   // ⬚ dotted square (fallback: □)
 };
 
-function useDeepSkyData(): DeepSkyObj[] | null {
+function useDeepSkyData(visible: boolean): DeepSkyObj[] | null {
   const [data, setData] = useState<DeepSkyObj[] | null>(null);
 
   useEffect(() => {
+    if (!visible || data) return;
     fetch(BASE_PATH + 'deepsky.json')
       .then(r => r.json())
       .then((objects: DeepSkyObj[]) => {
@@ -63,19 +64,19 @@ function useDeepSkyData(): DeepSkyObj[] | null {
         setData(objects);
       })
       .catch(() => {});
-  }, []);
+  }, [visible, data]);
 
   return data;
 }
 
 export function DeepSkyField({ visible, onLoad }: { visible: boolean; onLoad?: () => void }) {
-  const objects = useDeepSkyData();
+  const objects = useDeepSkyData(visible);
   const groupRef = useRef<THREE.Group>(null);
   const { camera } = useThree();
 
   useEffect(() => {
-    if (objects) onLoad?.();
-  }, [objects, onLoad]);
+    if (objects || !visible) onLoad?.();
+  }, [objects, visible, onLoad]);
   const [visibleIds, setVisibleIds] = useState<Set<string>>(new Set());
   const visibleIdsRef = useRef(new Set<string>());
   const lastLabelUpdateRef = useRef(0);
@@ -152,6 +153,7 @@ export function DeepSkyField({ visible, onLoad }: { visible: boolean; onLoad?: (
 
   // Cull labels to 60° cone
   useFrame(() => {
+    if (!visible) return;
     if (groupRef.current) {
       groupRef.current.position.copy(camera.position);
     }

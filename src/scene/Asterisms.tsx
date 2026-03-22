@@ -55,9 +55,8 @@ export function AsterismField({ visible }: { visible: boolean }) {
 
   // Camera follow
   useFrame(() => {
-    if (groupRef.current) {
-      groupRef.current.position.copy(camera.position);
-    }
+    if (!visible || !groupRef.current) return;
+    groupRef.current.position.copy(camera.position);
   });
 
   // Compute dash distances when geometry is ready

@@ -136,7 +136,7 @@ function OrreryInner() {
   const [showComets, setShowComets] = useState(false);
   const [showMeteors, setShowMeteors] = useState(false);
   const [showSatellites, setShowSatellites] = useState(false);
-  const [showDeepSky, setShowDeepSky] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 768 : true);
+  const [showDeepSky, setShowDeepSky] = useState(false);
   const [showDeepSpace, setShowDeepSpace] = useState(false);
   const [selSpacecraft, setSelSpacecraft] = useState<Spacecraft | null>(null);
   const [selConstellation, setSelConstellation] = useState<string | null>(null);
@@ -619,7 +619,8 @@ function OrreryInner() {
       onClick={handleCinematicClick}
     >
       <Canvas
-        camera={{ position: [0, 3, 4], fov: 55, near: 0.005, far: 250000 }}
+        dpr={[1, 1.5]}
+        camera={{ position: [0, 3, 4], fov: 55, near: 0.005, far: 120000 }}
         style={{ position: 'absolute', inset: 0 }}
         gl={{ antialias: true, logarithmicDepthBuffer: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.2 }}
         onCreated={() => {

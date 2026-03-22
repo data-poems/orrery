@@ -97,6 +97,7 @@ export function RealAsteroidBelt({ jd, visible, onLoad }: { jd: number; visible:
   const lastJd = useRef(0);
 
   useEffect(() => {
+    if (!visible) { onLoad?.(); return; }
     fetch(REAL_BELT_PATH)
       .then(r => r.json())
       .then(d => {
@@ -104,7 +105,7 @@ export function RealAsteroidBelt({ jd, visible, onLoad }: { jd: number; visible:
         onLoad?.();
       })
       .catch(() => {});
-  }, [onLoad]);
+  }, [visible, onLoad]);
 
   // Recompute positions when jd changes by >0.5 days
   useEffect(() => {

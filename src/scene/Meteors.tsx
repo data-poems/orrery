@@ -110,6 +110,7 @@ export function MeteorField({ jd, visible, selMeteor, setSelMeteor, onLoad }: Me
   const { camera } = useThree();
 
   useEffect(() => {
+    if (!visible) { onLoad?.(); return; }
     fetch(BASE_PATH + 'meteor-showers.json')
       .then(r => r.json())
       .then(d => {
@@ -117,7 +118,7 @@ export function MeteorField({ jd, visible, selMeteor, setSelMeteor, onLoad }: Me
         onLoad?.();
       })
       .catch(() => {});
-  }, [onLoad]);
+  }, [visible, onLoad]);
 
   const solLon = useMemo(() => solarLongitude(jd), [jd]);
 
@@ -128,9 +129,8 @@ export function MeteorField({ jd, visible, selMeteor, setSelMeteor, onLoad }: Me
 
   // Camera-following group
   useFrame(() => {
-    if (groupRef.current) {
-      groupRef.current.position.copy(camera.position);
-    }
+    if (!visible || !groupRef.current) return;
+    groupRef.current.position.copy(camera.position);
   });
 
   if (!visible || showers.length === 0) return null;

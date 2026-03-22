@@ -548,6 +548,15 @@ export default function Panels(props: PanelProps) {
   const mobile = useIsMobile();
   const sp = selPlanet !== null ? ALL_BODIES[selPlanet] : null;
   const drawerRef = useRef<HTMLDivElement>(null);
+  const [viewOpen, setViewOpen] = useState(false);
+
+  // Close view dropdown on click outside
+  useEffect(() => {
+    if (!viewOpen) return;
+    const close = () => setViewOpen(false);
+    const timer = setTimeout(() => document.addEventListener('click', close), 0);
+    return () => { clearTimeout(timer); document.removeEventListener('click', close); };
+  }, [viewOpen]);
 
   // Selected moon info
   const selectedMoon = selPlanet !== null && selMoonIdx !== null

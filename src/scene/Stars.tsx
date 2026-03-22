@@ -85,6 +85,7 @@ function useStarData(): StarData | null {
         const positions = new Float32Array(count * 3);
         const sizes = new Float32Array(count);
         const colors = new Float32Array(count * 3);
+        const namedStars: NamedStar[] = [];
 
         for (let i = 0; i < count; i++) {
           const f = features[i];
@@ -103,9 +104,15 @@ function useStarData(): StarData | null {
           colors[i * 3] = cr;
           colors[i * 3 + 1] = cg;
           colors[i * 3 + 2] = cb;
+
+          // Collect named bright stars for labels
+          const name = f.properties.name;
+          if (name && mag < 3.0) {
+            namedStars.push({ name, pos: [x, y, z], mag });
+          }
         }
 
-        setData({ positions, sizes, colors, count });
+        setData({ positions, sizes, colors, count, namedStars });
       })
       .catch(() => {});
   }, []);
@@ -115,6 +122,12 @@ function useStarData(): StarData | null {
 
 export function StarField({ visible }: { visible: boolean }) {
   const starData = useStarData();
+  const { camera } = useThree();
+  const [visibleNames, setVisibleNames] = useState<Set<string>>(new Set());
+
+  // Pre-allocated vectors for culling (perf fix)
+  const camDirRef = useRef(new THREE.Vector3());
+  const starDirRef = useRef(new THREE.Vector3());
 
   const geometry = useMemo(() => {
     if (!starData) return null;
@@ -153,11 +166,53 @@ export function StarField({ visible }: { visible: boolean }) {
     depthTest: true,
   }), []);
 
+  // Cull named star labels to ~60° cone around camera direction
+  useFrame(() => {
+    if (!starData || starData.namedStars.length === 0) return;
+    camera.getWorldDirection(camDirRef.current);
+    const threshold = Math.cos(60 * DEG);
+    const vis = new Set<string>();
+    for (const star of starData.namedStars) {
+      starDirRef.current.set(star.pos[0], star.pos[1], star.pos[2]).normalize();
+      starDirRef.current.applyAxisAngle(new THREE.Vector3(1, 0, 0), ECLIPTIC_TILT);
+      if (starDirRef.current.dot(camDirRef.current) > threshold) {
+        vis.add(star.name);
+      }
+    }
+    setVisibleNames(vis);
+  });
+
   if (!geometry) return null;
 
   return (
     <CelestialGroup visible={visible}>
       <points geometry={geometry} material={material} />
+      {/* Named star labels */}
+      {starData?.namedStars.map(star => (
+        visibleNames.has(star.name) && (
+          <group key={star.name} position={star.pos}>
+            <Html
+              center
+              distanceFactor={300}
+              style={{ pointerEvents: 'none' }}
+              zIndexRange={[1, 0]}
+            >
+              <div style={{
+                color: 'rgba(255,255,255,0.6)',
+                fontSize: star.mag < 1.0 ? 9 : 8,
+                fontFamily: "'Cormorant Garamond', serif",
+                fontWeight: star.mag < 1.0 ? 400 : 300,
+                whiteSpace: 'nowrap',
+                userSelect: 'none',
+                letterSpacing: 0.5,
+                textShadow: '0 0 6px rgba(0,0,0,0.9)',
+              }}>
+                {star.name}
+              </div>
+            </Html>
+          </group>
+        )
+      ))}
     </CelestialGroup>
   );
 }

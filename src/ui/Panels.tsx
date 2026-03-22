@@ -552,7 +552,7 @@ export default function Panels(props: PanelProps) {
     selMoonIdx, cameraDistance,
     cams, camIdx, onPresetSelect,
     onMoonSelect,
-    selComet, setSelComet, selMeteor, setSelMeteor, selSatellite, setSelSatellite,
+    selComet, selMeteor, selSatellite,
   } = props;
 
   const { theme } = useTheme();

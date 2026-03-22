@@ -18,6 +18,7 @@ import { raDecTo3D, ECLIPTIC_TILT, DEG } from '../lib/kepler';
 const SPHERE_RADIUS = 300;
 const BASE_PATH = import.meta.env.BASE_URL + 'data/';
 const LABEL_UPDATE_INTERVAL_MS = 120;
+const IS_MOBILE = typeof window !== 'undefined' && window.innerWidth < 768;
 
 interface StarFeature {
   geometry: {
@@ -174,7 +175,7 @@ function useStarData(): StarData | null {
   const [data, setData] = useState<StarData | null>(null);
 
   useEffect(() => {
-    fetch(BASE_PATH + 'stars.hyg-8.json')
+    fetch(BASE_PATH + (IS_MOBILE ? 'stars.mobile.json' : 'stars.hyg-8.json'))
       .then(r => r.json())
       .then((geojson: StarGeoJson) => {
         const features = geojson.features;

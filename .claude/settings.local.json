@@ -21,7 +21,8 @@
       "WebFetch(domain:www.researchgate.net)",
       "WebFetch(domain:spiralmap.readthedocs.io)",
       "Read(//usr/local/lib/python3.10/dist-packages/SpiralMap/**)",
-      "Read(//usr/local/lib/python3.10/dist-packages/**)"
+      "Read(//usr/local/lib/python3.10/dist-packages/**)",
+      "Bash(aider --version)"
     ]
   },
   "enableAllProjectMcpServers": true,

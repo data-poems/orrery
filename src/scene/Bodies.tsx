@@ -12,34 +12,124 @@ import { planetXYZ, orbitPath } from '../lib/kepler';
 import type { MoonDef } from '../data/moons';
 import { useTheme } from '../lib/themes';
 
+const sunCoronaVertexShader = `
+  varying vec3 vNormal;
+  varying vec3 vWorldPos;
+  void main() {
+    vNormal = normalize(normalMatrix * normal);
+    vec4 worldPos = modelMatrix * vec4(position, 1.0);
+    vWorldPos = worldPos.xyz;
+    gl_Position = projectionMatrix * viewMatrix * worldPos;
+  }
+`;
+
+const sunCoronaFragmentShader = `
+  varying vec3 vNormal;
+  varying vec3 vWorldPos;
+  uniform vec3 viewPos;
+  uniform float time;
+  uniform float intensity;
+
+  void main() {
+    vec3 viewDir = normalize(viewPos - vWorldPos);
+    float fresnel = pow(1.0 - max(dot(vNormal, viewDir), 0.0), 2.2);
+    float pulse = 0.82 + 0.18 * sin(time * 1.7);
+    float ripple = 0.75 + 0.25 * sin(time * 2.6 + vWorldPos.y * 18.0 + vWorldPos.x * 12.0);
+    float glow = fresnel * pulse * ripple * intensity;
+
+    vec3 inner = vec3(1.0, 0.72, 0.18);
+    vec3 outer = vec3(1.0, 0.36, 0.05);
+    vec3 color = mix(inner, outer, clamp(fresnel * 1.2, 0.0, 1.0));
+
+    gl_FragColor = vec4(color, glow);
+  }
+`;
+
 // ─── Sun ────────────────────────────────────────────────────────────────────────
 
 export function Sun({ cameraDistance = 0 }: { cameraDistance?: number }) {
   const ref = useRef<THREE.Mesh>(null);
+  const coronaRef = useRef<THREE.ShaderMaterial | null>(null);
+  const outerCoronaRef = useRef<THREE.ShaderMaterial | null>(null);
   const tex = useLoader(THREE.TextureLoader, TEX.sun);
   useFrame((_, dt) => { if (ref.current) ref.current.rotation.y += dt * 0.02; });
+  useFrame(({ camera, clock }, dt) => {
+    if (ref.current) ref.current.rotation.y += dt * 0.02;
+    const t = clock.elapsedTime;
+    if (coronaRef.current) {
+      coronaRef.current.uniforms.time.value = t;
+      coronaRef.current.uniforms.viewPos.value.copy(camera.position);
+    }
+    if (outerCoronaRef.current) {
+      outerCoronaRef.current.uniforms.time.value = t * 0.85;
+      outerCoronaRef.current.uniforms.viewPos.value.copy(camera.position);
+    }
+  });
   const farGlow = Math.min(cameraDistance / 50, 4);
+  const coronaUniforms = useMemo(() => ({
+    viewPos: { value: new THREE.Vector3() },
+    time: { value: 0 },
+    intensity: { value: 0.95 },
+  }), []);
+  const outerCoronaUniforms = useMemo(() => ({
+    viewPos: { value: new THREE.Vector3() },
+    time: { value: 0 },
+    intensity: { value: 0.46 },
+  }), []);
   return (
     <group>
-      {/* Bright opaque sun — solid warm color, always visible */}
+      {/* Dense white-hot core */}
       <mesh>
-        <sphereGeometry args={[0.15, 48, 48]} />
-        <meshBasicMaterial color="#ffdd66" toneMapped={false} />
+        <sphereGeometry args={[0.135, 64, 64]} />
+        <meshBasicMaterial color="#fff4cf" toneMapped={false} />
+      </mesh>
+      {/* Chromosphere shell */}
+      <mesh>
+        <sphereGeometry args={[0.147, 64, 64]} />
+        <meshBasicMaterial color="#ffbc4a" toneMapped={false} transparent opacity={0.88} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
       {/* Texture overlay — additive so it adds detail without darkening */}
       <mesh ref={ref}>
         <sphereGeometry args={[0.151, 48, 48]} />
-        <meshBasicMaterial map={tex} toneMapped={false} color="#ffffff" transparent opacity={0.5} blending={THREE.AdditiveBlending} depthWrite={false} />
+        <meshBasicMaterial map={tex} toneMapped={false} color="#fff8ef" transparent opacity={0.62} blending={THREE.AdditiveBlending} depthWrite={false} />
+      </mesh>
+      {/* Inner corona */}
+      <mesh>
+        <sphereGeometry args={[0.19, 64, 64]} />
+        <shaderMaterial
+          ref={coronaRef}
+          vertexShader={sunCoronaVertexShader}
+          fragmentShader={sunCoronaFragmentShader}
+          uniforms={coronaUniforms}
+          transparent
+          blending={THREE.AdditiveBlending}
+          side={THREE.BackSide}
+          depthWrite={false}
+        />
+      </mesh>
+      {/* Outer corona */}
+      <mesh>
+        <sphereGeometry args={[0.26, 48, 48]} />
+        <shaderMaterial
+          ref={outerCoronaRef}
+          vertexShader={sunCoronaVertexShader}
+          fragmentShader={sunCoronaFragmentShader}
+          uniforms={outerCoronaUniforms}
+          transparent
+          blending={THREE.AdditiveBlending}
+          side={THREE.BackSide}
+          depthWrite={false}
+        />
       </mesh>
       {/* Distance-adaptive beacon for far zoom */}
       {cameraDistance > 30 && (
         <mesh>
-          <sphereGeometry args={[0.15 * farGlow * 1.5, 16, 16]} />
-          <meshBasicMaterial color="#ffdd88" transparent opacity={0.3} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
+          <sphereGeometry args={[0.15 * farGlow * 1.8, 16, 16]} />
+          <meshBasicMaterial color="#ffbf66" transparent opacity={0.16} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
         </mesh>
       )}
-      <pointLight intensity={5} color="#fff5e0" distance={200} />
-      <pointLight intensity={2} color="#ffcc80" distance={100} />
+      <pointLight intensity={6.5} color="#fff3d2" distance={220} />
+      <pointLight intensity={3.2} color="#ffb25c" distance={140} />
       <Html
         position={[0, 0.25, 0]}
         center

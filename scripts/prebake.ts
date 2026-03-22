@@ -26,7 +26,7 @@ for (const script of scripts) {
   try {
     execSync(`npx tsx ${path}`, { stdio: 'inherit', cwd: resolve(dir, '..') });
     console.log('');
-  } catch (err) {
+  } catch {
     console.error(`FAILED: ${script}`);
     process.exit(1);
   }

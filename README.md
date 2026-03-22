@@ -14,7 +14,7 @@ A browser-based mechanical orrery built with **React 19 + Three.js (R3F)** and l
 | **Time animation** | Variable playback from 1x real-time to 1 yr/s |
 | **Live NEO data** | NASA NeoWs API — today's near-Earth objects |
 | **Asteroid orbits** | Full orbital ellipses via NASA SBDB API on demand |
-| **7 camera presets** | Inner, System, Earth, Top, Ecliptic, Jupiter, Cinematic |
+| **11 views** | Keyboard presets for `1-0`, plus Stargazer and Tour modes |
 | **Smooth transitions** | lerp-based camera with OrbitControls damping |
 | **Moon phase** | Accurate lunar phase indicator |
 
@@ -22,12 +22,14 @@ A browser-based mechanical orrery built with **React 19 + Three.js (R3F)** and l
 
 | Key | Action |
 |---|---|
-| 1–7 | Camera presets |
+| 1–0 | Camera presets |
+| - | Stargazer view |
+| M | Toggle control panel |
 | Space | Pause / resume simulation |
-| H | Toggle simulation HUD |
-| N | Toggle NEO panel |
-| F | Toggle fullscreen |
-| Esc | Deselect / release focus |
+| S / L / K / N | Toggle stars, constellations, deep sky, and NEOs |
+| C / R / I / O | Toggle comets, meteor showers, satellites, and deep space |
+| F | Start tour mode |
+| Esc | Back / deselect / close drawer |
 | Click planet | Focus camera on planet |
 | Click NEO | Show orbital elements + draw orbit |
 
@@ -42,7 +44,7 @@ A browser-based mechanical orrery built with **React 19 + Three.js (R3F)** and l
 
 - React 19 + TypeScript
 - Three.js via @react-three/fiber + @react-three/drei
-- Vite 6 for development and bundling
+- Vite 8 for development and bundling
 - No backend required — all data from public NASA APIs
 
 ## Getting Started

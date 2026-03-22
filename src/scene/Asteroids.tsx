@@ -27,7 +27,7 @@ function isInGap(a: number): boolean {
 export function AsteroidBelt() {
   const meshRef = useRef<THREE.InstancedMesh>(null);
 
-  const matrices = useMemo(() => {
+  const [matrices] = useState(() => {
     const dummy = new THREE.Object3D();
     const arr = new Float32Array(BELT_COUNT * 16);
     let placed = 0;
@@ -54,7 +54,7 @@ export function AsteroidBelt() {
       placed++;
     }
     return arr;
-  }, []);
+  });
 
   useEffect(() => {
     if (!meshRef.current) return;

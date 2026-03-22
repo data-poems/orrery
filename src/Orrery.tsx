@@ -29,11 +29,97 @@ type CinematicStep = {
   asteroidBelt?: boolean; dwarf?: boolean;
   deepSky?: boolean; deepSpace?: boolean;
   comets?: boolean; satellites?: boolean; meteors?: boolean;
+  autoRotateSpeed?: number;
 };
 
+type NeoOrbit = NonNullable<NEO['orbit']>;
+
+interface NeoApproachData {
+  miss_distance?: {
+    lunar?: string;
+    astronomical?: string;
+    kilometers?: string;
+  };
+  relative_velocity?: {
+    kilometers_per_second?: string;
+  };
+  close_approach_date_full?: string;
+  close_approach_date?: string;
+}
+
+interface NeoFeedEntry {
+  id: string;
+  name: string;
+  estimated_diameter?: {
+    meters?: {
+      estimated_diameter_min?: number;
+      estimated_diameter_max?: number;
+    };
+  };
+  is_potentially_hazardous_asteroid: boolean;
+  close_approach_data?: NeoApproachData[];
+  nasa_jpl_url: string;
+}
+
+interface NeoFeedResponse {
+  near_earth_objects?: Record<string, NeoFeedEntry[]>;
+}
+
+interface SbdbOrbitElement {
+  label?: string;
+  name?: string;
+  value: string;
+}
+
+interface SbdbOrbitResponse {
+  orbit?: {
+    epoch?: string;
+    elements?: SbdbOrbitElement[];
+  };
+}
+
+const PENDING_NEO_ORBIT: NeoOrbit = {
+  a: 0,
+  e: 0,
+  i: 0,
+  om: 0,
+  w: 0,
+  ma: 0,
+  epoch: 0,
+  loaded: false,
+};
+
+function getTodayNeoCacheKey() {
+  return `neo-${new Date().toISOString().split('T')[0]}`;
+}
+
+function readNeoCache(cacheKey: string): NEO[] | null {
+  try {
+    const cached = sessionStorage.getItem(cacheKey);
+    return cached ? JSON.parse(cached) as NEO[] : null;
+  } catch {
+    return null;
+  }
+}
+
+function fallbackOrbitForNeo(neo: NEO): NeoOrbit {
+  return {
+    a: 1.0 + neo.missAU * 0.5,
+    e: 0.3,
+    i: 5,
+    om: 0,
+    w: 0,
+    ma: 0,
+    epoch: 2451545,
+    loaded: true,
+  };
+}
+
 function OrreryInner() {
-  const [neos, setNeos] = useState<NEO[]>([]);
-  const [neoStatus, setNeoStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
+  const neoCacheKey = useMemo(() => getTodayNeoCacheKey(), []);
+  const initialNeoCache = useMemo(() => readNeoCache(neoCacheKey), [neoCacheKey]);
+  const [neos, setNeos] = useState<NEO[]>(() => initialNeoCache ?? []);
+  const [neoStatus, setNeoStatus] = useState<'loading' | 'loaded' | 'error'>(() => initialNeoCache ? 'loaded' : 'loading');
   const [selNeo, setSelNeo] = useState<NEO | null>(null);
   // Cinematic mode is the default — start bare, reveal layers progressively
   const [selPlanet, setSelPlanet] = useState<number | null>(null);
@@ -63,7 +149,8 @@ function OrreryInner() {
   const [selMoonIdx, setSelMoonIdx] = useState<number | null>(null);
   const [cameraDistance, setCameraDistance] = useState(50);
   const [camIdx, setCamIdx] = useState(0);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [cinematicRotateSpeed, setCinematicRotateSpeed] = useState(0.5);
   const positionsRef = useRef(new Map<number, [number, number, number]>());
 
   const jd = useMemo(() => julianDate(simTime), [simTime]);
@@ -77,36 +164,63 @@ function OrreryInner() {
     // 1. Open on the Sun close-up
     { camPreset: 7, duration: 6000, label: 'Sol',
       stars: true, constellations: false, constellationFocus: false,
-      asteroidBelt: false, dwarf: false, deepSky: false, deepSpace: false },
+      asteroidBelt: false, dwarf: false, deepSky: false, deepSpace: false,
+      comets: false, satellites: false, meteors: false, autoRotateSpeed: 0.45 },
     // 2. Pull out to inner planets
-    { camPreset: 0, duration: 5000, label: 'Inner Planets' },
-    // 3. Earth
-    { focusPlanet: 2, duration: 5000, label: 'Earth' },
-    // 4. Mars
-    { focusPlanet: 3, duration: 4000, label: 'Mars' },
-    // 5. Pull out — reveal asteroid belt
+    { camPreset: 0, duration: 5000, label: 'Inner Planets',
+      stars: true, constellations: false, constellationFocus: false,
+      asteroidBelt: false, dwarf: false, deepSky: false, deepSpace: false,
+      comets: false, satellites: false, meteors: false, autoRotateSpeed: 0.55 },
+    // 3. Earth with the one full constellation reveal during the tour
+    { focusPlanet: 2, duration: 6500, label: 'Earthrise',
+      stars: true, constellations: true, constellationFocus: true,
+      asteroidBelt: false, dwarf: false, deepSky: false, deepSpace: false,
+      comets: false, satellites: false, meteors: false, autoRotateSpeed: 1.2 },
+    // 4. Zoom back out earlier to re-establish the system
+    { camPreset: 1, duration: 4500, label: 'Solar System',
+      stars: true, constellations: true, constellationFocus: false,
+      asteroidBelt: true, dwarf: true, deepSky: false, deepSpace: false,
+      comets: false, satellites: false, meteors: false, autoRotateSpeed: 0.45 },
+    // 5. Return to the Moon
+    { focusPlanet: 2, focusMoon: 0, duration: 5000, label: 'Moon',
+      stars: true, constellations: true, constellationFocus: false,
+      asteroidBelt: false, dwarf: false, deepSky: false, deepSpace: false,
+      comets: false, satellites: false, meteors: false, autoRotateSpeed: 0.95 },
+    // 6. Mars
+    { focusPlanet: 3, duration: 4000, label: 'Mars',
+      stars: true, constellations: false, constellationFocus: false,
+      asteroidBelt: false, dwarf: false, deepSky: false, deepSpace: false,
+      comets: false, satellites: false, meteors: false, autoRotateSpeed: 0.5 },
+    // 7. Pull out — reveal asteroid belt
     { camPreset: 8, duration: 5000, label: 'Asteroid Belt',
-      asteroidBelt: true },
-    // 6. Jupiter
-    { focusPlanet: 4, duration: 5000, label: 'Jupiter' },
-    // 7. Saturn and its rings
-    { focusPlanet: 5, duration: 6000, label: 'Saturn' },
-    // 8. Full system — reveal dwarf planets and constellations
-    { camPreset: 1, duration: 5000, label: 'Solar System',
-      dwarf: true, constellations: true },
-    // 9. Ecliptic sweep
-    { camPreset: 3, duration: 5000, label: 'Ecliptic' },
-    // 10. Top-down view
-    { camPreset: 2, duration: 4000, label: 'Top Down' },
-    // 11. Outer reaches — Kuiper belt
-    { camPreset: 5, duration: 5000, label: 'Kuiper Belt',
-      deepSpace: true },
-    // 12. Stargazer — constellations and deep sky in full glory
+      stars: true, constellations: false, constellationFocus: false,
+      asteroidBelt: true, dwarf: false, deepSky: false, deepSpace: false,
+      comets: false, satellites: false, meteors: false, autoRotateSpeed: 0.4 },
+    // 8. Jupiter
+    { focusPlanet: 4, duration: 5000, label: 'Jupiter',
+      stars: true, constellations: false, constellationFocus: false,
+      asteroidBelt: true, dwarf: false, deepSky: false, deepSpace: false,
+      comets: false, satellites: false, meteors: false, autoRotateSpeed: 0.55 },
+    // 9. Saturn and its rings
+    { focusPlanet: 5, duration: 6000, label: 'Saturn',
+      stars: true, constellations: false, constellationFocus: false,
+      asteroidBelt: true, dwarf: false, deepSky: false, deepSpace: false,
+      comets: false, satellites: false, meteors: false, autoRotateSpeed: 0.5 },
+    // 10. Outer reaches — Kuiper belt with luminous celestial overlays
+    { camPreset: 5, duration: 6500, label: 'Kuiper Belt',
+      stars: true, constellations: true, constellationFocus: false,
+      asteroidBelt: false, dwarf: true, deepSky: true, deepSpace: true,
+      comets: false, satellites: false, meteors: false, autoRotateSpeed: 0.3 },
+    // 11. Stargazer — constellations and deep sky in full glory
     { camPreset: 10, duration: 7000, label: 'Stargazer',
-      constellationFocus: true, deepSky: true },
-    // 13. Screensaver orbit — gentle auto-rotate following Earth
+      stars: true, constellations: true, constellationFocus: true,
+      asteroidBelt: false, dwarf: false, deepSky: true, deepSpace: false,
+      comets: false, satellites: false, meteors: false, autoRotateSpeed: 0.22 },
+    // 12. Screensaver orbit — gentle auto-rotate following Earth
     { camPreset: 6, duration: 8000, label: 'Screensaver',
-      constellations: false, constellationFocus: false, deepSky: false, deepSpace: false },
+      stars: true, constellations: false, constellationFocus: false,
+      asteroidBelt: false, dwarf: false, deepSky: false, deepSpace: false,
+      comets: false, satellites: false, meteors: false, autoRotateSpeed: 0.4 },
   ], []);
 
   const cinematicIdx = useRef(0);
@@ -122,6 +236,28 @@ function OrreryInner() {
         if (data?.WindSpeed) setSolarWind(`${Math.round(Number(data.WindSpeed))} km/s`);
       })
       .catch(() => {});
+  }, []);
+
+  const exitCinematicToInteractive = useCallback(() => {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    const earthPos = positionsRef.current.get(2);
+
+    setCinematic(false);
+    setShowStars(true);
+    setShowConstellations(true);
+    setShowAsteroidBelt(true);
+    setShowDwarf(true);
+    setSelPlanet(isMobile ? null : 2);
+    setCamIdx(-1);
+    setSelMoonIdx(null);
+    setSelNeo(null);
+    setSelComet(null);
+    setSelMeteor(null);
+    setSelSatellite(null);
+    setSelConstellation(null);
+    setSelSpacecraft(null);
+    setFocusTarget(!isMobile && earthPos ? { planetIdx: 2, pos: earthPos } : null);
+    setNavStack(isMobile ? ['Solar System'] : ['Solar System', 'Earth']);
   }, []);
 
   // Apply a cinematic step (camera preset + layers)
@@ -156,29 +292,19 @@ function OrreryInner() {
     if (step.comets !== undefined) setShowComets(() => step.comets!);
     if (step.satellites !== undefined) setShowSatellites(() => step.satellites!);
     if (step.meteors !== undefined) setShowMeteors(() => step.meteors!);
+    setCinematicRotateSpeed(step.autoRotateSpeed ?? 0.5);
   }, [cinematicSteps]);
 
-  // Cinematic timer — poll-based to avoid fragile setTimeout chains
-  useEffect(() => {
-    if (!cinematic) {
-      setShowStars(() => true);
-      setShowConstellations(() => true);
-      setShowAsteroidBelt(() => true);
-      setShowDwarf(() => true);
-      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-      setSelPlanet(isMobile ? null : 2);
-      setCamIdx(-1);
-      const earthPos = positionsRef.current.get(2);
-      if (earthPos) setFocusTarget({ planetIdx: 2, pos: earthPos });
-      setNavStack(isMobile ? ['Solar System'] : ['Solar System', 'Earth']);
-      return;
-    }
-
-    if (!sceneReady) return;
-
+  const startCinematicTour = useCallback(() => {
     cinematicIdx.current = 0;
     cinematicStart.current = Date.now();
     applyCinematicStep(0);
+    setCinematic(true);
+  }, [applyCinematicStep]);
+
+  // Cinematic timer — poll-based to avoid fragile setTimeout chains
+  useEffect(() => {
+    if (!cinematic || !sceneReady) return;
 
     // Use setInterval to poll elapsed time — robust against React re-renders
     const id = setInterval(() => {
@@ -207,29 +333,21 @@ function OrreryInner() {
 
   // Fetch today's near-Earth objects from NASA NeoWs (with sessionStorage caching)
   useEffect(() => {
-    const d = new Date().toISOString().split('T')[0];
-    const cacheKey = `neo-${d}`;
+    if (initialNeoCache) return;
 
-    // Check sessionStorage cache first
-    try {
-      const cached = sessionStorage.getItem(cacheKey);
-      if (cached) {
-        const list = JSON.parse(cached) as NEO[];
-        setNeos(list);
-        setNeoStatus('loaded');
-        return;
-      }
-    } catch { /* ignore */ }
+    const day = neoCacheKey.slice(4);
+    let cancelled = false;
 
-    fetch(`https://api.nasa.gov/neo/rest/v1/feed?start_date=${d}&end_date=${d}&api_key=DEMO_KEY`)
+    fetch(`https://api.nasa.gov/neo/rest/v1/feed?start_date=${day}&end_date=${day}&api_key=DEMO_KEY`)
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
-      .then(data => {
+      .then((data: NeoFeedResponse) => {
+        if (cancelled) return;
         const list: NEO[] = [];
-        Object.values(data.near_earth_objects || {}).forEach((arr: any) => {
-          arr.forEach((n: any) => {
+        Object.values(data.near_earth_objects ?? {}).forEach((arr) => {
+          arr.forEach((n) => {
             const ca = n.close_approach_data?.[0];
             if (!ca) return;
             list.push({
@@ -241,7 +359,7 @@ function OrreryInner() {
               missAU: parseFloat(ca.miss_distance?.astronomical || '0'),
               missKm: parseFloat(ca.miss_distance?.kilometers || '0'),
               velKms: parseFloat(ca.relative_velocity?.kilometers_per_second || '0'),
-              date: ca.close_approach_date_full || ca.close_approach_date,
+              date: ca.close_approach_date_full || ca.close_approach_date || '',
               url: n.nasa_jpl_url,
             });
           });
@@ -249,31 +367,54 @@ function OrreryInner() {
         list.sort((a, b) => a.missLunar - b.missLunar);
         setNeos(list);
         setNeoStatus('loaded');
-        // Cache in sessionStorage
-        try { sessionStorage.setItem(cacheKey, JSON.stringify(list)); } catch { /* ignore */ }
+        try { sessionStorage.setItem(neoCacheKey, JSON.stringify(list)); } catch { /* ignore */ }
       })
       .catch(() => {
+        if (cancelled) return;
         setNeoStatus('error');
       });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialNeoCache, neoCacheKey]);
+
+  const handleNeoSelect = useCallback((neo: NEO | null) => {
+    if (neo === null) {
+      setSelNeo(null);
+      return;
+    }
+
+    if (neo.orbit === undefined) {
+      const nextNeo = { ...neo, orbit: PENDING_NEO_ORBIT };
+      setNeos(prev => prev.map(item => item.id === neo.id ? nextNeo : item));
+      setSelNeo(nextNeo);
+      return;
+    }
+
+    setSelNeo(neo);
   }, []);
 
   // Fetch asteroid orbital elements from NASA SBDB on NEO selection
   useEffect(() => {
     if (!selNeo) return;
-    if (selNeo.orbit !== undefined) return;
+    if (!selNeo.orbit || selNeo.orbit.loaded) return;
 
-    setNeos(prev => prev.map(n => n.id === selNeo.id ? { ...n, orbit: { a: 0, e: 0, i: 0, om: 0, w: 0, ma: 0, epoch: 0, loaded: false } } : n));
+    let cancelled = false;
 
     fetch(`https://ssd-api.jpl.nasa.gov/sbdb.api?spk=${selNeo.id}&phys-par=false&close-approach=false`)
       .then(r => r.json())
-      .then(data => {
+      .then((data: SbdbOrbitResponse) => {
+        if (cancelled) return;
         const elems = data?.orbit?.elements;
-        if (!elems) return;
+        if (!elems) {
+          throw new Error('missing orbital elements');
+        }
         const get = (label: string) => {
-          const el = elems.find((e: any) => e.label === label || e.name === label);
+          const el = elems.find((entry) => entry.label === label || entry.name === label);
           return el ? parseFloat(el.value) : 0;
         };
-        const orbit = {
+        const orbit: NeoOrbit = {
           a: get('a'), e: get('e'), i: get('i'), om: get('om'), w: get('w'),
           ma: get('ma'),
           epoch: parseFloat(data?.orbit?.epoch || '0'),
@@ -283,16 +424,21 @@ function OrreryInner() {
         setSelNeo(prev => prev?.id === selNeo.id ? { ...prev, orbit } : prev);
       })
       .catch(() => {
-        const orbit = { a: 1.0 + selNeo.missAU * 0.5, e: 0.3, i: 5, om: 0, w: 0, ma: 0, epoch: 2451545, loaded: true };
+        if (cancelled) return;
+        const orbit = fallbackOrbitForNeo(selNeo);
         setNeos(prev => prev.map(n => n.id === selNeo.id ? { ...n, orbit } : n));
         setSelNeo(prev => prev?.id === selNeo.id ? { ...prev, orbit } : prev);
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [selNeo]);
 
   // Navigate back one level
   const navigateBack = useCallback(() => {
     if (cinematic) {
-      setCinematic(false);
+      exitCinematicToInteractive();
       return;
     }
     if (navStack.length <= 1) return;
@@ -308,7 +454,7 @@ function OrreryInner() {
       setCamIdx(1);
       setNavStack(['Solar System']);
     }
-  }, [cinematic, navStack, selMoonIdx, selPlanet]);
+  }, [cinematic, navStack, selMoonIdx, selPlanet, exitCinematicToInteractive]);
 
   // Navigate to a specific breadcrumb level
   const navigateToLevel = useCallback((level: number) => {
@@ -393,10 +539,19 @@ function OrreryInner() {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
       const k = e.key.toLowerCase();
+      const isPresetKey = (e.key >= '1' && e.key <= '9') || e.key === '0' || e.key === '-';
+      const isInteractiveShortcut = isPresetKey || ['m', 'n', 'd', 's', 'l', 'g', 'k', 'c', 'r', 'i', 'o', 'escape', ' '].includes(k);
+
+      if (k === 'f') {
+        startCinematicTour();
+        return;
+      }
 
       if (cinematic) {
-        setCinematic(false);
-        return;
+        exitCinematicToInteractive();
+        if (!isInteractiveShortcut || k === 'escape') {
+          return;
+        }
       }
 
       // Camera presets: 1-9 map to indices 0-8, 0 maps to index 9
@@ -408,8 +563,12 @@ function OrreryInner() {
         handlePresetSelect(9);
         return;
       }
+      if (e.key === '-') {
+        handlePresetSelect(10);
+        return;
+      }
 
-      if (k === 'm') { setDrawerOpen(p => !p); return; }
+      if (k === 'm') { setPanelOpen(p => !p); return; }
       if (k === 'n') setShowNeo(p => !p);
       if (k === 'd') setShowDwarf(p => !p);
       if (k === 's') setShowStars(p => !p);
@@ -420,9 +579,8 @@ function OrreryInner() {
       if (k === 'r') setShowMeteors(p => !p);
       if (k === 'i') setShowSatellites(p => !p);
       if (k === 'o') setShowDeepSpace(p => !p);
-      if (k === 'f') setCinematic(true);
       if (k === 'escape') {
-        if (drawerOpen) { setDrawerOpen(false); return; }
+        if (panelOpen) { setPanelOpen(false); return; }
         navigateBack();
         setSelNeo(null);
         setSelComet(null);
@@ -433,12 +591,12 @@ function OrreryInner() {
     };
     window.addEventListener('keydown', fn);
     return () => window.removeEventListener('keydown', fn);
-  }, [cinematic, drawerOpen, navigateBack, handlePresetSelect]);
+  }, [cinematic, panelOpen, navigateBack, handlePresetSelect, exitCinematicToInteractive, startCinematicTour]);
 
   // Exit cinematic mode on click
   const handleCinematicClick = useCallback(() => {
-    if (cinematic) setCinematic(false);
-  }, [cinematic]);
+    if (cinematic) exitCinematicToInteractive();
+  }, [cinematic, exitCinematicToInteractive]);
 
   return (
     <div
@@ -453,12 +611,15 @@ function OrreryInner() {
         camera={{ position: [0, 3, 4], fov: 55, near: 0.005, far: 250000 }}
         style={{ position: 'absolute', inset: 0 }}
         gl={{ antialias: true, logarithmicDepthBuffer: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.2 }}
-        onCreated={() => setSceneReady(true)}
+        onCreated={() => {
+          setSceneReady(true);
+          if (cinematic) startCinematicTour();
+        }}
       >
         <Suspense fallback={null}>
           <Scene
             jd={jd} T={T} simTime={simTime}
-            neos={showNeo ? neos : []} selNeo={selNeo} setSelNeo={setSelNeo}
+            neos={showNeo ? neos : []} selNeo={selNeo} setSelNeo={handleNeoSelect}
             selPlanet={selPlanet} setSelPlanet={handlePlanetSelect}
             focusTarget={focusTarget}
             onPositionsUpdate={handlePositionsUpdate}
@@ -471,9 +632,10 @@ function OrreryInner() {
             showSatellites={showSatellites}
             showDeepSky={showDeepSky}
             showDeepSpace={showDeepSpace}
-            onConstellationSelect={(id) => { setSelConstellation(id); setDrawerOpen(true); }}
+            onConstellationSelect={(id) => { setSelConstellation(id); setPanelOpen(true); }}
             constellationFocus={constellationFocus}
             cinematic={cinematic}
+            cinematicRotateSpeed={cinematicRotateSpeed}
             onMoonSelect={handleMoonSelect}
             selMoonIdx={selMoonIdx}
             onCameraDistance={setCameraDistance}
@@ -494,7 +656,7 @@ function OrreryInner() {
         speed={speed} setSpeed={setSpeed}
         playing={playing} setPlaying={setPlaying}
         selPlanet={selPlanet} setSelPlanet={handlePlanetSelect}
-        neos={neos} neoStatus={neoStatus} selNeo={selNeo} setSelNeo={setSelNeo}
+        neos={neos} neoStatus={neoStatus} selNeo={selNeo} setSelNeo={handleNeoSelect}
         showNeo={showNeo} setShowNeo={setShowNeo}
         showDwarf={showDwarf} setShowDwarf={setShowDwarf}
         showStars={showStars} setShowStars={setShowStars}
@@ -507,9 +669,9 @@ function OrreryInner() {
         showDeepSpace={showDeepSpace} setShowDeepSpace={setShowDeepSpace}
         selConstellation={selConstellation} setSelConstellation={setSelConstellation}
         constellationFocus={constellationFocus} setConstellationFocus={setConstellationFocus}
-        drawerOpen={drawerOpen} setDrawerOpen={setDrawerOpen}
+        panelOpen={panelOpen}
+        setPanelOpen={setPanelOpen}
         cinematic={cinematic}
-        setCinematic={setCinematic}
         navStack={navStack}
         navigateBack={navigateBack}
         navigateToLevel={navigateToLevel}

@@ -1,20 +1,18 @@
 /*
  * All HUD panels — overlay UI for the orrery
  *
- * Layout: minimal top HUD (info bar + camera presets), side drawer for everything else.
- * Drawer starts closed, slides from right on desktop, bottom sheet on mobile.
+ * Layout: collapsible side panel for controls, with scene overlays kept minimal.
  *
  * Responsive: mobile gets larger touch targets, bottom sheets, safe-area insets.
  * Theme-aware: all accent colors come from the active theme.
  * No emoji anywhere.
  */
 
-import { useEffect, useRef, useCallback, useState } from 'react';
 import type { NEO, CamPreset } from '../lib/kepler';
 import { ALL_BODIES } from '../data/planets';
 import { getMoonsForPlanet } from '../data/moons';
 import { useTheme, THEMES } from '../lib/themes';
-import { glass, bokehCard, drawerPanel, drawerTab, bottomSheet, useIsMobile } from './styles';
+import { bokehCard, drawerPanel, drawerTab, bottomSheet, useIsMobile } from './styles';
 import type { CometDef } from '../data/comets';
 import type { MeteorShower } from '../scene/Meteors';
 import type { SatellitePosition } from '../lib/satellites';
@@ -129,22 +127,6 @@ function ScaleIndicator({ cameraDistance }: { cameraDistance: number }) {
   );
 }
 
-// ─── useClickOutside hook ────────────────────────────────────────────────────────
-
-function useClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () => void) {
-  useEffect(() => {
-    const fn = (e: MouseEvent | TouchEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) handler();
-    };
-    document.addEventListener('mousedown', fn);
-    document.addEventListener('touchstart', fn, { passive: true });
-    return () => {
-      document.removeEventListener('mousedown', fn);
-      document.removeEventListener('touchstart', fn);
-    };
-  }, [ref, handler]);
-}
-
 // ─── Section header (used in drawer) ────────────────────────────────────────────
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
@@ -166,8 +148,11 @@ const sectionDivider: React.CSSProperties = {
 // ─── Side Drawer ────────────────────────────────────────────────────────────────
 
 function SideDrawer({
-  open, accent, accentRgb, mobile,
-  selPlanet, setSelPlanet, onMoonSelect, onClose,
+  open,
+  accent, accentRgb, mobile,
+  simTime, moon, solarWind, speed, setSpeed, playing, setPlaying,
+  cams, camIdx, onPresetSelect,
+  selPlanet, setSelPlanet, onMoonSelect,
   neos, neoStatus, selNeo, setSelNeo,
   showNeo, showStars, showConstellations, constellationFocus, showDwarf,
   showAsteroidBelt, showComets, showMeteors, showSatellites, showDeepSky,
@@ -177,16 +162,24 @@ function SideDrawer({
   setShowDeepSpace,
   selConstellation, setSelConstellation,
   selSpacecraft, setSelSpacecraft,
-  onPresetSelect, speed, setSpeed, cams,
 }: {
   open: boolean;
   accent: string;
   accentRgb: string;
   mobile: boolean;
+  simTime: Date;
+  moon: { name: string; ill: number };
+  solarWind: string | null;
+  speed: number;
+  setSpeed: (fn: (s: number) => number) => void;
+  playing: boolean;
+  setPlaying: (fn: (p: boolean) => boolean) => void;
+  cams: CamPreset[];
+  camIdx: number;
+  onPresetSelect: (i: number) => void;
   selPlanet: number | null;
   setSelPlanet: (i: number | null) => void;
   onMoonSelect?: (planetIdx: number, moonIdx: number) => void;
-  onClose: () => void;
   neos: NEO[];
   neoStatus: 'loading' | 'loaded' | 'error';
   selNeo: NEO | null;
@@ -205,10 +198,6 @@ function SideDrawer({
   selConstellation: string | null; setSelConstellation: (id: string | null) => void;
   selSpacecraft: import('../data/deepspace').Spacecraft | null;
   setSelSpacecraft: (s: import('../data/deepspace').Spacecraft | null) => void;
-  onPresetSelect: (i: number) => void;
-  speed: number;
-  setSpeed: (fn: (s: number) => number) => void;
-  cams: CamPreset[];
 }) {
   const { theme, setTheme } = useTheme();
 
@@ -259,25 +248,63 @@ function SideDrawer({
       style={mobile ? {
         ...drawerPanel,
         ...bottomSheet('70vh'),
-        transform: open ? 'translateY(0)' : 'translateY(100%)',
-        transition: 'transform 0.25s ease',
+        maxHeight: '44vh',
         overflowY: 'auto',
         zIndex: 30,
         padding: '8px 0 0',
+        borderRadius: '14px 14px 0 0',
+        borderLeft: 'none',
+        transform: open ? 'translateY(0)' : 'translateY(100%)',
+        transition: 'transform 0.25s ease',
       } : {
         ...drawerPanel,
         position: 'fixed',
-        top: 0, right: 0, bottom: 0,
-        width: 300,
-        transform: open ? 'translateX(0)' : 'translateX(100%)',
-        transition: 'transform 0.25s ease',
+        top: 12, right: 12, bottom: 12,
+        width: 320,
         overflowY: 'auto',
         zIndex: 30,
         padding: '8px 0 0',
+        borderRadius: 12,
+        borderRight: '1px solid rgba(255,255,255,0.08)',
+        boxShadow: '0 18px 48px rgba(0,0,0,0.38)',
+        transform: open ? 'translateX(0)' : 'translateX(calc(100% + 24px))',
+        transition: 'transform 0.25s ease',
       }}
     >
+      <SectionHeader>Status</SectionHeader>
+      <div style={{ padding: '0 16px 10px' }}>
+        <div style={{ color: '#fff', fontSize: mobile ? 22 : 26, fontWeight: 300, letterSpacing: 2, fontFamily: "'Cormorant', serif" }}>
+          {fmtTime(simTime)}
+        </div>
+        <div style={{ color: 'rgba(255,255,255,0.42)', fontSize: 12, fontStyle: 'italic', fontWeight: 300 }}>
+          {fmtDate(simTime)}
+        </div>
+        <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 14px' }}>
+          <Stat label="Moon" val={`${moon.name}, ${moon.ill}%`} c={accent} />
+          <Stat label="View" val={camIdx >= 0 && camIdx < cams.length ? cams[camIdx].label : 'Focused'} />
+          <Stat label="Rate" val={speedLabel(speed)} />
+          {solarWind ? <Stat label="Solar Wind" val={solarWind} /> : <Stat label="Solar Wind" val="Unavailable" />}
+        </div>
+      </div>
+
+      <div style={sectionDivider} />
+
       {/* ── Speed ── */}
       <SectionHeader>Speed</SectionHeader>
+      <div style={{ padding: '0 16px 8px' }}>
+        <button
+          onClick={() => setPlaying(p => !p)}
+          style={{
+            background: playing ? `rgba(${accentRgb},0.16)` : 'rgba(255,255,255,0.04)',
+            border: `1px solid ${playing ? `rgba(${accentRgb},0.35)` : 'rgba(255,255,255,0.08)'}`,
+            color: playing ? accent : 'rgba(255,255,255,0.65)',
+            fontSize: 12, fontFamily: 'inherit', fontWeight: 400,
+            padding: '6px 12px', borderRadius: 4, cursor: 'pointer', minHeight: mobile ? 38 : 30,
+          }}
+        >
+          {playing ? 'Pause' : 'Play'}
+        </button>
+      </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '0 16px 8px' }}>
         {SPEED_PRESETS.map(p => (
           <button
@@ -320,7 +347,7 @@ function SideDrawer({
             <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: 1.2, textTransform: 'uppercase' as const, color: 'rgba(255,255,255,0.25)', marginBottom: 3 }}>{g.title}</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
               {g.items.map(item => (
-                <button key={item.label} onClick={() => { onPresetSelect(item.idx); onClose(); }} style={btnStyle}>{item.label}</button>
+                <button key={item.label} onClick={() => onPresetSelect(item.idx)} style={btnStyle}>{item.label}</button>
               ))}
             </div>
           </div>
@@ -335,7 +362,7 @@ function SideDrawer({
         {/* Sun */}
         <div role="treeitem">
           <button
-            onClick={() => { onPresetSelect(cams.findIndex(c => c.label === 'Sun')); onClose(); }}
+            onClick={() => onPresetSelect(cams.findIndex(c => c.label === 'Sun'))}
             style={{
               display: 'flex', alignItems: 'center', gap: 8, width: '100%',
               padding: mobile ? '10px 16px' : '6px 16px',
@@ -353,7 +380,7 @@ function SideDrawer({
           return (
             <div key={body.name} role="treeitem">
               <button
-                onClick={() => { setSelPlanet(idx); onClose(); }}
+                onClick={() => setSelPlanet(idx)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                   padding: mobile ? '10px 16px' : '6px 16px',
@@ -371,7 +398,7 @@ function SideDrawer({
               {moons.map((moon, mIdx) => (
                 <button
                   key={moon.name}
-                  onClick={() => { onMoonSelect?.(idx, mIdx); onClose(); }}
+                  onClick={() => onMoonSelect?.(idx, mIdx)}
                   role="treeitem"
                   style={{
                     display: 'flex', alignItems: 'center', gap: 8, width: '100%',
@@ -403,7 +430,7 @@ function SideDrawer({
           return (
             <div key={body.name} role="treeitem">
               <button
-                onClick={() => { setSelPlanet(idx); onClose(); }}
+                onClick={() => setSelPlanet(idx)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                   padding: mobile ? '10px 16px' : '6px 16px',
@@ -421,7 +448,7 @@ function SideDrawer({
               {moons.map((moon, mIdx) => (
                 <button
                   key={moon.name}
-                  onClick={() => { onMoonSelect?.(idx, mIdx); onClose(); }}
+                  onClick={() => onMoonSelect?.(idx, mIdx)}
                   role="treeitem"
                   style={{
                     display: 'flex', alignItems: 'center', gap: 8, width: '100%',
@@ -689,14 +716,14 @@ function SideDrawer({
 
         <div style={sectionTitle}>Keyboard Shortcuts</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <div style={kbdRow}><span style={kbd}>1-0</span> Camera presets</div>
+          <div style={kbdRow}><span style={kbd}>1-0</span> Camera presets {'\u00b7'} <span style={kbd}>-</span> Stargazer</div>
           <div style={kbdRow}><span style={kbd}>S</span> Stars {'\u00b7'} <span style={kbd}>L</span> Constellations</div>
           <div style={kbdRow}><span style={kbd}>G</span> Stargazer {'\u00b7'} <span style={kbd}>D</span> Dwarf planets</div>
           <div style={kbdRow}><span style={kbd}>K</span> Deep Sky {'\u00b7'} <span style={kbd}>N</span> NEO</div>
           <div style={kbdRow}><span style={kbd}>C</span> Comets {'\u00b7'} <span style={kbd}>R</span> Radiants</div>
           <div style={kbdRow}><span style={kbd}>I</span> Satellites {'\u00b7'} <span style={kbd}>O</span> Deep Space</div>
-          <div style={kbdRow}><span style={kbd}>F</span> Tour {'\u00b7'} <span style={kbd}>M</span> Panel</div>
-          <div style={kbdRow}><span style={kbd}>Space</span> Pause {'\u00b7'} <span style={kbd}>Esc</span> Back/Deselect</div>
+          <div style={kbdRow}><span style={kbd}>F</span> Tour {'\u00b7'} <span style={kbd}>Space</span> Pause</div>
+          <div style={kbdRow}><span style={kbd}>Esc</span> Back/Deselect</div>
         </div>
       </div>
     </div>
@@ -724,9 +751,8 @@ export interface PanelProps {
   showSatellites: boolean; setShowSatellites: (fn: (p: boolean) => boolean) => void;
   showDeepSky: boolean; setShowDeepSky: (fn: (p: boolean) => boolean) => void;
   selConstellation: string | null; setSelConstellation: (id: string | null) => void;
-  drawerOpen: boolean; setDrawerOpen: (fn: boolean | ((p: boolean) => boolean)) => void;
+  panelOpen: boolean; setPanelOpen: (fn: boolean | ((p: boolean) => boolean)) => void;
   cinematic: boolean;
-  setCinematic: (c: boolean) => void;
   navStack: string[];
   navigateBack: () => void;
   navigateToLevel: (level: number) => void;
@@ -759,7 +785,7 @@ export default function Panels(props: PanelProps) {
     showSatellites, setShowSatellites,
     showDeepSky, setShowDeepSky,
     selConstellation, setSelConstellation,
-    drawerOpen, setDrawerOpen,
+    panelOpen, setPanelOpen,
     cinematic,
     navStack,
     selMoonIdx, cameraDistance,
@@ -775,28 +801,13 @@ export default function Panels(props: PanelProps) {
   const accentRgb = theme.uiAccentRgb;
   const mobile = useIsMobile();
   const sp = selPlanet !== null ? ALL_BODIES[selPlanet] : null;
-  const drawerRef = useRef<HTMLDivElement>(null);
-  const [viewOpen, setViewOpen] = useState(false);
-  const [layersOpen, setLayersOpen] = useState(false);
-
-  // Close dropdowns on click outside
-  useEffect(() => {
-    if (!viewOpen && !layersOpen) return;
-    const close = () => { setViewOpen(false); setLayersOpen(false); };
-    const timer = setTimeout(() => document.addEventListener('click', close), 0);
-    return () => { clearTimeout(timer); document.removeEventListener('click', close); };
-  }, [viewOpen, layersOpen]);
+  const mobilePanelHeight = '44vh';
+  const mobilePanelOffset = panelOpen ? `calc(${mobilePanelHeight} + 8px)` : '8px';
 
   // Selected moon info
   const selectedMoon = selPlanet !== null && selMoonIdx !== null
     ? getMoonsForPlanet(selPlanet)[selMoonIdx]
     : null;
-
-  // Close drawer on click outside (desktop only)
-  const handleDrawerClickOutside = useCallback(() => {
-    if (!mobile && drawerOpen) setDrawerOpen(false);
-  }, [mobile, drawerOpen, setDrawerOpen]);
-  useClickOutside(drawerRef, handleDrawerClickOutside);
 
   // ─── Cinematic mode overlay ─────────────────────────────────────────────────
   // Current body label from nav stack
@@ -863,7 +874,7 @@ export default function Panels(props: PanelProps) {
 
         {/* Exit hint */}
         <div style={{
-          position: 'absolute', bottom: mobile ? 60 : 56,
+          position: 'absolute', bottom: mobile ? (panelOpen ? `calc(${mobilePanelHeight} + 16px)` : 60) : 56,
           color: 'rgba(255,255,255,0.3)', fontSize: 11,
           letterSpacing: 2, fontWeight: 300, fontStyle: 'italic',
         }}>
@@ -871,9 +882,10 @@ export default function Panels(props: PanelProps) {
         </div>
         {/* Watermark */}
         <div style={{
-          position: 'absolute', bottom: mobile ? 24 : 32,
+          position: 'absolute', bottom: 32,
           color: 'rgba(255,255,255,0.12)', fontSize: 11,
           letterSpacing: 6, textTransform: 'uppercase', fontWeight: 300,
+          display: mobile ? 'none' : 'block',
         }}>
           Orrery
         </div>
@@ -883,264 +895,74 @@ export default function Panels(props: PanelProps) {
 
   return (
     <>
-    {cinematicOverlay}
-      {/* ── Top bar: info + presets ── */}
-      <div style={{
-        position: 'absolute', top: 8, left: 8, right: mobile ? 8 : 40, zIndex: 10,
-        display: 'flex', flexDirection: 'column', gap: 6,
-        alignItems: 'center',
-      }}>
-        {/* Info bar: time, date, moon phase, speed controls */}
-        <div
-          role="status"
-          aria-label="Simulation time"
-          style={{
-            display: 'flex', alignItems: 'center', gap: mobile ? 8 : 12,
-            ...glass, padding: mobile ? '6px 12px' : '5px 16px',
-          }}
-        >
-          <span style={{ color: '#fff', fontSize: mobile ? 18 : 24, fontWeight: 300, letterSpacing: 3, fontFamily: "'Cormorant', serif" }}>{fmtTime(simTime)}</span>
-          <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: mobile ? 12 : 14, fontStyle: 'italic', fontWeight: 300 }}>{fmtDate(simTime)}</span>
-          {!mobile && <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14, fontStyle: 'italic', fontWeight: 300 }}>{moon.name}, {moon.ill}%</span>}
-          <span style={{ color: accent, fontSize: 14, fontWeight: 400, minWidth: 70, textAlign: 'center' }}>{speedLabel(speed)}</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 4 }}>
-            <button
-              onClick={() => {
-                const presetVals = SPEED_PRESETS.map(p => p.value);
-                props.setSpeed(s => {
-                  const idx = presetVals.findIndex(v => v >= s);
-                  return idx > 0 ? presetVals[idx - 1] : 1;
-                });
-              }}
-              aria-label="Slow down"
-              style={{
-                background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)',
-                fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', padding: '2px 6px',
-                minWidth: 32, minHeight: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
-            >{'\u00ab'}</button>
-            <button
-              onClick={() => props.setPlaying(p => !p)}
-              aria-label={props.playing ? 'Pause simulation' : 'Play simulation'}
-              style={{
-                background: 'none', border: 'none', color: props.playing ? accent : 'rgba(255,255,255,0.5)',
-                fontSize: 16, cursor: 'pointer', fontFamily: 'inherit', padding: '2px 6px',
-                minWidth: 32, minHeight: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                letterSpacing: props.playing ? 2 : 0,
-              }}
-            >{props.playing ? '\u23F8' : '\u25B6'}</button>
-            <button
-              onClick={() => {
-                const presetVals = SPEED_PRESETS.map(p => p.value);
-                props.setSpeed(s => {
-                  const idx = presetVals.findIndex(v => v > s);
-                  return idx >= 0 ? presetVals[idx] : presetVals[presetVals.length - 1];
-                });
-              }}
-              aria-label="Speed up"
-              style={{
-                background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)',
-                fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', padding: '2px 6px',
-                minWidth: 32, minHeight: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
-            >{'\u00bb'}</button>
-            <button
-              onClick={() => props.setSpeed(() => 1)}
-              aria-label="Reset to real-time"
-              title="Reset to 1\u00d7"
-              style={{
-                background: speed !== 1 ? `rgba(${accentRgb},0.15)` : 'none',
-                border: 'none', color: speed !== 1 ? accent : 'rgba(255,255,255,0.3)',
-                fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', padding: '2px 6px',
-                minWidth: 32, minHeight: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                borderRadius: 4,
-              }}
-            >1\u00d7</button>
-          </div>
-        </div>
-
-        {/* Camera + Layers dropdowns — side by side */}
-        <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
-
-        {/* Camera view selector — dropdown */}
-        <div style={{ position: 'relative' }}>
-          <button
-            onClick={() => setViewOpen(v => !v)}
-            aria-label="Camera view"
-            aria-expanded={viewOpen}
-            style={{
-              ...glass, padding: mobile ? '6px 14px' : '5px 14px',
-              display: 'flex', alignItems: 'center', gap: 8,
-              cursor: 'pointer', border: '1px solid rgba(255,255,255,0.08)',
-              fontFamily: 'inherit', fontSize: mobile ? 14 : 15,
-              color: 'rgba(255,255,255,0.7)', fontWeight: 300, letterSpacing: 0.5,
-              borderRadius: 4, minHeight: mobile ? 36 : 32,
-            }}
-          >
-            <span style={{ color: accent, fontWeight: 400 }}>
-              {camIdx >= 0 && camIdx < cams.length ? cams[camIdx].label : 'View'}
-            </span>
-            <span style={{ fontSize: 8, opacity: 0.4 }}>{viewOpen ? '\u25b2' : '\u25bc'}</span>
-          </button>
-          {viewOpen && (
-            <div style={{
-              position: 'absolute', top: '100%', left: 0, marginTop: 4,
-              ...glass, padding: '4px 0', minWidth: 140, borderRadius: 6,
-              border: '1px solid rgba(255,255,255,0.1)', zIndex: 50,
-            }}>
-              {cams.map((cam, i) => {
-                const active = camIdx === i && selPlanet === null;
-                return (
-                  <button
-                    key={cam.key}
-                    onClick={() => { onPresetSelect(i); setViewOpen(false); }}
-                    style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      width: '100%', padding: mobile ? '10px 14px' : '6px 14px',
-                      background: active ? `rgba(${accentRgb},0.1)` : 'transparent',
-                      border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                      fontSize: mobile ? 14 : 14, color: active ? accent : 'rgba(255,255,255,0.6)',
-                      fontWeight: active ? 400 : 300, textAlign: 'left',
-                      minHeight: mobile ? 40 : 'auto',
-                    }}
-                  >
-                    <span>{cam.label}</span>
-                    <span style={{ fontSize: 9, opacity: 0.3, fontWeight: 300 }}>{cam.key}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Layer toggles — dropdown */}
-        {(() => {
-          const layers = [
-            { label: 'Stars', key: 'S', on: showStars, fn: () => setShowStars((p: boolean) => !p) },
-            { label: 'Constellations', key: 'L', on: showConstellations, fn: () => setShowConstellations((p: boolean) => !p) },
-            { label: 'Deep Sky', key: 'K', on: showDeepSky, fn: () => setShowDeepSky((p: boolean) => !p) },
-            { label: 'Asteroid Belt', key: 'B', on: showAsteroidBelt, fn: () => setShowAsteroidBelt((p: boolean) => !p) },
-            { label: 'Dwarf Planets', key: 'D', on: showDwarf, fn: () => setShowDwarf((p: boolean) => !p) },
-            { label: 'Near-Earth', key: 'N', on: showNeo, fn: () => setShowNeo((p: boolean) => !p) },
-            { label: 'Comets', key: 'C', on: showComets, fn: () => setShowComets((p: boolean) => !p) },
-            { label: 'Meteor Showers', key: 'R', on: showMeteors, fn: () => setShowMeteors((p: boolean) => !p) },
-            { label: 'Satellites', key: 'I', on: showSatellites, fn: () => setShowSatellites((p: boolean) => !p) },
-            { label: 'Deep Space', key: 'O', on: showDeepSpace, fn: () => setShowDeepSpace((p: boolean) => !p) },
-          ];
-          const activeCount = layers.filter(l => l.on).length;
-          return (
-            <div style={{ position: 'relative' }}>
-              <button
-                onClick={() => setLayersOpen(v => !v)}
-                aria-label="Toggle layers"
-                aria-expanded={layersOpen}
-                style={{
-                  ...glass, padding: mobile ? '6px 14px' : '5px 14px',
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  cursor: 'pointer', border: '1px solid rgba(255,255,255,0.08)',
-                  fontFamily: 'inherit', fontSize: mobile ? 14 : 15,
-                  color: 'rgba(255,255,255,0.7)', fontWeight: 300, letterSpacing: 0.5,
-                  borderRadius: 4, minHeight: mobile ? 36 : 32,
-                }}
-              >
-                <span style={{ color: accent, fontWeight: 400 }}>Layers ({activeCount})</span>
-                <span style={{ fontSize: 8, opacity: 0.4 }}>{layersOpen ? '\u25b2' : '\u25bc'}</span>
-              </button>
-              {layersOpen && (
-                <div style={{
-                  position: 'absolute', top: '100%', left: 0, marginTop: 4,
-                  ...glass, padding: '4px 0', minWidth: 170, borderRadius: 6,
-                  border: '1px solid rgba(255,255,255,0.1)', zIndex: 50,
-                }}>
-                  {layers.map(l => (
-                    <button
-                      key={l.label}
-                      onClick={(e) => { e.stopPropagation(); l.fn(); }}
-                      aria-pressed={l.on}
-                      style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        width: '100%', padding: mobile ? '10px 14px' : '6px 14px',
-                        background: l.on ? `rgba(${accentRgb},0.1)` : 'transparent',
-                        border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                        fontSize: mobile ? 15 : 14, color: l.on ? accent : 'rgba(255,255,255,0.4)',
-                        fontWeight: l.on ? 400 : 300, textAlign: 'left',
-                        minHeight: mobile ? 40 : 'auto',
-                      }}
-                    >
-                      <span>{l.label}</span>
-                      <span style={{ fontSize: 9, opacity: 0.3, fontWeight: 300 }}>{l.key}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })()}
-        </div>{/* end Camera + Layers row */}
-      </div>
-
-      {/* ── Drawer toggle tab ── */}
-      <div
-        ref={drawerRef}
-        style={{ display: 'contents' }}
+      {cinematicOverlay}
+      <button
+        onClick={() => setPanelOpen((p: boolean) => !p)}
+        aria-label={panelOpen ? 'Collapse panel' : 'Open panel'}
+        aria-expanded={panelOpen}
+        style={{
+          ...drawerTab,
+          ...(mobile ? {
+            top: 'auto',
+            bottom: 16,
+            right: 12,
+            transform: 'none',
+            width: 112,
+            height: 40,
+            borderRadius: 999,
+            borderRight: '1px solid rgba(255,255,255,0.08)',
+          } : {}),
+          color: 'rgba(255,255,255,0.75)',
+          fontSize: 12,
+          fontFamily: 'inherit',
+          letterSpacing: 1.6,
+          textTransform: 'uppercase',
+          background: 'rgba(0,0,0,0.68)',
+          backdropFilter: 'blur(14px)',
+          WebkitBackdropFilter: 'blur(14px)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRight: mobile ? '1px solid rgba(255,255,255,0.08)' : 'none',
+          zIndex: 31,
+        }}
       >
-        <button
-          onClick={() => setDrawerOpen((p: boolean) => !p)}
-          aria-label={drawerOpen ? 'Close panel' : 'Open panel'}
-          aria-expanded={drawerOpen}
-          style={{
-            ...drawerTab,
-            ...(mobile ? {
-              top: 'auto', bottom: 80, right: 0,
-              transform: 'none',
-              width: 44, height: 44,
-              borderRadius: '6px 0 0 6px',
-            } : {}),
-            color: 'rgba(255,255,255,0.4)',
-            fontSize: 12,
-            fontFamily: 'inherit',
-            background: 'rgba(0,0,0,0.6)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRight: 'none',
-          }}
-        >
-          {drawerOpen ? '>' : '<'}
-        </button>
-
-        {/* ── Side drawer ── */}
-        <SideDrawer
-          open={drawerOpen}
-          accent={accent}
-          accentRgb={accentRgb}
-          mobile={mobile}
-          selPlanet={selPlanet}
-          setSelPlanet={setSelPlanet}
-          onMoonSelect={onMoonSelect}
-          onClose={() => setDrawerOpen(false)}
-          neos={neos}
-          neoStatus={neoStatus}
-          selNeo={selNeo}
-          setSelNeo={setSelNeo}
-          showNeo={showNeo} setShowNeo={setShowNeo}
-          showStars={showStars} setShowStars={setShowStars}
-          showConstellations={showConstellations} setShowConstellations={setShowConstellations}
-          constellationFocus={constellationFocus} setConstellationFocus={setConstellationFocus}
-          showDwarf={showDwarf} setShowDwarf={setShowDwarf}
-          showAsteroidBelt={showAsteroidBelt} setShowAsteroidBelt={setShowAsteroidBelt}
-          showComets={showComets} setShowComets={setShowComets}
-          showMeteors={showMeteors} setShowMeteors={setShowMeteors}
-          showSatellites={showSatellites} setShowSatellites={setShowSatellites}
-          showDeepSky={showDeepSky} setShowDeepSky={setShowDeepSky}
-          showDeepSpace={showDeepSpace} setShowDeepSpace={setShowDeepSpace}
-          selConstellation={selConstellation} setSelConstellation={setSelConstellation}
-          selSpacecraft={selSpacecraft} setSelSpacecraft={setSelSpacecraft}
-          onPresetSelect={onPresetSelect}
-          speed={speed} setSpeed={props.setSpeed}
-          cams={cams}
-        />
-      </div>
+        {mobile ? (panelOpen ? 'Hide Panel' : 'Open Panel') : (panelOpen ? '<' : 'Panel')}
+      </button>
+      <SideDrawer
+        open={panelOpen}
+        accent={accent}
+        accentRgb={accentRgb}
+        mobile={mobile}
+        simTime={simTime}
+        moon={moon}
+        solarWind={solarWind}
+        speed={speed}
+        setSpeed={props.setSpeed}
+        playing={props.playing}
+        setPlaying={props.setPlaying}
+        cams={cams}
+        camIdx={camIdx}
+        onPresetSelect={onPresetSelect}
+        selPlanet={selPlanet}
+        setSelPlanet={setSelPlanet}
+        onMoonSelect={onMoonSelect}
+        neos={neos}
+        neoStatus={neoStatus}
+        selNeo={selNeo}
+        setSelNeo={setSelNeo}
+        showNeo={showNeo} setShowNeo={setShowNeo}
+        showStars={showStars} setShowStars={setShowStars}
+        showConstellations={showConstellations} setShowConstellations={setShowConstellations}
+        constellationFocus={constellationFocus} setConstellationFocus={setConstellationFocus}
+        showDwarf={showDwarf} setShowDwarf={setShowDwarf}
+        showAsteroidBelt={showAsteroidBelt} setShowAsteroidBelt={setShowAsteroidBelt}
+        showComets={showComets} setShowComets={setShowComets}
+        showMeteors={showMeteors} setShowMeteors={setShowMeteors}
+        showSatellites={showSatellites} setShowSatellites={setShowSatellites}
+        showDeepSky={showDeepSky} setShowDeepSky={setShowDeepSky}
+        showDeepSpace={showDeepSpace} setShowDeepSpace={setShowDeepSpace}
+        selConstellation={selConstellation} setSelConstellation={setSelConstellation}
+        selSpacecraft={selSpacecraft} setSelSpacecraft={setSelSpacecraft}
+      />
 
       {/* ── Background blur overlay when body selected ── */}
       {sp && (
@@ -1167,13 +989,13 @@ export default function Panels(props: PanelProps) {
           aria-label={selectedMoon ? `${selectedMoon.name} details` : `${sp!.name} details`}
           style={mobile ? {
             position: 'fixed',
-            left: 0, right: 0, bottom: 0, top: 'auto',
-            maxHeight: '45vh',
-            borderRadius: '12px 12px 0 0',
+            left: 8, right: 8, bottom: mobilePanelOffset, top: 'auto',
+            maxHeight: '30vh',
+            borderRadius: 12,
             overflowY: 'auto',
             ...bokehCard,
             padding: '16px 20px',
-            paddingBottom: 'max(20px, env(safe-area-inset-bottom))',
+            paddingBottom: '20px',
             zIndex: 20,
           } : {
             position: 'absolute',
@@ -1249,7 +1071,7 @@ export default function Panels(props: PanelProps) {
       )}
 
       {/* ── Scale indicator ── */}
-      <ScaleIndicator cameraDistance={cameraDistance} />
+      {!mobile && <ScaleIndicator cameraDistance={cameraDistance} />}
 
       {/* ── Selected NEO detail ── */}
       {selNeo && (
@@ -1257,7 +1079,7 @@ export default function Panels(props: PanelProps) {
           role="dialog"
           aria-label={`${selNeo.name} details`}
           style={{
-            position: 'absolute', bottom: mobile ? 16 : 56,
+            position: 'absolute', bottom: mobile ? (panelOpen ? `calc(${mobilePanelHeight} + 16px)` : 16) : 56,
             left: '50%', transform: 'translateX(-50%)',
             ...bokehCard, padding: '12px 18px', maxWidth: 420,
             width: mobile ? 'calc(100vw - 16px)' : '90%', zIndex: 20,

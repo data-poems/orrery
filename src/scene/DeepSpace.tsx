@@ -2,7 +2,7 @@
  * Deep space layer — Oort Cloud, spacecraft, nearby stars, galaxy markers
  */
 
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html, Line } from '@react-three/drei';
 import * as THREE from 'three';
@@ -17,8 +17,9 @@ import type { Spacecraft } from '../data/deepspace';
 
 function OortCloud() {
   const meshRef = useRef<THREE.InstancedMesh>(null);
+  const initializedRef = useRef(false);
 
-  const matrices = useMemo(() => {
+  const [matrices] = useState(() => {
     const { innerRadius, outerRadius, particleCount } = OORT_CLOUD;
     const arr = new Float32Array(particleCount * 16);
     const mat4 = new THREE.Matrix4();
@@ -41,12 +42,12 @@ function OortCloud() {
       mat4.toArray(arr, i * 16);
     }
     return arr;
-  }, []);
+  });
 
   // Apply matrices on mount
   useFrame(() => {
     const mesh = meshRef.current;
-    if (!mesh || (mesh as any).__initialized) return;
+    if (!mesh || initializedRef.current) return;
     const { particleCount } = OORT_CLOUD;
     const mat4 = new THREE.Matrix4();
     for (let i = 0; i < particleCount; i++) {
@@ -54,7 +55,7 @@ function OortCloud() {
       mesh.setMatrixAt(i, mat4);
     }
     mesh.instanceMatrix.needsUpdate = true;
-    (mesh as any).__initialized = true;
+    initializedRef.current = true;
   });
 
   // Slow rotation for visual interest

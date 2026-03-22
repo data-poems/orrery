@@ -12,12 +12,70 @@ import { useRef, useState, useEffect, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
-import { CONSTELLATION_SYMBOLS, isZodiac } from '../data/constellation-symbols';
 
 const DEG = Math.PI / 180;
 const ECLIPTIC_TILT = 23.4 * DEG;
 const SPHERE_RADIUS = 300;
 const BASE_PATH = import.meta.env.BASE_URL + 'data/';
+const LABEL_UPDATE_INTERVAL_MS = 120;
+
+interface StarFeature {
+  geometry: {
+    coordinates: [number, number];
+  };
+  properties: {
+    mag?: number;
+    bv?: string | number;
+    name?: string;
+    bayer?: string;
+    con?: string;
+  };
+}
+
+interface StarGeoJson {
+  features: StarFeature[];
+}
+
+interface ConstellationLineFeature {
+  id?: string | number;
+  geometry: {
+    coordinates: [number, number][][];
+  };
+}
+
+interface ConstellationLineGeoJson {
+  features: ConstellationLineFeature[];
+}
+
+interface ConstellationPointFeature {
+  id: string | number;
+  geometry: {
+    type: string;
+    coordinates: [number, number];
+  };
+  properties: {
+    name?: string;
+    en?: string;
+  };
+}
+
+interface ConstellationPointGeoJson {
+  features: ConstellationPointFeature[];
+}
+
+interface ConstellationOverlayData {
+  viewBox: string;
+  paths: string[];
+  points: Array<[number, number]>;
+}
+
+function setsEqual<T>(a: Set<T>, b: Set<T>) {
+  if (a.size !== b.size) return false;
+  for (const value of a) {
+    if (!b.has(value)) return false;
+  }
+  return true;
+}
 
 // ─── RA/Dec → 3D unit sphere ────────────────────────────────────────────────
 
@@ -28,6 +86,90 @@ function raDecTo3D(raDeg: number, decDeg: number, r: number = SPHERE_RADIUS): [n
   const y = r * Math.sin(dec);
   const z = -r * Math.cos(dec) * Math.sin(ra);
   return [x, y, z];
+}
+
+function buildConstellationOverlay(
+  coordinates: [number, number][][],
+  centerPos: [number, number, number],
+): ConstellationOverlayData | null {
+  if (coordinates.length === 0) return null;
+
+  const center = new THREE.Vector3(...centerPos).normalize();
+  const referenceAxis = Math.abs(center.y) > 0.92
+    ? new THREE.Vector3(0, 0, 1)
+    : new THREE.Vector3(0, 1, 0);
+  const east = new THREE.Vector3().crossVectors(referenceAxis, center);
+  if (east.lengthSq() < 1e-6) east.set(1, 0, 0);
+  else east.normalize();
+  const north = new THREE.Vector3().crossVectors(center, east).normalize();
+  const point = new THREE.Vector3();
+  const projectedLines: Array<Array<[number, number]>> = [];
+  const rawPoints: Array<[number, number]> = [];
+
+  for (const lineString of coordinates) {
+    const projected: Array<[number, number]> = [];
+    for (const [ra, dec] of lineString) {
+      const [x, y, z] = raDecTo3D(ra, dec, 1);
+      point.set(x, y, z).normalize();
+      const px = point.dot(east);
+      const py = point.dot(north);
+      projected.push([px, py]);
+      rawPoints.push([px, py]);
+    }
+    if (projected.length > 1) projectedLines.push(projected);
+  }
+
+  if (projectedLines.length === 0 || rawPoints.length === 0) return null;
+
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (const [x, y] of rawPoints) {
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  }
+
+  const rawWidth = Math.max(maxX - minX, 0.02);
+  const rawHeight = Math.max(maxY - minY, 0.02);
+  const maxDim = Math.max(rawWidth, rawHeight);
+  const targetSize = 240;
+  const padding = 28;
+  const scale = targetSize / maxDim;
+  const contentWidth = Math.max(rawWidth * scale, 128);
+  const contentHeight = Math.max(rawHeight * scale, 128);
+  const offsetX = padding + (contentWidth - rawWidth * scale) / 2;
+  const offsetY = padding + (contentHeight - rawHeight * scale) / 2;
+  const svgWidth = contentWidth + padding * 2;
+  const svgHeight = contentHeight + padding * 2;
+
+  const normalize = ([x, y]: [number, number]): [number, number] => ([
+    offsetX + (x - minX) * scale,
+    offsetY + (maxY - y) * scale,
+  ]);
+
+  const paths = projectedLines.map((lineString) => lineString.map((coords, idx) => {
+    const [x, y] = normalize(coords);
+    return `${idx === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
+  }).join(' '));
+
+  const seen = new Set<string>();
+  const points: Array<[number, number]> = [];
+  for (const coords of rawPoints) {
+    const [x, y] = normalize(coords);
+    const key = `${x.toFixed(1)},${y.toFixed(1)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    points.push([x, y]);
+  }
+
+  return {
+    viewBox: `0 0 ${svgWidth.toFixed(1)} ${svgHeight.toFixed(1)}`,
+    paths,
+    points,
+  };
 }
 
 // ─── Camera-following group with ecliptic tilt ──────────────────────────────
@@ -106,7 +248,7 @@ function useStarData(): StarData | null {
   useEffect(() => {
     fetch(BASE_PATH + 'stars.hyg-8.json')
       .then(r => r.json())
-      .then((geojson: any) => {
+      .then((geojson: StarGeoJson) => {
         const features = geojson.features;
         const count = features.length;
         const positions = new Float32Array(count * 3);
@@ -120,7 +262,7 @@ function useStarData(): StarData | null {
           const f = features[i];
           const [ra, dec] = f.geometry.coordinates;
           const mag = f.properties.mag ?? 6;
-          const bv = parseFloat(f.properties.bv) || 0;
+          const bv = parseFloat(String(f.properties.bv ?? 0)) || 0;
 
           const [x, y, z] = raDecTo3D(ra, dec);
           positions[i * 3] = x;
@@ -173,6 +315,9 @@ export function StarField({ visible, showDesignations }: { visible: boolean; sho
   const { camera } = useThree();
   const [visibleNames, setVisibleNames] = useState<Set<string>>(new Set());
   const [visibleDesignations, setVisibleDesignations] = useState<Set<number>>(new Set());
+  const visibleNamesRef = useRef(new Set<string>());
+  const visibleDesignationsRef = useRef(new Set<number>());
+  const lastLabelUpdateRef = useRef(0);
 
   // Pre-allocated vectors for culling (perf fix)
   const camDirRef = useRef(new THREE.Vector3());
@@ -219,6 +364,10 @@ export function StarField({ visible, showDesignations }: { visible: boolean; sho
   // Cull named star labels + bayer designations to ~60° cone around camera direction
   useFrame(() => {
     if (!starData) return;
+    const now = performance.now();
+    if (now - lastLabelUpdateRef.current < LABEL_UPDATE_INTERVAL_MS) return;
+    lastLabelUpdateRef.current = now;
+
     camera.getWorldDirection(camDirRef.current);
     const threshold = Math.cos(60 * DEG);
 
@@ -231,7 +380,10 @@ export function StarField({ visible, showDesignations }: { visible: boolean; sho
           vis.add(star.name);
         }
       }
-      setVisibleNames(vis);
+      if (!setsEqual(visibleNamesRef.current, vis)) {
+        visibleNamesRef.current = vis;
+        setVisibleNames(vis);
+      }
     }
 
     if (showDesignations && starData.bayerStars.length > 0) {
@@ -244,7 +396,10 @@ export function StarField({ visible, showDesignations }: { visible: boolean; sho
           vis.add(i);
         }
       }
-      setVisibleDesignations(vis);
+      if (!setsEqual(visibleDesignationsRef.current, vis)) {
+        visibleDesignationsRef.current = vis;
+        setVisibleDesignations(vis);
+      }
     }
   });
 
@@ -349,11 +504,11 @@ function useConstellationLineData(): ColoredLineData | null {
   useEffect(() => {
     fetch(BASE_PATH + 'constellations.lines.json')
       .then(r => r.json())
-      .then((geojson: any) => {
+      .then((geojson: ConstellationLineGeoJson) => {
         const segments: number[] = [];
         const segColors: number[] = [];
 
-        geojson.features.forEach((feature: any, featureIdx: number) => {
+        geojson.features.forEach((feature, featureIdx) => {
           const [cr, cg, cb] = constellationColor(featureIdx);
           const coords = feature.geometry.coordinates;
           for (const lineString of coords) {
@@ -402,10 +557,11 @@ const glowLineFragmentShader = `
 const glowPointVertexShader = `
   attribute vec3 color;
   varying vec3 vColor;
+  uniform float size;
   void main() {
     vColor = color;
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-    gl_PointSize = 4.0;
+    gl_PointSize = size;
     gl_Position = projectionMatrix * mvPosition;
   }
 `;
@@ -424,6 +580,12 @@ const glowPointFragmentShader = `
 export function ConstellationLines({ visible, focus }: { visible: boolean; focus?: boolean }) {
   const lineData = useConstellationLineData();
   const { camera } = useThree();
+  const lineMatRef = useRef<THREE.ShaderMaterial | null>(null);
+  const pointMatRef = useRef<THREE.ShaderMaterial | null>(null);
+  const auraPointMatRef = useRef<THREE.ShaderMaterial | null>(null);
+  const lineUniforms = useMemo(() => ({ opacity: { value: 0.72 } }), []);
+  const pointUniforms = useMemo(() => ({ opacity: { value: 0.28 }, size: { value: 8 } }), []);
+  const auraPointUniforms = useMemo(() => ({ opacity: { value: 0.12 }, size: { value: 18 } }), []);
 
   const geometry = useMemo(() => {
     if (!lineData) return null;
@@ -454,53 +616,74 @@ export function ConstellationLines({ visible, focus }: { visible: boolean; focus
     return geo;
   }, [lineData]);
 
-  const lineMat = useMemo(() => new THREE.ShaderMaterial({
-    vertexShader: glowLineVertexShader,
-    fragmentShader: glowLineFragmentShader,
-    uniforms: { opacity: { value: 0.6 } },
-    transparent: true,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-    depthTest: true,
-  }), []);
-
-  const pointMat = useMemo(() => new THREE.ShaderMaterial({
-    vertexShader: glowPointVertexShader,
-    fragmentShader: glowPointFragmentShader,
-    uniforms: { opacity: { value: 0.2 } },
-    transparent: true,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-    depthTest: true,
-  }), []);
-
   // Distance-based fade (boosted in focus mode)
   useFrame(() => {
     const dist = camera.position.length();
-    const base = focus ? 0.85 : 0.5;
-    const minFade = focus ? 0.3 : 0;
+    const base = focus ? 0.92 : 0.34;
+    const minFade = focus ? 0.42 : 0.03;
     let opacity = base;
     if (!focus) {
-      if (dist < 1) opacity = 0;
+      if (dist < 1) opacity = 0.03;
       else if (dist < 5) opacity = base * ((dist - 1) / 4);
-      else if (dist > 500) opacity = 0.08;
-      else if (dist > 200) opacity = base - (dist - 200) / 300 * (base - 0.08);
+      else if (dist > 500) opacity = 0.09;
+      else if (dist > 200) opacity = base - (dist - 200) / 300 * (base - 0.09);
     } else {
       // In focus mode, only fade slightly at extremes
       if (dist < 1) opacity = minFade;
-      else if (dist > 500) opacity = 0.4;
-      else if (dist > 200) opacity = base - (dist - 200) / 300 * (base - 0.4);
+      else if (dist > 500) opacity = 0.55;
+      else if (dist > 200) opacity = base - (dist - 200) / 300 * (base - 0.55);
     }
+    const lineMat = lineMatRef.current;
+    const pointMat = pointMatRef.current;
+    const auraPointMat = auraPointMatRef.current;
+    if (!lineMat || !pointMat || !auraPointMat) return;
     lineMat.uniforms.opacity.value = opacity;
-    pointMat.uniforms.opacity.value = opacity * (focus ? 0.5 : 0.35);
+    pointMat.uniforms.opacity.value = opacity * (focus ? 0.8 : 0.18);
+    pointMat.uniforms.size.value = focus ? 13 : 4.5;
+    auraPointMat.uniforms.opacity.value = focus ? opacity * 0.34 : 0;
+    auraPointMat.uniforms.size.value = focus ? 34 : 1;
   });
 
   if (!geometry || !glowGeo) return null;
 
   return (
     <CelestialGroup visible={visible}>
-      <lineSegments geometry={geometry} material={lineMat} />
-      <points geometry={glowGeo} material={pointMat} />
+      <lineSegments geometry={geometry}>
+        <shaderMaterial
+          ref={lineMatRef}
+          vertexShader={glowLineVertexShader}
+          fragmentShader={glowLineFragmentShader}
+          uniforms={lineUniforms}
+          transparent
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          depthTest
+        />
+      </lineSegments>
+      <points geometry={glowGeo}>
+        <shaderMaterial
+          ref={pointMatRef}
+          vertexShader={glowPointVertexShader}
+          fragmentShader={glowPointFragmentShader}
+          uniforms={pointUniforms}
+          transparent
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          depthTest
+        />
+      </points>
+      <points geometry={glowGeo}>
+        <shaderMaterial
+          ref={auraPointMatRef}
+          vertexShader={glowPointVertexShader}
+          fragmentShader={glowPointFragmentShader}
+          uniforms={auraPointUniforms}
+          transparent
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          depthTest={false}
+        />
+      </points>
     </CelestialGroup>
   );
 }
@@ -513,31 +696,37 @@ interface ConstellationCentroid {
   english: string;
   pos: [number, number, number];
   color: string;  // per-constellation color (CSS rgb)
+  overlay: ConstellationOverlayData | null;
 }
 
 function useConstellationCentroids(): ConstellationCentroid[] {
   const [centroids, setCentroids] = useState<ConstellationCentroid[]>([]);
 
   useEffect(() => {
-    fetch(BASE_PATH + 'constellations.json')
-      .then(r => r.json())
-      .then((geojson: any) => {
+    Promise.all([
+      fetch(BASE_PATH + 'constellations.json').then((r): Promise<ConstellationPointGeoJson> => r.json() as Promise<ConstellationPointGeoJson>),
+      fetch(BASE_PATH + 'constellations.lines.json').then((r): Promise<ConstellationLineGeoJson> => r.json() as Promise<ConstellationLineGeoJson>),
+    ])
+      .then(([geojson, lineGeojson]) => {
         const items: ConstellationCentroid[] = [];
         const seenIds = new Set<string>();
         let featureIdx = 0;
         for (const feature of geojson.features) {
           const coords = feature.geometry.coordinates;
           if (feature.geometry.type === 'Point') {
-            let uid = feature.id;
+            let uid = String(feature.id);
             if (seenIds.has(uid)) uid = `${uid}_${seenIds.size}`;
             seenIds.add(uid);
             const [r, g, b] = constellationColor(featureIdx);
+            const pos = raDecTo3D(coords[0], coords[1]);
+            const lineFeature = lineGeojson.features[featureIdx];
             items.push({
               id: uid,
-              latin: feature.properties.name || feature.id,
+              latin: String(feature.properties.name ?? feature.id),
               english: feature.properties.en || '',
-              pos: raDecTo3D(coords[0], coords[1]),
+              pos,
               color: `rgb(${Math.round(r * 255)},${Math.round(g * 255)},${Math.round(b * 255)})`,
+              overlay: lineFeature ? buildConstellationOverlay(lineFeature.geometry.coordinates, pos) : null,
             });
             featureIdx++;
           }
@@ -556,6 +745,9 @@ export function ConstellationLabels({ visible, focus, onSelect }: { visible: boo
   const groupRef = useRef<THREE.Group>(null);
   const [visibleLabels, setVisibleLabels] = useState<Set<string>>(new Set());
   const [labelOpacity, setLabelOpacity] = useState(0.4);
+  const visibleLabelsRef = useRef(new Set<string>());
+  const labelOpacityRef = useRef(0.4);
+  const lastLabelUpdateRef = useRef(0);
 
   // Pre-allocated vectors to avoid GC pressure (perf fix — was creating new Vector3 every frame)
   const camDirRef = useRef(new THREE.Vector3());
@@ -567,6 +759,10 @@ export function ConstellationLabels({ visible, focus, onSelect }: { visible: boo
     if (groupRef.current) {
       groupRef.current.position.copy(camera.position);
     }
+
+    const now = performance.now();
+    if (now - lastLabelUpdateRef.current < LABEL_UPDATE_INTERVAL_MS) return;
+    lastLabelUpdateRef.current = now;
 
     const dist = camera.position.length();
     const base = focus ? 0.85 : 0.4;
@@ -581,7 +777,10 @@ export function ConstellationLabels({ visible, focus, onSelect }: { visible: boo
       else if (dist > 500) opacity = 0.4;
       else if (dist > 200) opacity = base - (dist - 200) / 300 * (base - 0.4);
     }
-    setLabelOpacity(opacity);
+    if (Math.abs(labelOpacityRef.current - opacity) > 0.02) {
+      labelOpacityRef.current = opacity;
+      setLabelOpacity(opacity);
+    }
 
     camera.getWorldDirection(camDirRef.current);
     const threshold = Math.cos(60 * DEG);
@@ -594,7 +793,10 @@ export function ConstellationLabels({ visible, focus, onSelect }: { visible: boo
         vis.add(c.id);
       }
     }
-    setVisibleLabels(vis);
+    if (!setsEqual(visibleLabelsRef.current, vis)) {
+      visibleLabelsRef.current = vis;
+      setVisibleLabels(vis);
+    }
   });
 
   if (!visible || centroids.length === 0 || labelOpacity < 0.01) return null;
@@ -616,7 +818,7 @@ export function ConstellationLabels({ visible, focus, onSelect }: { visible: boo
                   style={{
                     color: c.color,
                     opacity: labelOpacity,
-                    fontSize: 10,
+                    fontSize: focus ? 12 : 10,
                     fontFamily: "'Cormorant Garamond', serif",
                     fontStyle: 'italic',
                     fontWeight: 400,
@@ -625,25 +827,73 @@ export function ConstellationLabels({ visible, focus, onSelect }: { visible: boo
                     userSelect: 'none',
                     textAlign: 'center',
                     lineHeight: 1.3,
-                    textShadow: `0 0 10px ${c.color}, 0 0 20px rgba(0,0,0,0.9)`,
+                    textShadow: `0 0 10px ${c.color}, 0 0 24px ${c.color}, 0 0 36px rgba(0,0,0,0.9)`,
                     cursor: onSelect ? 'pointer' : 'default',
+                    position: 'relative',
+                    minWidth: focus && c.overlay ? 360 : 210,
+                    minHeight: focus && c.overlay ? 320 : 180,
+                    padding: focus && c.overlay ? '220px 14px 14px' : 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'flex-end',
                   }}
                 >
-                  {/* Constellation symbol — zodiac get large glowing glyphs */}
-                  {CONSTELLATION_SYMBOLS[c.id] && (
-                    <span style={{
-                      display: 'block',
-                      fontSize: isZodiac(c.id) ? 28 : 20,
-                      fontStyle: 'normal',
-                      fontWeight: 400,
-                      lineHeight: 1.1,
-                      marginBottom: 2,
-                      textShadow: `0 0 8px ${c.color}, 0 0 16px ${c.color}, 0 0 32px ${c.color}`,
-                      filter: `drop-shadow(0 0 ${isZodiac(c.id) ? 8 : 4}px ${c.color})`,
-                    }}>{CONSTELLATION_SYMBOLS[c.id]}</span>
+                  {focus && c.overlay && (
+                    <svg
+                      viewBox={c.overlay.viewBox}
+                      width={320}
+                      height={320}
+                      aria-hidden="true"
+                      style={{
+                        position: 'absolute',
+                        left: '50%',
+                        top: '50%',
+                        transform: 'translate(-50%, -56%)',
+                        overflow: 'visible',
+                        pointerEvents: 'none',
+                        opacity: 0.92,
+                        filter: `drop-shadow(0 0 14px ${c.color}) drop-shadow(0 0 36px ${c.color})`,
+                      }}
+                    >
+                      <g opacity={0.18}>
+                        {c.overlay.paths.map((path, idx) => (
+                          <path
+                            key={`glow-${c.id}-${idx}`}
+                            d={path}
+                            fill="none"
+                            stroke={c.color}
+                            strokeWidth={15}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        ))}
+                      </g>
+                      <g opacity={0.54}>
+                        {c.overlay.paths.map((path, idx) => (
+                          <path
+                            key={`line-${c.id}-${idx}`}
+                            d={path}
+                            fill="none"
+                            stroke={c.color}
+                            strokeWidth={4.5}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        ))}
+                      </g>
+                      <g>
+                        {c.overlay.points.map(([x, y], idx) => (
+                          <circle key={`aura-${c.id}-${idx}`} cx={x} cy={y} r={8} fill={c.color} opacity={0.14} />
+                        ))}
+                        {c.overlay.points.map(([x, y], idx) => (
+                          <circle key={`core-${c.id}-${idx}`} cx={x} cy={y} r={2.8} fill={c.color} opacity={0.78} />
+                        ))}
+                      </g>
+                    </svg>
                   )}
-                  <span style={{ display: 'block', fontSize: 9, fontWeight: 500, fontStyle: 'normal' }}>{c.latin}</span>
-                  {c.english && <span style={{ display: 'block', fontSize: 7, opacity: 0.7 }}>{c.english}</span>}
+                  <span style={{ display: 'block', fontSize: focus ? 11 : 9, fontWeight: 500, fontStyle: 'normal', letterSpacing: 1.8, textTransform: 'uppercase' }}>{c.latin}</span>
+                  {c.english && <span style={{ display: 'block', fontSize: focus ? 8 : 7, opacity: 0.68 }}>{c.english}</span>}
                 </div>
               </Html>
             )}
@@ -653,4 +903,3 @@ export function ConstellationLabels({ visible, focus, onSelect }: { visible: boo
     </group>
   );
 }
-

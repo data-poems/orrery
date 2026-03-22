@@ -16,14 +16,14 @@ const COMET_COLOR = '#66ddff';
 
 // ─── Comet tail (billboard sprite stretched anti-sunward) ────────────────────
 
-function CometTail({ pos, jd }: { pos: [number, number, number]; jd: number }) {
+function CometTail({ pos }: { pos: [number, number, number] }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const sunDir = useMemo(() => {
     const d = new THREE.Vector3(pos[0], pos[1], pos[2]);
     const dist = d.length();
     if (dist < 0.01) return new THREE.Vector3(1, 0, 0);
     return d.normalize();
-  }, [pos, jd]);
+  }, [pos]);
 
   // Tail length scales with 1/r² (brighter near Sun)
   const dist = Math.sqrt(pos[0] * pos[0] + pos[1] * pos[1] + pos[2] * pos[2]);
@@ -116,7 +116,7 @@ function CometDot({ comet, jd, selected, onSelect }: {
           </div>
         </Html>
       )}
-      <CometTail pos={pos} jd={jd} />
+      <CometTail pos={pos} />
     </group>
   );
 }

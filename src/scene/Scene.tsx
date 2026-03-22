@@ -2,7 +2,7 @@
  * Scene composition — camera, lighting, all 3D elements
  */
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, type ElementRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
@@ -45,29 +45,32 @@ function AUGrid() {
 
 // ─── Camera controller ──────────────────────────────────────────────────────────
 
-function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistance }: {
+function CamCtrl({ focusTarget, positions, cinematic, camPreset, cinematicRotateSpeed, onCameraDistance }: {
   focusTarget: FocusTarget | null;
   positions: Map<number, [number, number, number]>;
   cinematic: boolean;
   camPreset?: CamPreset | null;
+  cinematicRotateSpeed: number;
   onCameraDistance?: (d: number) => void;
 }) {
   const { camera } = useThree();
-  const ctrlRef = useRef<any>(null);
+  const ctrlRef = useRef<ElementRef<typeof OrbitControls> | null>(null);
   const tPos = useRef(new THREE.Vector3(...HOME_POS));
   const tLook = useRef(new THREE.Vector3(...HOME_TGT));
   const settling = useRef(true);
   const prevTrackPos = useRef(new THREE.Vector3());
+  const lastDistanceReportRef = useRef(0);
+  const lastDistanceValueRef = useRef(0);
 
   // Compute camera offset from angle/elevation/distance
-  const offsetFromAngle = (dist: number, angle: number, elevation: number): [number, number, number] => [
+  const offsetFromAngle = useCallback((dist: number, angle: number, elevation: number): [number, number, number] => [
     dist * Math.cos(elevation) * Math.cos(angle),
     dist * Math.sin(elevation),
     dist * Math.cos(elevation) * Math.sin(angle),
-  ];
+  ], []);
 
   // Compute focus offset for a planet or moon
-  const computeFocusOffset = (pp: [number, number, number]) => {
+  const computeFocusOffset = useCallback((pp: [number, number, number]) => {
     if (focusTarget === null) return;
     if (focusTarget.moonIdx !== undefined) {
       const moons = getMoonsForPlanet(focusTarget.planetIdx);
@@ -86,7 +89,7 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistanc
       return { pos: [pp[0] + ox, pp[1] + oy, pp[2] + oz] as [number, number, number], look: pp };
     }
     return undefined;
-  };
+  }, [focusTarget, offsetFromAngle]);
 
   // Trigger transition on focus or preset changes
   // Both cinematic and interactive use the same settling approach so the
@@ -110,7 +113,7 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistanc
       tPos.current.set(...HOME_POS);
       tLook.current.set(...HOME_TGT);
     }
-  }, [focusTarget, camPreset, cinematic]);
+  }, [focusTarget, camPreset, cinematic, computeFocusOffset, positions]);
 
   // Stop transition when user grabs orbit controls
   useEffect(() => {
@@ -119,7 +122,7 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistanc
     const stop = () => { if (!cinematic) settling.current = false; };
     ctrl.addEventListener('start', stop);
     return () => ctrl.removeEventListener('start', stop);
-  });
+  }, [cinematic]);
 
   useFrame(() => {
     const ctrl = ctrlRef.current;
@@ -129,9 +132,9 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistanc
     // transitions (Oort→Galaxy) don't crawl through empty blackness.
     const remainDist = camera.position.distanceTo(tPos.current);
     const lerpFactor = cinematic
-      ? (remainDist > 1000 ? 0.03 : remainDist > 100 ? 0.02 : 0.015)
-      : (remainDist > 1000 ? 0.06 : remainDist > 100 ? 0.045 : 0.03);
-    const settleThreshold = remainDist > 1000 ? 50 : remainDist > 100 ? 5 : 0.05;
+      ? (remainDist > 10000 ? 0.015 : remainDist > 1000 ? 0.025 : remainDist > 100 ? 0.02 : 0.015)
+      : (remainDist > 10000 ? 0.018 : remainDist > 1000 ? 0.035 : remainDist > 100 ? 0.045 : 0.03);
+    const settleThreshold = remainDist > 10000 ? 150 : remainDist > 1000 ? 50 : remainDist > 100 ? 5 : 0.05;
 
     // In cinematic mode, always keep gliding (never settle)
     if (cinematic) {
@@ -195,7 +198,16 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistanc
 
     // Report camera distance for UI (scale indicator)
     if (onCameraDistance) {
-      onCameraDistance(camera.position.length());
+      const distance = camera.position.length();
+      const now = performance.now();
+      if (
+        now - lastDistanceReportRef.current > 120 &&
+        Math.abs(distance - lastDistanceValueRef.current) > Math.max(0.05, distance * 0.01)
+      ) {
+        lastDistanceReportRef.current = now;
+        lastDistanceValueRef.current = distance;
+        onCameraDistance(distance);
+      }
     }
 
     if (ctrl) ctrl.update();
@@ -209,7 +221,7 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, onCameraDistanc
       minDistance={0.05}
       maxDistance={100000}
       autoRotate={cinematic || camPreset?.autoRotate || false}
-      autoRotateSpeed={cinematic ? 0.5 : camPreset?.autoRotate ? 0.15 : 0}
+      autoRotateSpeed={cinematic ? cinematicRotateSpeed : camPreset?.autoRotate ? 0.15 : 0}
     />
   );
 }
@@ -234,6 +246,7 @@ export interface SceneProps {
   showDeepSpace: boolean;
   constellationFocus: boolean;
   cinematic: boolean;
+  cinematicRotateSpeed: number;
   onMoonSelect?: (planetIdx: number, moonIdx: number) => void;
   selMoonIdx?: number | null;
   onCameraDistance?: (d: number) => void;
@@ -251,15 +264,13 @@ export default function Scene({
   focusTarget, onPositionsUpdate, showDwarf,
   showStars, showConstellations, showAsteroidBelt,
   showComets, showMeteors, showSatellites, showDeepSky, showDeepSpace,
-  constellationFocus, cinematic, onMoonSelect, selMoonIdx, onCameraDistance, cameraDistance, camPreset,
+  constellationFocus, cinematic, cinematicRotateSpeed, onMoonSelect, selMoonIdx, onCameraDistance, cameraDistance, camPreset,
   selComet, setSelComet, selMeteor, setSelMeteor, selSatellite, setSelSatellite,
   selSpacecraft, setSelSpacecraft,
   onConstellationSelect,
 }: SceneProps) {
   const [hov, setHov] = useState<number | null>(null);
   const [hovMoon, setHovMoon] = useState<number | null>(null);
-  const { scene } = useThree();
-  useEffect(() => { scene.background = new THREE.Color('#000000'); }, [scene]);
 
   const positions = useMemo(() => {
     const m = new Map<number, [number, number, number]>();
@@ -275,6 +286,7 @@ export default function Scene({
 
   return (
     <>
+      <color attach="background" args={['#000000']} />
       <ambientLight intensity={0.15} />
       <Sun cameraDistance={cameraDistance} />
       <AUGrid />
@@ -354,6 +366,7 @@ export default function Scene({
         visible={showSatellites}
         simTime={simTime}
         earthPos={positions.get(2) ?? null}
+        cameraDistance={cameraDistance}
         selSatellite={selSatellite}
         setSelSatellite={setSelSatellite}
       />
@@ -367,6 +380,7 @@ export default function Scene({
         positions={positions}
         cinematic={cinematic}
         camPreset={camPreset}
+        cinematicRotateSpeed={cinematicRotateSpeed}
         onCameraDistance={handleCameraDistance}
       />
     </>

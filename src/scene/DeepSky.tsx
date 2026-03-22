@@ -12,6 +12,15 @@ const DEG = Math.PI / 180;
 const ECLIPTIC_TILT = 23.4 * DEG;
 const SPHERE_RADIUS = 300;
 const BASE_PATH = import.meta.env.BASE_URL + 'data/';
+const LABEL_UPDATE_INTERVAL_MS = 120;
+
+function setsEqual<T>(a: Set<T>, b: Set<T>) {
+  if (a.size !== b.size) return false;
+  for (const value of a) {
+    if (!b.has(value)) return false;
+  }
+  return true;
+}
 
 function raDecTo3D(raDeg: number, decDeg: number, r: number = SPHERE_RADIUS): [number, number, number] {
   const ra = raDeg * DEG;
@@ -74,6 +83,8 @@ export function DeepSkyField({ visible }: { visible: boolean }) {
   const groupRef = useRef<THREE.Group>(null);
   const { camera } = useThree();
   const [visibleIds, setVisibleIds] = useState<Set<string>>(new Set());
+  const visibleIdsRef = useRef(new Set<string>());
+  const lastLabelUpdateRef = useRef(0);
 
   const camDirRef = useRef(new THREE.Vector3());
   const dirRef = useRef(new THREE.Vector3());
@@ -151,6 +162,9 @@ export function DeepSkyField({ visible }: { visible: boolean }) {
       groupRef.current.position.copy(camera.position);
     }
     if (!objects) return;
+    const now = performance.now();
+    if (now - lastLabelUpdateRef.current < LABEL_UPDATE_INTERVAL_MS) return;
+    lastLabelUpdateRef.current = now;
     camera.getWorldDirection(camDirRef.current);
     const threshold = Math.cos(60 * DEG);
     const vis = new Set<string>();
@@ -164,11 +178,14 @@ export function DeepSkyField({ visible }: { visible: boolean }) {
         vis.add(obj.id);
       }
     }
-    setVisibleIds(vis);
+    if (!setsEqual(visibleIdsRef.current, vis)) {
+      visibleIdsRef.current = vis;
+      setVisibleIds(vis);
+    }
   });
 
   // Attach color attribute when ready
-  useMemo(() => {
+  useEffect(() => {
     if (pointsGeo && colorsAttr) {
       pointsGeo.setAttribute('color', new THREE.BufferAttribute(colorsAttr, 3));
     }

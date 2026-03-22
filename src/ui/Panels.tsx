@@ -1029,7 +1029,7 @@ export default function Panels(props: PanelProps) {
               <span style={{ width: 10, height: 10, transform: 'rotate(45deg)', background: '#66ddff', flexShrink: 0 }} />
               <span style={{ color: '#fff', fontSize: 15, fontWeight: 600 }}>{selComet.name}</span>
             </div>
-            <Btn onClick={() => {}} label="Close comet details">{'\u2715'}</Btn>
+            <Btn onClick={() => setSelComet(null)} label="Close comet details">{'\u2715'}</Btn>
           </div>
           {selComet.notable && (
             <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, lineHeight: 1.6, fontWeight: 300, margin: '6px 0', fontStyle: 'italic' }}>
@@ -1067,7 +1067,7 @@ export default function Panels(props: PanelProps) {
               <span style={{ color: '#fff', fontSize: 15, fontWeight: 600 }}>{selMeteor.name}</span>
               <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, fontWeight: 300 }}>({selMeteor.code})</span>
             </div>
-            <Btn onClick={() => {}} label="Close meteor shower details">{'\u2715'}</Btn>
+            <Btn onClick={() => setSelMeteor(null)} label="Close meteor shower details">{'\u2715'}</Btn>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', marginTop: 8 }}>
             <Stat label="Radiant" val={`RA ${selMeteor.ra.toFixed(1)}\u00b0, Dec ${selMeteor.dec.toFixed(1)}\u00b0`} c="#ffbb33" />
@@ -1095,7 +1095,7 @@ export default function Panels(props: PanelProps) {
               <span style={{ width: 10, height: 10, transform: 'rotate(45deg)', background: '#ff66ff', borderRadius: 1, flexShrink: 0 }} />
               <span style={{ color: '#fff', fontSize: 15, fontWeight: 600 }}>{selSatellite.name}</span>
             </div>
-            <Btn onClick={() => {}} label="Close satellite details">{'\u2715'}</Btn>
+            <Btn onClick={() => setSelSatellite(null)} label="Close satellite details">{'\u2715'}</Btn>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', marginTop: 8 }}>
             <Stat label="Altitude" val={`${selSatellite.alt.toFixed(0)} km`} c="#ff66ff" />

@@ -41,8 +41,8 @@ function Btn({ children, onClick, style, label }: {
 function Stat({ label, val, c }: { label: string; val: string | number; c?: string }) {
   return (
     <div>
-      <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 300 }}>{label}</div>
-      <div style={{ color: c || '#fff', fontSize: 13, marginTop: 1 }}>{val}</div>
+      <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 300 }}>{label}</div>
+      <div style={{ color: c || '#fff', fontSize: 15, marginTop: 1 }}>{val}</div>
     </div>
   );
 }
@@ -216,16 +216,16 @@ function SideDrawer({
 
   // Shared styles
   const sectionTitle: React.CSSProperties = {
-    color: 'rgba(255,255,255,0.3)', fontSize: 9, letterSpacing: 2,
+    color: 'rgba(255,255,255,0.3)', fontSize: 11, letterSpacing: 2,
     textTransform: 'uppercase', fontWeight: 300, marginTop: 16, marginBottom: 6,
   };
 
   const sourceItem: React.CSSProperties = {
-    color: 'rgba(255,255,255,0.55)', fontSize: 11, lineHeight: 1.8, fontWeight: 300,
+    color: 'rgba(255,255,255,0.55)', fontSize: 13, lineHeight: 1.8, fontWeight: 300,
   };
 
   const kbdRow: React.CSSProperties = {
-    display: 'flex', gap: 12, fontSize: 11, color: 'rgba(255,255,255,0.5)',
+    display: 'flex', gap: 12, fontSize: 13, color: 'rgba(255,255,255,0.5)',
     fontWeight: 300, lineHeight: 1.8,
   };
 

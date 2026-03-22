@@ -177,6 +177,7 @@ function SideDrawer({
   setShowDeepSpace,
   selConstellation, setSelConstellation,
   selSpacecraft, setSelSpacecraft,
+  onPresetSelect, speed, setSpeed, cams,
 }: {
   open: boolean;
   accent: string;
@@ -204,6 +205,10 @@ function SideDrawer({
   selConstellation: string | null; setSelConstellation: (id: string | null) => void;
   selSpacecraft: import('../data/deepspace').Spacecraft | null;
   setSelSpacecraft: (s: import('../data/deepspace').Spacecraft | null) => void;
+  onPresetSelect: (i: number) => void;
+  speed: number;
+  setSpeed: (fn: (s: number) => number) => void;
+  cams: CamPreset[];
 }) {
   const { theme, setTheme } = useTheme();
 

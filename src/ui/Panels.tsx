@@ -565,7 +565,7 @@ export default function Panels(props: PanelProps) {
 
   if (cinematic) {
     const dim: React.CSSProperties = {
-      color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 300,
+      color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 300,
       letterSpacing: 1.5, fontStyle: 'italic',
     };
     return (
@@ -728,7 +728,7 @@ export default function Panels(props: PanelProps) {
                       width: '100%', padding: mobile ? '10px 14px' : '6px 14px',
                       background: active ? `rgba(${accentRgb},0.1)` : 'transparent',
                       border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                      fontSize: mobile ? 12 : 11, color: active ? accent : 'rgba(255,255,255,0.6)',
+                      fontSize: mobile ? 13 : 12, color: active ? accent : 'rgba(255,255,255,0.6)',
                       fontWeight: active ? 400 : 300, textAlign: 'left',
                       minHeight: mobile ? 40 : 'auto',
                     }}

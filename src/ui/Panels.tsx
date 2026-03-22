@@ -514,6 +514,9 @@ export interface PanelProps {
   showConstellations: boolean; setShowConstellations: (fn: (p: boolean) => boolean) => void;
   constellationFocus: boolean; setConstellationFocus: (fn: (p: boolean) => boolean) => void;
   showAsteroidBelt: boolean; setShowAsteroidBelt: (fn: (p: boolean) => boolean) => void;
+  showComets: boolean; setShowComets: (fn: (p: boolean) => boolean) => void;
+  showMeteors: boolean; setShowMeteors: (fn: (p: boolean) => boolean) => void;
+  showSatellites: boolean; setShowSatellites: (fn: (p: boolean) => boolean) => void;
   drawerOpen: boolean; setDrawerOpen: (fn: boolean | ((p: boolean) => boolean)) => void;
   cinematic: boolean;
   setCinematic: (c: boolean) => void;
@@ -526,6 +529,10 @@ export interface PanelProps {
   camIdx: number;
   onPresetSelect: (i: number) => void;
   onMoonSelect?: (planetIdx: number, moonIdx: number) => void;
+  selComet: CometDef | null;
+  selMeteor: MeteorShower | null;
+  selSatellite: SatellitePosition | null;
+  jd: number;
 }
 
 export default function Panels(props: PanelProps) {
@@ -538,12 +545,16 @@ export default function Panels(props: PanelProps) {
     showConstellations, setShowConstellations,
     constellationFocus, setConstellationFocus,
     showAsteroidBelt, setShowAsteroidBelt,
+    showComets, setShowComets,
+    showMeteors, setShowMeteors,
+    showSatellites, setShowSatellites,
     drawerOpen, setDrawerOpen,
     cinematic,
     navStack,
     selMoonIdx, cameraDistance,
     cams, camIdx, onPresetSelect,
     onMoonSelect,
+    selComet, selMeteor, selSatellite, jd,
   } = props;
 
   const { theme } = useTheme();

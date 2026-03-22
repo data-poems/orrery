@@ -341,7 +341,7 @@ function SideDrawer({
                     padding: mobile ? '8px 16px 8px 36px' : '4px 16px 4px 34px',
                     background: 'transparent', border: 'none', cursor: 'pointer',
                     fontFamily: 'inherit', color: 'rgba(255,255,255,0.45)',
-                    fontSize: mobile ? 13 : 12, fontStyle: 'italic', fontWeight: 300,
+                    fontSize: mobile ? 15 : 14, fontStyle: 'italic', fontWeight: 300,
                     minHeight: mobile ? 40 : 'auto', textAlign: 'left',
                   }}
                 >
@@ -403,7 +403,7 @@ function SideDrawer({
               display: 'flex', alignItems: 'center', gap: 10, width: '100%',
               padding: mobile ? '10px 16px' : '6px 16px',
               background: 'transparent', border: 'none', cursor: 'pointer',
-              fontFamily: 'inherit', fontSize: mobile ? 13 : 12,
+              fontFamily: 'inherit', fontSize: mobile ? 15 : 14,
               color: theme.id === t.id ? t.uiAccent : 'rgba(255,255,255,0.5)',
               fontWeight: theme.id === t.id ? 400 : 300, textAlign: 'left',
               minHeight: mobile ? 44 : 'auto',
@@ -452,7 +452,7 @@ function SideDrawer({
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   {neo.hazardous && <span style={{ color: '#ff4444', fontSize: 7 }} aria-label="Potentially hazardous">{'\u25cf'}</span>}
-                  <span style={{ color: '#fff', fontSize: mobile ? 12 : 11 }}>{neo.name.replace(/[()]/g, '')}</span>
+                  <span style={{ color: '#fff', fontSize: mobile ? 14 : 13 }}>{neo.name.replace(/[()]/g, '')}</span>
                   {neo.orbit?.loaded && <span style={{ color: accent, fontSize: 9, marginLeft: 'auto', fontStyle: 'italic' }}>orbit</span>}
                 </div>
                 <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, marginTop: 2, fontWeight: 300 }}>

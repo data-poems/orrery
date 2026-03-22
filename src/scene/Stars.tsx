@@ -215,20 +215,36 @@ export function StarField({ visible, showDesignations }: { visible: boolean; sho
     depthTest: true,
   }), []);
 
-  // Cull named star labels to ~60° cone around camera direction
+  // Cull named star labels + bayer designations to ~60° cone around camera direction
   useFrame(() => {
-    if (!starData || starData.namedStars.length === 0) return;
+    if (!starData) return;
     camera.getWorldDirection(camDirRef.current);
     const threshold = Math.cos(60 * DEG);
-    const vis = new Set<string>();
-    for (const star of starData.namedStars) {
-      starDirRef.current.set(star.pos[0], star.pos[1], star.pos[2]).normalize();
-      starDirRef.current.applyAxisAngle(tiltAxisRef.current, ECLIPTIC_TILT);
-      if (starDirRef.current.dot(camDirRef.current) > threshold) {
-        vis.add(star.name);
+
+    if (starData.namedStars.length > 0) {
+      const vis = new Set<string>();
+      for (const star of starData.namedStars) {
+        starDirRef.current.set(star.pos[0], star.pos[1], star.pos[2]).normalize();
+        starDirRef.current.applyAxisAngle(tiltAxisRef.current, ECLIPTIC_TILT);
+        if (starDirRef.current.dot(camDirRef.current) > threshold) {
+          vis.add(star.name);
+        }
       }
+      setVisibleNames(vis);
     }
-    setVisibleNames(vis);
+
+    if (showDesignations && starData.bayerStars.length > 0) {
+      const vis = new Set<number>();
+      for (let i = 0; i < starData.bayerStars.length; i++) {
+        const star = starData.bayerStars[i];
+        starDirRef.current.set(star.pos[0], star.pos[1], star.pos[2]).normalize();
+        starDirRef.current.applyAxisAngle(tiltAxisRef.current, ECLIPTIC_TILT);
+        if (starDirRef.current.dot(camDirRef.current) > threshold) {
+          vis.add(i);
+        }
+      }
+      setVisibleDesignations(vis);
+    }
   });
 
   if (!geometry) return null;
@@ -257,6 +273,33 @@ export function StarField({ visible, showDesignations }: { visible: boolean; sho
                 textShadow: '0 0 6px rgba(0,0,0,0.9)',
               }}>
                 {star.name}
+              </div>
+            </Html>
+          </group>
+        )
+      ))}
+      {/* Bayer designation labels (α Ori, β Gem, etc.) */}
+      {showDesignations && starData?.bayerStars.map((star, i) => (
+        visibleDesignations.has(i) && (
+          <group key={`bayer-${i}`} position={star.pos}>
+            <Html
+              center
+              distanceFactor={80}
+              style={{ pointerEvents: 'none' }}
+              zIndexRange={[1, 0]}
+            >
+              <div style={{
+                color: 'rgba(255,255,255,0.25)',
+                fontSize: 5,
+                fontFamily: "'Cormorant Garamond', serif",
+                fontWeight: 300,
+                whiteSpace: 'nowrap',
+                userSelect: 'none',
+                letterSpacing: 0.3,
+                textShadow: '0 0 4px rgba(0,0,0,0.9)',
+                marginTop: 6,
+              }}>
+                {star.designation}
               </div>
             </Html>
           </group>

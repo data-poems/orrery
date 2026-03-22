@@ -78,13 +78,18 @@ function CometDot({ comet, jd, selected, onSelect }: {
         onClick={e => { e.stopPropagation(); onSelect(); }}
       >
         <boxGeometry args={[size, size, size]} />
-        <meshBasicMaterial color={COMET_COLOR} />
+        <meshBasicMaterial color={COMET_COLOR} toneMapped={false} />
+      </mesh>
+      {/* Always-visible glow */}
+      <mesh>
+        <sphereGeometry args={[size * 2.5, 12, 12]} />
+        <meshBasicMaterial color={COMET_COLOR} transparent opacity={0.15} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
       </mesh>
       {/* Selection glow */}
       {selected && (
         <mesh>
-          <sphereGeometry args={[size * 3, 16, 16]} />
-          <meshBasicMaterial color={COMET_COLOR} transparent opacity={0.12} />
+          <sphereGeometry args={[size * 4, 16, 16]} />
+          <meshBasicMaterial color={COMET_COLOR} transparent opacity={0.2} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
         </mesh>
       )}
       {/* Label for notable comets */}

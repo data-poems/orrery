@@ -161,12 +161,17 @@ export function NeoDot({ neo, selected, onSelect, jd }: {
     <group position={pos}>
       <mesh onClick={e => { e.stopPropagation(); onSelect(); }}>
         <sphereGeometry args={[r, 16, 16]} />
-        <meshBasicMaterial color={col} />
+        <meshBasicMaterial color={col} toneMapped={false} />
+      </mesh>
+      {/* Glow halo */}
+      <mesh>
+        <sphereGeometry args={[r * 2.5, 12, 12]} />
+        <meshBasicMaterial color={col} transparent opacity={0.15} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
       </mesh>
       {selected && (
         <mesh>
-          <sphereGeometry args={[r * 3, 16, 16]} />
-          <meshBasicMaterial color={col} transparent opacity={0.12} />
+          <sphereGeometry args={[r * 4, 16, 16]} />
+          <meshBasicMaterial color={col} transparent opacity={0.2} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
         </mesh>
       )}
     </group>

@@ -83,7 +83,7 @@ function RadiantMarker({ shower, active, selected, onSelect }: {
       {(selected || active) && (
         <Html
           center
-          distanceFactor={500}
+          distanceFactor={80}
           style={{ pointerEvents: 'none' }}
           zIndexRange={[1, 0]}
         >

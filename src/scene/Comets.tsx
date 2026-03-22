@@ -92,7 +92,7 @@ function CometDot({ comet, jd, selected, onSelect }: {
         <Html
           position={[0, size + 0.015, 0]}
           center
-          distanceFactor={25}
+          distanceFactor={3}
           style={{ pointerEvents: 'none' }}
           zIndexRange={[1, 0]}
         >

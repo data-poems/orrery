@@ -194,7 +194,7 @@ export function StarField({ visible }: { visible: boolean }) {
           <group key={star.name} position={star.pos}>
             <Html
               center
-              distanceFactor={500}
+              distanceFactor={80}
               style={{ pointerEvents: 'none' }}
               zIndexRange={[1, 0]}
             >
@@ -515,7 +515,7 @@ export function ConstellationLabels({ visible, focus }: { visible: boolean; focu
             {visibleLabels.has(c.id) && (
               <Html
                 center
-                distanceFactor={500}
+                distanceFactor={80}
                 style={{ pointerEvents: 'none' }}
                 zIndexRange={[1, 0]}
               >

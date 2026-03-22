@@ -49,7 +49,7 @@ function SatDot({ sat, selected, onSelect }: {
         >
           <div style={{
             color: SAT_COLOR,
-            fontSize: isISS ? 12 : 10,
+            fontSize: isISS ? 10 : 8,
             fontFamily: "'Cormorant Garamond', serif",
             fontWeight: selected ? 600 : 400,
             whiteSpace: 'nowrap',

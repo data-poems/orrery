@@ -89,7 +89,7 @@ function RadiantMarker({ shower, active, selected, onSelect }: {
         >
           <div style={{
             color: METEOR_COLOR,
-            fontSize: active ? 12 : 10,
+            fontSize: active ? 9 : 8,
             fontFamily: "'Cormorant Garamond', serif",
             fontWeight: selected ? 600 : 300,
             whiteSpace: 'nowrap',

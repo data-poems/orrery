@@ -21,7 +21,7 @@ type CinematicStep = {
   camPreset?: number; focusPlanet?: number; duration: number; label: string;
   desc?: string;
   stars?: boolean; constellations?: boolean; constellationFocus?: boolean;
-  asteroidBelt?: boolean; milkyWay?: boolean; deepSpace?: boolean; dwarf?: boolean;
+  asteroidBelt?: boolean; dwarf?: boolean;
 };
 
 function OrreryInner() {
@@ -35,8 +35,6 @@ function OrreryInner() {
   const [showStars, setShowStars] = useState(true);
   const [showConstellations, setShowConstellations] = useState(false);
   const [showAsteroidBelt, setShowAsteroidBelt] = useState(false);
-  const [showMilkyWay, setShowMilkyWay] = useState(false);
-  const [showDeepSpace, setShowDeepSpace] = useState(false);
   const [constellationFocus, setConstellationFocus] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [simTime, setSimTime] = useState(new Date());

@@ -16,7 +16,9 @@
       "mcp__plugin_playwright_playwright__browser_wait_for",
       "Bash(rsync:*)",
       "WebFetch(domain:www.aanda.org)",
-      "WebFetch(domain:heasarc.gsfc.nasa.gov)"
+      "WebFetch(domain:heasarc.gsfc.nasa.gov)",
+      "WebFetch(domain:arxiv.org)",
+      "WebFetch(domain:www.researchgate.net)"
     ]
   },
   "enableAllProjectMcpServers": true,

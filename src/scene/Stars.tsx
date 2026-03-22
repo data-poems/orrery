@@ -128,6 +128,7 @@ export function StarField({ visible }: { visible: boolean }) {
   // Pre-allocated vectors for culling (perf fix)
   const camDirRef = useRef(new THREE.Vector3());
   const starDirRef = useRef(new THREE.Vector3());
+  const tiltAxisRef = useRef(new THREE.Vector3(1, 0, 0));
 
   const geometry = useMemo(() => {
     if (!starData) return null;
@@ -174,7 +175,7 @@ export function StarField({ visible }: { visible: boolean }) {
     const vis = new Set<string>();
     for (const star of starData.namedStars) {
       starDirRef.current.set(star.pos[0], star.pos[1], star.pos[2]).normalize();
-      starDirRef.current.applyAxisAngle(new THREE.Vector3(1, 0, 0), ECLIPTIC_TILT);
+      starDirRef.current.applyAxisAngle(tiltAxisRef.current, ECLIPTIC_TILT);
       if (starDirRef.current.dot(camDirRef.current) > threshold) {
         vis.add(star.name);
       }

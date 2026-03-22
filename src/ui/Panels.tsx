@@ -299,22 +299,33 @@ function SideDrawer({
 
       {/* ── Go To ── */}
       <SectionHeader>Go To</SectionHeader>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '0 16px 8px' }}>
-        {cams.map((cam, i) => (
-          <button
-            key={cam.key}
-            onClick={() => { onPresetSelect(i); onClose(); }}
-            style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              color: 'rgba(255,255,255,0.6)',
-              fontSize: 12, fontFamily: 'inherit', fontWeight: 300,
-              padding: '5px 10px', borderRadius: 4, cursor: 'pointer',
-              minHeight: mobile ? 36 : 28,
-            }}
-          >{cam.label}</button>
-        ))}
-      </div>
+      {(() => {
+        // Group presets logically: close → system → far → special
+        const groups: { title: string; items: { label: string; idx: number }[] }[] = [
+          { title: 'Close', items: ['Sun', 'Inner', 'Belt'].map(l => ({ label: l, idx: cams.findIndex(c => c.label === l) })).filter(x => x.idx >= 0) },
+          { title: 'System', items: ['System', 'Top', 'Ecliptic'].map(l => ({ label: l, idx: cams.findIndex(c => c.label === l) })).filter(x => x.idx >= 0) },
+          { title: 'Deep', items: ['Outer', 'Kuiper', 'Oort'].map(l => ({ label: l, idx: cams.findIndex(c => c.label === l) })).filter(x => x.idx >= 0) },
+          { title: 'Views', items: ['Screensaver', 'Stargazer'].map(l => ({ label: l, idx: cams.findIndex(c => c.label === l) })).filter(x => x.idx >= 0) },
+        ];
+        const btnStyle = {
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          color: 'rgba(255,255,255,0.6)',
+          fontSize: 12, fontFamily: 'inherit', fontWeight: 300,
+          padding: '5px 10px', borderRadius: 4, cursor: 'pointer',
+          minHeight: mobile ? 36 : 28,
+        };
+        return groups.map(g => (
+          <div key={g.title} style={{ padding: '0 16px 6px' }}>
+            <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: 1.2, textTransform: 'uppercase' as const, color: 'rgba(255,255,255,0.25)', marginBottom: 3 }}>{g.title}</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              {g.items.map(item => (
+                <button key={item.label} onClick={() => { onPresetSelect(item.idx); onClose(); }} style={btnStyle}>{item.label}</button>
+              ))}
+            </div>
+          </div>
+        ));
+      })()}
 
       <div style={sectionDivider} />
 

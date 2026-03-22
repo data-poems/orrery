@@ -156,6 +156,112 @@ export function neoXYZ(
   return [x, z, -y];
 }
 
+// ─── Comet position from perihelion-based elements ──────────────────────────────
+
+/**
+ * Compute heliocentric position of a comet using perihelion time Tp.
+ * Handles elliptical (e<1), parabolic (e≈1), and hyperbolic (e>1) orbits.
+ */
+export function cometXYZ(
+  q: number, e: number, I_deg: number, Om_deg: number, w_deg: number,
+  tp_jd: number, current_jd: number,
+): [number, number, number] {
+  const dt = current_jd - tp_jd; // days since perihelion
+  const I = I_deg * DEG, Om = Om_deg * DEG, w = w_deg * DEG;
+
+  let r: number, nu: number; // heliocentric distance, true anomaly
+
+  if (Math.abs(e - 1) < 0.001) {
+    // Parabolic: Barker's equation
+    // W = (3/sqrt(2)) * (dt * k / sqrt(q^3)), k = 0.01720209895
+    const k = 0.01720209895;
+    const W = (3 / Math.SQRT2) * (dt * k / Math.sqrt(q * q * q));
+    // Solve s^3 + 3s - W = 0 (Barker)
+    const s = Math.cbrt(W / 2 + Math.sqrt(W * W / 4 + 1)) +
+              Math.cbrt(W / 2 - Math.sqrt(W * W / 4 + 1));
+    nu = 2 * Math.atan(s);
+    r = q * (1 + s * s); // r = q(1 + tan²(ν/2)) = q/cos²(ν/2)
+  } else if (e < 1) {
+    // Elliptical
+    const a = q / (1 - e);
+    const n = 0.9856076686 / Math.sqrt(a * a * a); // mean motion deg/day
+    const M = n * dt;
+    const E = solveKepler(M, e);
+    nu = 2 * Math.atan2(Math.sqrt(1 + e) * Math.sin(E / 2), Math.sqrt(1 - e) * Math.cos(E / 2));
+    r = a * (1 - e * Math.cos(E));
+  } else {
+    // Hyperbolic
+    const a = q / (e - 1); // a is negative for hyperbolic, but q/(e-1) is positive
+    const n_hyp = 0.9856076686 / Math.sqrt(a * a * a); // mean motion
+    const M = n_hyp * dt;
+    // Solve hyperbolic Kepler: M = e*sinh(H) - H
+    let H = M;
+    for (let i = 0; i < 30; i++) {
+      const dH = (e * Math.sinh(H) - H - M) / (e * Math.cosh(H) - 1);
+      H -= dH;
+      if (Math.abs(dH) < 1e-10) break;
+    }
+    nu = 2 * Math.atan2(Math.sqrt(e + 1) * Math.sinh(H / 2), Math.sqrt(e - 1) * Math.cosh(H / 2));
+    r = a * (1 - e * Math.cosh(H));
+    if (r < 0) r = -r; // ensure positive
+  }
+
+  const xp = r * Math.cos(nu);
+  const yp = r * Math.sin(nu);
+  const cw = Math.cos(w), sw = Math.sin(w), co = Math.cos(Om), so = Math.sin(Om), ci = Math.cos(I), si = Math.sin(I);
+  const x = (cw * co - sw * so * ci) * xp + (-sw * co - cw * so * ci) * yp;
+  const y = (cw * so + sw * co * ci) * xp + (-sw * so + cw * co * ci) * yp;
+  const z = (sw * si) * xp + (cw * si) * yp;
+  return [x, z, -y];
+}
+
+/**
+ * Generate orbit path for a comet (samples true anomaly).
+ * For parabolic/hyperbolic, only shows ±120° around perihelion.
+ */
+export function cometOrbitPath(
+  q: number, e: number, I_deg: number, Om_deg: number, w_deg: number,
+  n = 180, maxR = 100,
+): THREE.Vector3[] {
+  const I = I_deg * DEG, Om = Om_deg * DEG, w = w_deg * DEG;
+  const cw = Math.cos(w), sw = Math.sin(w), co = Math.cos(Om), so = Math.sin(Om), ci = Math.cos(I), si = Math.sin(I);
+  const pts: THREE.Vector3[] = [];
+
+  const nuMax = e >= 1 ? 2.1 : Math.PI; // ±120° for open orbits, full for closed
+  for (let i = 0; i <= n; i++) {
+    const nu = -nuMax + (i / n) * 2 * nuMax;
+    const denom = 1 + e * Math.cos(nu);
+    if (denom <= 0.01) continue; // skip asymptote
+    const r = q * (1 + e) / denom;
+    if (r > maxR) continue; // clip at max distance
+    const xp = r * Math.cos(nu), yp = r * Math.sin(nu);
+    const x = (cw * co - sw * so * ci) * xp + (-sw * co - cw * so * ci) * yp;
+    const y = (cw * so + sw * co * ci) * xp + (-sw * so + cw * co * ci) * yp;
+    const z = (sw * si) * xp + (cw * si) * yp;
+    pts.push(new THREE.Vector3(x, z, -y));
+  }
+  return pts;
+}
+
+// ─── Solar longitude (for meteor shower timing) ──────────────────────────────
+
+/**
+ * Compute the Sun's ecliptic longitude for a given Julian Date.
+ * Simplified formula accurate to ~0.01° (sufficient for meteor shower timing).
+ */
+export function solarLongitude(jd: number): number {
+  const T = (jd - 2451545.0) / 36525; // centuries from J2000
+  // Mean longitude and anomaly
+  const L0 = norm(280.46646 + 36000.76983 * T + 0.0003032 * T * T);
+  const M = norm(357.52911 + 35999.05029 * T - 0.0001537 * T * T);
+  const Mrad = M * DEG;
+  // Equation of center
+  const C = (1.914602 - 0.004817 * T) * Math.sin(Mrad)
+          + 0.019993 * Math.sin(2 * Mrad)
+          + 0.000289 * Math.sin(3 * Mrad);
+  return norm(L0 + C);
+}
+
 // ─── Moon phase ─────────────────────────────────────────────────────────────────
 
 export function moonPhase(jd: number) {

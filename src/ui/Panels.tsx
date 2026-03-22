@@ -655,10 +655,10 @@ export default function Panels(props: PanelProps) {
             ...glass, padding: mobile ? '6px 12px' : '5px 16px',
           }}
         >
-          <span style={{ color: '#fff', fontSize: mobile ? 16 : 20, fontWeight: 300, letterSpacing: 3, fontFamily: "'Cormorant', serif" }}>{fmtTime(simTime)}</span>
-          <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: mobile ? 9 : 11, fontStyle: 'italic', fontWeight: 300 }}>{fmtDate(simTime)}</span>
-          {!mobile && <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, fontStyle: 'italic', fontWeight: 300 }}>{moon.name}, {moon.ill}%</span>}
-          {speed !== 1 && <span style={{ color: accent, fontSize: 10, fontWeight: 400 }}>{speedLabel(speed)}</span>}
+          <span style={{ color: '#fff', fontSize: mobile ? 16 : 22, fontWeight: 300, letterSpacing: 3, fontFamily: "'Cormorant', serif" }}>{fmtTime(simTime)}</span>
+          <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: mobile ? 10 : 13, fontStyle: 'italic', fontWeight: 300 }}>{fmtDate(simTime)}</span>
+          {!mobile && <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, fontStyle: 'italic', fontWeight: 300 }}>{moon.name}, {moon.ill}%</span>}
+          {speed !== 1 && <span style={{ color: accent, fontSize: 12, fontWeight: 400 }}>{speedLabel(speed)}</span>}
           <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 4 }}>
             <button
               onClick={() => props.setSpeed(s => Math.max(1, Math.round(s / 10) || 1))}

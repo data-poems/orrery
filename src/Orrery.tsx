@@ -65,16 +65,18 @@ function OrreryInner() {
     // 2. Zoom to Earth
     { focusPlanet: 2, duration: 5000, label: 'Earth',
       constellations: true },
-    // 3. Pull out to full system
+    // 3. Pull out to full system with asteroid belt
     { camPreset: 1, duration: 5000, label: 'Solar System',
       asteroidBelt: true, dwarf: true },
     // 4. Jupiter
     { focusPlanet: 4, duration: 5000, label: 'Jupiter' },
     // 5. Ganymede
     { focusPlanet: 4, focusMoon: 3, duration: 5000, label: 'Ganymede' },
-    // 5. Saturn
-    { focusPlanet: 5, duration: 6000, label: 'Saturn',
+    // 6. Saturn
+    { focusPlanet: 5, duration: 5000, label: 'Saturn',
       constellations: false },
+    // 7. Pluto
+    { focusPlanet: 9, duration: 5000, label: 'Pluto' },
   ], []);
 
   const cinematicIdx = useRef(0);

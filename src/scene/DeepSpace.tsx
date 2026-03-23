@@ -4,7 +4,7 @@
 
 import { useMemo, useRef, useState, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Html, Line } from '@react-three/drei';
+import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import {
   OORT_CLOUD, SPACECRAFT, NEARBY_STARS, LOCAL_GROUP,
@@ -216,24 +216,8 @@ function SpacecraftDot({ craft, selected, onSelect }: {
   const color = craft.status === 'active' ? '#44ff88' : '#888888';
   const size = selected ? 1.5 : 0.8;
 
-  // Trajectory line: from Sun origin through current position, extending 20% beyond
-  const linePoints = useMemo(() => {
-    const origin = new THREE.Vector3(0, 0, 0);
-    const end = new THREE.Vector3(...pos);
-    const extended = end.clone().multiplyScalar(1.2);
-    return [origin, end, extended];
-  }, [pos]);
-
   return (
     <group>
-      {/* Trajectory line */}
-      <Line
-        points={linePoints}
-        color={color}
-        lineWidth={0.5}
-        transparent
-        opacity={0.25}
-      />
       {/* Craft dot */}
       <mesh
         position={pos}

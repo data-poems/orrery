@@ -192,43 +192,19 @@ function OrreryInner() {
 
   const camPreset = camIdx >= 0 && camIdx < CAMS.length ? CAMS[camIdx] : null;
 
-  // ─── Cinematic: continuous zoom cycle through scale levels ──────────────────
+  // ─── Cinematic: tight highlight reel through scale levels ────────────────────
+  const CINEMATIC_DEFAULTS: Omit<CinematicStep, 'duration' | 'label'> = {
+    stars: true, constellations: false, asterisms: false,
+    constellationFocus: false, asteroidBelt: false, dwarf: false,
+    deepSky: false, deepSpace: false, comets: false,
+    satellites: false, meteors: false, autoRotateSpeed: 0.3,
+  };
+
   const cinematicSteps = useMemo((): CinematicStep[] => [
-    // 1. Open on the Sun close-up
-    { camPreset: 7, duration: 6500, label: 'Sol',
-      stars: true, constellations: false, constellationFocus: false,
-      asteroidBelt: false, dwarf: false, deepSky: false, deepSpace: false,
-      comets: false, satellites: false, meteors: false, autoRotateSpeed: 0.3 },
-    // 2. Drop into Earth before the wider pullback
-    { focusPlanet: 2, duration: 6500, label: 'Earthrise',
-      stars: true, constellations: false, constellationFocus: false,
-      asteroidBelt: false, dwarf: false, deepSky: false, deepSpace: false,
-      comets: false, satellites: false, meteors: false, autoRotateSpeed: 0.62 },
-    // 3. Pull out to inner planets
-    { camPreset: 0, duration: 6000, label: 'Inner Planets',
-      stars: true, constellations: false, constellationFocus: false,
-      asteroidBelt: false, dwarf: false, deepSky: false, deepSpace: false,
-      comets: false, satellites: false, meteors: false, autoRotateSpeed: 0.35 },
-    // 4. Get the constellation reveal out of the way early
-    { camPreset: 10, duration: 7000, label: 'Stargazer',
-      stars: true, constellations: true, asterisms: false, constellationFocus: true,
-      asteroidBelt: false, dwarf: false, deepSky: false, deepSpace: false,
-      comets: false, satellites: false, meteors: false, autoRotateSpeed: 0.14 },
-    // 5. Re-establish the whole system
-    { camPreset: 1, duration: 6000, label: 'Solar System',
-      stars: true, constellations: false, constellationFocus: false,
-      asteroidBelt: true, dwarf: true, deepSky: false, deepSpace: false,
-      comets: false, satellites: false, meteors: false, autoRotateSpeed: 0.22 },
-    // 6. Outer system without snapping to another single-planet close-up
-    { camPreset: 4, duration: 6500, label: 'Outer Planets',
-      stars: true, constellations: false, constellationFocus: false,
-      asteroidBelt: true, dwarf: true, deepSky: false, deepSpace: false,
-      comets: false, satellites: false, meteors: false, autoRotateSpeed: 0.16 },
-    // 7. Deep-space pullback with local-group framing, then loop back to Sol
-    { camPreset: 9, duration: 7500, label: 'Milky Way',
-      stars: true, constellations: false, constellationFocus: false,
-      asteroidBelt: false, dwarf: true, deepSky: true, deepSpace: true,
-      comets: false, satellites: false, meteors: false, autoRotateSpeed: 0.08 },
+    { ...CINEMATIC_DEFAULTS, camPreset: 7, duration: 5000, label: 'Sol', autoRotateSpeed: 0.3 },
+    { ...CINEMATIC_DEFAULTS, focusPlanet: 2, duration: 5000, label: 'Earthrise', autoRotateSpeed: 0.6 },
+    { ...CINEMATIC_DEFAULTS, camPreset: 1, duration: 5000, label: 'Solar System', asteroidBelt: true, dwarf: true, autoRotateSpeed: 0.22 },
+    { ...CINEMATIC_DEFAULTS, camPreset: 9, duration: 5000, label: 'Milky Way', dwarf: true, deepSky: true, deepSpace: true, autoRotateSpeed: 0.08 },
   ], []);
 
   const cinematicIdx = useRef(0);

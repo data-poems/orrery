@@ -128,6 +128,40 @@ function ScaleIndicator({ cameraDistance }: { cameraDistance: number }) {
   );
 }
 
+// ─── Info panel (shared by constellation & spacecraft detail views) ──────────────
+
+function InfoPanel({
+  sectionTitle, title, subtitle, description, accent, onClose, closeLabel, children,
+}: {
+  sectionTitle: string; title: string; subtitle: string; description: string;
+  accent: string; onClose: () => void; closeLabel: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <AccordionSection title={sectionTitle} accent={accent} defaultOpen>
+      <div style={{ padding: '0 16px 12px' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button
+            onClick={onClose}
+            aria-label={closeLabel}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: 'rgba(255,255,255,0.3)', fontSize: 14, fontFamily: 'inherit',
+              padding: '0 0 4px', lineHeight: 1,
+            }}
+          >
+            {'\u00d7'}
+          </button>
+        </div>
+        <div style={{ color: accent, fontSize: 17, fontWeight: 500, letterSpacing: 1 }}>{title}</div>
+        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 300, marginTop: 2, letterSpacing: 1 }}>{subtitle}</div>
+        <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 14, fontWeight: 300, marginTop: 10, lineHeight: 1.6, fontStyle: 'italic' }}>{description}</div>
+        {children}
+      </div>
+    </AccordionSection>
+  );
+}
+
 // ─── Body tree item (shared by planets and dwarfs) ──────────────────────────────
 
 function BodyTreeItem({
@@ -738,105 +772,50 @@ function SideDrawer({
       {selConstellation && MYTHOLOGY[selConstellation] && (() => {
         const info = MYTHOLOGY[selConstellation];
         return (
-          <AccordionSection
-            title="Constellation"
-            accent={accent}
-            defaultOpen
+          <InfoPanel
+            sectionTitle="Constellation" title={selConstellation}
+            subtitle={`${info.origin} \u00b7 Best: ${info.season}`}
+            description={info.myth} accent={accent}
+            onClose={() => setSelConstellation(null)} closeLabel="Close constellation info"
           >
-            <div style={{ padding: '0 16px 12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button
-                  onClick={() => setSelConstellation(null)}
-                  aria-label="Close constellation info"
-                  style={{
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    color: 'rgba(255,255,255,0.3)', fontSize: 14, fontFamily: 'inherit',
-                    padding: '0 0 4px', lineHeight: 1,
-                  }}
-                >
-                  {'\u00d7'}
-                </button>
-              </div>
-              <div style={{ color: accent, fontSize: 17, fontWeight: 500, letterSpacing: 1 }}>
-                {selConstellation}
-              </div>
-              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 300, marginTop: 2, letterSpacing: 1 }}>
-                {info.origin} {'\u00b7'} Best: {info.season}
-              </div>
-              <div style={{
-                color: 'rgba(255,255,255,0.65)', fontSize: 14, fontWeight: 300,
-                marginTop: 10, lineHeight: 1.6, fontStyle: 'italic',
-              }}>
-                {info.myth}
-              </div>
-              {info.objects.length > 0 && (
-                <>
-                  <div style={{
-                    color: 'rgba(255,255,255,0.3)', fontSize: 11, letterSpacing: 2,
-                    textTransform: 'uppercase', fontWeight: 300, marginTop: 12, marginBottom: 4,
-                  }}>
-                    Notable Objects
+            {info.objects.length > 0 && (
+              <>
+                <div style={{
+                  color: 'rgba(255,255,255,0.3)', fontSize: 11, letterSpacing: 2,
+                  textTransform: 'uppercase', fontWeight: 300, marginTop: 12, marginBottom: 4,
+                }}>
+                  Notable Objects
+                </div>
+                {info.objects.map(obj => (
+                  <div key={obj} style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 300, lineHeight: 1.6 }}>
+                    {obj}
                   </div>
-                  {info.objects.map(obj => (
-                    <div key={obj} style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 300, lineHeight: 1.6 }}>
-                      {obj}
-                    </div>
-                  ))}
-                </>
-              )}
-            </div>
-          </AccordionSection>
+                ))}
+              </>
+            )}
+          </InfoPanel>
         );
       })()}
 
       {/* ── Spacecraft Info (when selected) ── */}
-      {selSpacecraft && (() => {
-        const craft = selSpacecraft;
-        return (
-          <AccordionSection
-            title="Spacecraft"
-            accent={accent}
-            defaultOpen
-          >
-            <div style={{ padding: '0 16px 12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button
-                  onClick={() => setSelSpacecraft(null)}
-                  aria-label="Close spacecraft info"
-                  style={{
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    color: 'rgba(255,255,255,0.3)', fontSize: 14, fontFamily: 'inherit',
-                    padding: '0 0 4px', lineHeight: 1,
-                  }}
-                >
-                  {'\u00d7'}
-                </button>
-              </div>
-              <div style={{ color: accent, fontSize: 17, fontWeight: 500, letterSpacing: 1 }}>
-                {craft.name}
-              </div>
-              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 300, marginTop: 2, letterSpacing: 1 }}>
-                {craft.status === 'active' ? 'Active' : 'Inactive'} {'\u00b7'} Launched {craft.launchYear}
-              </div>
-              <div style={{
-                color: 'rgba(255,255,255,0.65)', fontSize: 14, fontWeight: 300,
-                marginTop: 10, lineHeight: 1.6, fontStyle: 'italic',
-              }}>
-                {craft.desc}
-              </div>
-              <div style={{
-                display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px',
-                marginTop: 12, color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 300,
-              }}>
-                <div>Distance <span style={{ color: '#fff', fontWeight: 400 }}>{craft.distAU} AU</span></div>
-                <div>Speed <span style={{ color: '#fff', fontWeight: 400 }}>{craft.speedAUyr} AU/yr</span></div>
-                <div>Light-hours <span style={{ color: '#fff', fontWeight: 400 }}>{(craft.distAU / 7.2).toFixed(1)}</span></div>
-                <div>Light-years <span style={{ color: '#fff', fontWeight: 400 }}>{(craft.distAU / 63241).toFixed(4)}</span></div>
-              </div>
-            </div>
-          </AccordionSection>
-        );
-      })()}
+      {selSpacecraft && (
+        <InfoPanel
+          sectionTitle="Spacecraft" title={selSpacecraft.name}
+          subtitle={`${selSpacecraft.status === 'active' ? 'Active' : 'Inactive'} \u00b7 Launched ${selSpacecraft.launchYear}`}
+          description={selSpacecraft.desc} accent={accent}
+          onClose={() => setSelSpacecraft(null)} closeLabel="Close spacecraft info"
+        >
+          <div style={{
+            display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px',
+            marginTop: 12, color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 300,
+          }}>
+            <div>Distance <span style={{ color: '#fff', fontWeight: 400 }}>{selSpacecraft.distAU} AU</span></div>
+            <div>Speed <span style={{ color: '#fff', fontWeight: 400 }}>{selSpacecraft.speedAUyr} AU/yr</span></div>
+            <div>Light-hours <span style={{ color: '#fff', fontWeight: 400 }}>{(selSpacecraft.distAU / 7.2).toFixed(1)}</span></div>
+            <div>Light-years <span style={{ color: '#fff', fontWeight: 400 }}>{(selSpacecraft.distAU / 63241).toFixed(4)}</span></div>
+          </div>
+        </InfoPanel>
+      )}
 
       <AccordionSection title="About" accent={accent} defaultOpen={false}>
         <div style={{ padding: '0 16px 20px' }}>

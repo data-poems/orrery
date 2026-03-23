@@ -19,7 +19,7 @@ export interface PlanetDef {
   radius: number; tex: TexKey; color: string; period: number;
   hasRings?: boolean;
   isDwarf?: boolean;
-  desc: string; distAU: string; moons: number; type: string;
+  distAU: string; moons: number; type: string;
   surfaceTemp: string; gravity: string;
 }
 

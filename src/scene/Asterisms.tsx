@@ -53,10 +53,13 @@ export function AsterismField({ visible }: { visible: boolean }) {
     depthWrite: false,
   }), []);
 
-  // Camera follow
+  // Camera follow + distance fade
   useFrame(() => {
     if (!visible || !groupRef.current) return;
     groupRef.current.position.copy(camera.position);
+    // Fade out at deep zoom distances
+    const dist = camera.position.length();
+    material.opacity = dist > 500 ? Math.max(0.02, 0.25 * (1 - (dist - 500) / 500)) : 0.25;
   });
 
   // Compute dash distances when geometry is ready

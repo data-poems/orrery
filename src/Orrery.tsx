@@ -119,6 +119,13 @@ function fallbackOrbitForNeo(neo: NEO): NeoOrbit {
   };
 }
 
+const CINEMATIC_DEFAULTS: Omit<CinematicStep, 'duration' | 'label'> = {
+  stars: true, constellations: false, asterisms: false,
+  constellationFocus: false, asteroidBelt: false, dwarf: false,
+  deepSky: false, deepSpace: false, comets: false,
+  satellites: false, meteors: false, autoRotateSpeed: 0.3,
+};
+
 function OrreryInner() {
   const neoCacheKey = useMemo(() => getTodayNeoCacheKey(), []);
   const initialNeoCache = useMemo(() => readNeoCache(neoCacheKey), [neoCacheKey]);
@@ -193,13 +200,6 @@ function OrreryInner() {
   const camPreset = camIdx >= 0 && camIdx < CAMS.length ? CAMS[camIdx] : null;
 
   // ─── Cinematic: tight highlight reel through scale levels ────────────────────
-  const CINEMATIC_DEFAULTS: Omit<CinematicStep, 'duration' | 'label'> = {
-    stars: true, constellations: false, asterisms: false,
-    constellationFocus: false, asteroidBelt: false, dwarf: false,
-    deepSky: false, deepSpace: false, comets: false,
-    satellites: false, meteors: false, autoRotateSpeed: 0.3,
-  };
-
   const cinematicSteps = useMemo((): CinematicStep[] => [
     { ...CINEMATIC_DEFAULTS, camPreset: 7, duration: 5000, label: 'Sol', autoRotateSpeed: 0.3 },
     { ...CINEMATIC_DEFAULTS, focusPlanet: 2, duration: 5000, label: 'Earthrise', autoRotateSpeed: 0.6 },

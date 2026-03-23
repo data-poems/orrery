@@ -1323,6 +1323,9 @@ export default function Panels(props: PanelProps) {
         Orrery
       </div>
 
+      {/* ── Zoom controls ── */}
+      <ZoomControls />
+
       {/* ── Screen reader announcements ── */}
       <div aria-live="polite" className="sr-only" role="status">
         {sp ? `Selected ${sp.name}, ${sp.type}.` : ''}

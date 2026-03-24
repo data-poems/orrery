@@ -468,13 +468,12 @@ function SideDrawer({
   const layers = [
     { label: 'Stars', key: 'S', on: showStars, fn: () => setShowStars(p => !p) },
     { label: 'Constellations', key: 'L', on: showConstellations, fn: () => setShowConstellations(p => !p) },
-    { label: 'Deep Sky', key: 'K', on: showDeepSky, fn: () => setShowDeepSky(p => !p) },
+    { label: 'Deep Sky', key: 'K', on: showDeepSky || showDeepSpace, fn: () => { setShowDeepSky(p => !p); setShowDeepSpace(p => !p); } },
     { label: 'Dwarf Planets', key: 'D', on: showDwarf, fn: () => setShowDwarf(p => !p) },
     { label: neoLabel, key: 'N', on: showNeo, fn: () => setShowNeo(p => !p) },
     { label: 'Asteroid Belt', key: null, on: showAsteroidBelt, fn: () => setShowAsteroidBelt(p => !p) },
     { label: 'Comets', key: 'C', on: showComets, fn: () => setShowComets(p => !p) },
     { label: 'Meteor Showers', key: 'R', on: showMeteors, fn: () => setShowMeteors(p => !p) },
-    { label: 'Oort Cloud', key: 'O', on: showDeepSpace, fn: () => setShowDeepSpace(p => !p) },
   ];
 
   const sourceItem: React.CSSProperties = {

@@ -1426,79 +1426,139 @@ export default function Panels(props: PanelProps) {
       {/* ── Zoom controls (desktop only) ── */}
       {!mobile && <ZoomControls />}
 
-      {/* ── Mobile bottom toolbar: zoom presets + stargazer + gear ── */}
+      {/* ── Mobile bottom toolbar + expandable settings ── */}
       {mobile && !cinematic && (
         <div style={{
           position: 'fixed', bottom: 0, left: 0, right: 0,
-          display: 'flex', alignItems: 'center', gap: 6,
-          padding: `8px 10px max(8px, env(safe-area-inset-bottom))`,
-          background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.7) 40%, rgba(0,0,0,0.85) 100%)',
-          zIndex: 25,
+          zIndex: 25, pointerEvents: 'none',
         }}>
-          {/* Zoom presets */}
-          {['Inner', 'System', 'Outer', 'Oort', 'Stellar'].map(label => {
-            const idx = cams.findIndex(c => c.label === label);
-            if (idx < 0) return null;
-            const active = camIdx === idx;
-            return (
-              <button
-                key={label}
-                onClick={() => onPresetSelect(idx)}
-                style={{
-                  flex: 1,
-                  padding: '8px 0',
+          {/* Expanded settings panel (above toolbar) */}
+          {panelOpen && (
+            <div style={{
+              pointerEvents: 'auto',
+              margin: '0 8px 4px',
+              padding: '12px 14px',
+              background: 'rgba(6,8,14,0.92)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              borderRadius: 10,
+              border: `1px solid rgba(${accentRgb},0.15)`,
+              maxHeight: '45vh', overflowY: 'auto',
+            }}>
+              {/* Speed */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                <button onClick={() => props.setPlaying(p => !p)} style={{
+                  background: props.playing ? `rgba(${accentRgb},0.16)` : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${props.playing ? `rgba(${accentRgb},0.3)` : 'rgba(255,255,255,0.08)'}`,
+                  color: props.playing ? accent : 'rgba(255,255,255,0.6)',
+                  fontSize: 11, fontFamily: 'inherit', padding: '5px 10px', borderRadius: 4, cursor: 'pointer',
+                }}>{props.playing ? 'Pause' : 'Play'}</button>
+                {SPEED_PRESETS.slice(0, 5).map(p => (
+                  <button key={p.value} onClick={() => props.setSpeed(() => p.value)} style={{
+                    background: speed === p.value ? `rgba(${accentRgb},0.18)` : 'transparent',
+                    border: speed === p.value ? `1px solid rgba(${accentRgb},0.25)` : '1px solid rgba(255,255,255,0.06)',
+                    color: speed === p.value ? accent : 'rgba(255,255,255,0.4)',
+                    fontSize: 10, fontFamily: 'inherit', padding: '4px 6px', borderRadius: 3, cursor: 'pointer',
+                  }}>{p.label}</button>
+                ))}
+              </div>
+              {/* Layers grid */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                {[
+                  { label: 'Stars', on: showStars, fn: () => setShowStars(p => !p) },
+                  { label: 'Const.', on: showConstellations, fn: () => setShowConstellations(p => !p) },
+                  { label: 'Deep Sky', on: showDeepSky, fn: () => setShowDeepSky(p => !p) },
+                  { label: 'Deep Space', on: showDeepSpace, fn: () => setShowDeepSpace(p => !p) },
+                  { label: 'NEO', on: showNeo, fn: () => setShowNeo(p => !p) },
+                  { label: 'Dwarfs', on: showDwarf, fn: () => setShowDwarf(p => !p) },
+                  { label: 'Belt', on: showAsteroidBelt, fn: () => setShowAsteroidBelt(p => !p) },
+                  { label: 'Comets', on: showComets, fn: () => setShowComets(p => !p) },
+                  { label: 'Meteors', on: showMeteors, fn: () => setShowMeteors(p => !p) },
+                  { label: 'Sats', on: showSatellites, fn: () => setShowSatellites(p => !p) },
+                ].map(l => (
+                  <button key={l.label} onClick={l.fn} style={{
+                    padding: '5px 8px', fontSize: 10, fontFamily: 'inherit',
+                    color: l.on ? accent : 'rgba(255,255,255,0.4)',
+                    background: l.on ? `rgba(${accentRgb},0.12)` : 'transparent',
+                    border: `1px solid ${l.on ? `rgba(${accentRgb},0.2)` : 'rgba(255,255,255,0.06)'}`,
+                    borderRadius: 3, cursor: 'pointer', fontWeight: l.on ? 400 : 300,
+                  }}>{l.label}</button>
+                ))}
+              </div>
+              {/* Theme dots */}
+              <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                {THEMES.map(t => (
+                  <button key={t.id} onClick={() => { const { setTheme } = useThemeRef.current; setTheme(t); }} style={{
+                    width: 20, height: 20, borderRadius: '50%', background: t.uiAccent,
+                    border: theme.id === t.id ? '2px solid #fff' : '2px solid transparent',
+                    cursor: 'pointer', padding: 0,
+                  }} aria-label={t.name} />
+                ))}
+              </div>
+            </div>
+          )}
+          {/* Toolbar row */}
+          <div style={{
+            pointerEvents: 'auto',
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: `8px 10px max(8px, env(safe-area-inset-bottom))`,
+            background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.7) 40%, rgba(0,0,0,0.85) 100%)',
+          }}>
+            {['Inner', 'System', 'Outer', 'Oort', 'Stellar'].map(label => {
+              const idx = cams.findIndex(c => c.label === label);
+              if (idx < 0) return null;
+              const active = camIdx === idx;
+              return (
+                <button key={label} onClick={() => onPresetSelect(idx)} style={{
+                  flex: 1, padding: '8px 0',
                   fontSize: 10, fontFamily: 'inherit', fontWeight: active ? 500 : 300,
                   letterSpacing: 0.8,
                   color: active ? accent : 'rgba(255,255,255,0.5)',
                   background: active ? `rgba(${accentRgb},0.15)` : 'transparent',
                   border: `1px solid ${active ? `rgba(${accentRgb},0.3)` : 'rgba(255,255,255,0.06)'}`,
-                  borderRadius: 4, cursor: 'pointer',
-                  minHeight: 36,
-                }}
-              >{label}</button>
-            );
-          })}
-          {/* Stargazer toggle */}
-          <button
-            onClick={() => {
-              setConstellationFocus(p => !p);
-              if (!constellationFocus) {
-                setShowStars(p => true || p);
-                setShowConstellations(p => true || p);
-                setShowDeepSky(p => true || p);
-              }
-            }}
-            aria-pressed={constellationFocus}
-            style={{
-              padding: '8px 10px',
-              fontSize: 10, fontFamily: 'inherit', fontWeight: constellationFocus ? 500 : 300,
-              letterSpacing: 0.5,
-              color: constellationFocus ? accent : 'rgba(255,255,255,0.5)',
-              background: constellationFocus ? `rgba(${accentRgb},0.15)` : 'transparent',
-              border: `1px solid ${constellationFocus ? `rgba(${accentRgb},0.3)` : 'rgba(255,255,255,0.06)'}`,
-              borderRadius: 4, cursor: 'pointer',
-              minHeight: 36, whiteSpace: 'nowrap',
-            }}
-          >{'\u2726'}</button>
-          {/* Gear icon → opens full panel */}
-          <button
-            onClick={() => setPanelOpen((p: boolean) => !p)}
-            aria-label="Settings"
-            style={{
-              padding: '8px',
-              background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.06)',
-              borderRadius: 4, cursor: 'pointer',
-              color: panelOpen ? accent : 'rgba(255,255,255,0.35)',
-              minHeight: 36, minWidth: 36,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
-              <circle cx="7" cy="7" r="2.5" />
-              <path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13M2.8 2.8l1.1 1.1M10.1 10.1l1.1 1.1M2.8 11.2l1.1-1.1M10.1 3.9l1.1-1.1" />
-            </svg>
-          </button>
+                  borderRadius: 4, cursor: 'pointer', minHeight: 36,
+                }}>{label}</button>
+              );
+            })}
+            <button
+              onClick={() => {
+                setConstellationFocus(p => !p);
+                if (!constellationFocus) {
+                  setShowStars(() => true);
+                  setShowConstellations(() => true);
+                  setShowDeepSky(() => true);
+                }
+              }}
+              aria-pressed={constellationFocus}
+              style={{
+                padding: '8px 10px', fontSize: 10, fontFamily: 'inherit',
+                fontWeight: constellationFocus ? 500 : 300,
+                color: constellationFocus ? accent : 'rgba(255,255,255,0.5)',
+                background: constellationFocus ? `rgba(${accentRgb},0.15)` : 'transparent',
+                border: `1px solid ${constellationFocus ? `rgba(${accentRgb},0.3)` : 'rgba(255,255,255,0.06)'}`,
+                borderRadius: 4, cursor: 'pointer', minHeight: 36, whiteSpace: 'nowrap',
+              }}
+            >{'\u2726'}</button>
+            <button
+              onClick={() => setPanelOpen((p: boolean) => !p)}
+              aria-label={panelOpen ? 'Close settings' : 'Settings'}
+              style={{
+                padding: '8px', background: panelOpen ? `rgba(${accentRgb},0.12)` : 'transparent',
+                border: `1px solid ${panelOpen ? `rgba(${accentRgb},0.2)` : 'rgba(255,255,255,0.06)'}`,
+                borderRadius: 4, cursor: 'pointer',
+                color: panelOpen ? accent : 'rgba(255,255,255,0.35)',
+                minHeight: 36, minWidth: 36,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
+                {panelOpen
+                  ? <path d="M3 3l8 8M11 3l-8 8" />
+                  : <><circle cx="7" cy="7" r="2.5" /><path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13M2.8 2.8l1.1 1.1M10.1 10.1l1.1 1.1M2.8 11.2l1.1-1.1M10.1 3.9l1.1-1.1" /></>
+                }
+              </svg>
+            </button>
+          </div>
         </div>
       )}
 

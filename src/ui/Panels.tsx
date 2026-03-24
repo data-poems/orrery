@@ -1505,6 +1505,78 @@ export default function Panels(props: PanelProps) {
               backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
             }}
           >{'\u2726'}</button>
+          <button
+            onClick={() => setShowInfo(p => !p)}
+            aria-label="About this orrery"
+            style={{
+              padding: '6px 8px',
+              fontSize: 10, fontFamily: 'inherit', fontWeight: showInfo ? 500 : 300,
+              color: showInfo ? accent : 'rgba(255,255,255,0.4)',
+              background: showInfo ? `rgba(${accentRgb},0.12)` : 'rgba(0,0,0,0.3)',
+              border: `1px solid ${showInfo ? `rgba(${accentRgb},0.25)` : 'rgba(255,255,255,0.06)'}`,
+              borderRadius: 3, cursor: 'pointer',
+              backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+            }}
+          >?</button>
+        </div>
+      )}
+
+      {/* ── Info overlay (mobile ? button) ── */}
+      {showInfo && mobile && (
+        <div
+          onClick={() => setShowInfo(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 40,
+            background: 'rgba(0,0,0,0.85)',
+            backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            padding: 24, overflow: 'auto',
+            fontFamily: "'Cormorant Garamond','Garamond','Baskerville','Georgia',serif",
+          }}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ maxWidth: 360, width: '100%' }}>
+            <div style={{ color: '#fff', fontSize: 22, fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', textAlign: 'center', marginBottom: 16 }}>Orrery</div>
+            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, fontStyle: 'italic', textAlign: 'center', marginBottom: 20 }}>Real data. Real orbits.</div>
+
+            <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>Catalog Data</div>
+            {[
+              '41,119 stars \u2014 HYG Database',
+              '88 constellations \u2014 IAU / d3-celestial',
+              '8 planets + 3 dwarf planets \u2014 JPL Horizons',
+              '32 moons \u2014 JPL Horizons',
+              '3,000 main-belt asteroids \u2014 Minor Planet Center',
+              '110+ deep sky objects \u2014 OpenNGC',
+              '20+ comets \u2014 Minor Planet Center',
+              '14 meteor showers \u2014 IAU Meteor Data Center',
+              '5 spacecraft \u2014 NASA/JPL',
+              '2K/4K textures \u2014 Solar System Scope (CC BY 4.0)',
+            ].map(s => (
+              <div key={s} style={{ color: 'rgba(255,255,255,0.55)', fontSize: 14, fontWeight: 300, lineHeight: 1.8 }}>{s}</div>
+            ))}
+
+            <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginTop: 16, marginBottom: 8 }}>Live Data</div>
+            {[
+              'Near-Earth objects \u2014 NASA NeoWs API',
+              'Asteroid orbits \u2014 JPL Small-Body Database',
+              'Solar wind \u2014 NOAA SWPC',
+              'Satellite TLEs \u2014 CelesTrak',
+            ].map(s => (
+              <div key={s} style={{ color: `rgba(${accentRgb},0.7)`, fontSize: 14, fontWeight: 300, lineHeight: 1.8 }}>{s}</div>
+            ))}
+
+            <div style={{ marginTop: 24, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <a href="https://lukesteuber.com" target="_blank" rel="noopener noreferrer" style={{ color: accent, fontSize: 14, textDecoration: 'none', fontWeight: 400 }}>lukesteuber.com</a>
+              <a href="https://datapoems.io" target="_blank" rel="noopener noreferrer" style={{ color: accent, fontSize: 14, textDecoration: 'none', fontWeight: 400 }}>datapoems.io</a>
+            </div>
+
+            <div style={{ marginTop: 20, textAlign: 'center' }}>
+              <button onClick={() => setShowInfo(false)} style={{
+                background: 'none', border: `1px solid rgba(${accentRgb},0.2)`, color: 'rgba(255,255,255,0.4)',
+                fontSize: 12, fontFamily: 'inherit', padding: '8px 20px', borderRadius: 4, cursor: 'pointer',
+              }}>Close</button>
+            </div>
+          </div>
         </div>
       )}
 

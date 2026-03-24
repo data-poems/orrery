@@ -79,9 +79,9 @@ export function Sun({ cameraDistance = 0, showGlyphOverlay = false }: { cameraDi
     if (ref.current) ref.current.rotation.y += dt * 0.02;
   });
   return (
-    <group>
+    <group renderOrder={5}>
       {/* Main textured photosphere */}
-      <mesh ref={ref}>
+      <mesh ref={ref} renderOrder={5}>
         <sphereGeometry args={[0.15, 48, 48]} />
         <meshBasicMaterial map={tex} toneMapped={false} />
       </mesh>

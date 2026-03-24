@@ -81,9 +81,9 @@ export function Sun({ cameraDistance = 0, showGlyphOverlay = false }: { cameraDi
   return (
     <group>
       {/* Main textured photosphere */}
-      <mesh ref={ref} renderOrder={1}>
+      <mesh ref={ref}>
         <sphereGeometry args={[0.15, 48, 48]} />
-        <meshBasicMaterial map={tex} color="#ffffff" toneMapped={false} depthTest={false} />
+        <meshBasicMaterial map={tex} toneMapped={false} />
       </mesh>
       {/* Distance-adaptive glow — keeps Sun visible as a bright dot at far zoom */}
       {cameraDistance > 5 && (

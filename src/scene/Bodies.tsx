@@ -398,10 +398,11 @@ export function OrbitRing({ planet, T, dim, highlighted, cameraDistance = 0 }: {
   // Distance-adaptive: glow brighter at mid-range so rings stand out against stars,
   // then fade at extreme deep-space distances
   const glow = Math.min(cameraDistance / 60, 2.5);
-  const farFade = cameraDistance > 2000 ? Math.max(0, 1 - (cameraDistance - 2000) / 3000) : 1;
+  // Fade out orbit rings — invisible from deep space, visible from system view
+  const farFade = cameraDistance > 200 ? Math.max(0, 1 - (cameraDistance - 200) / 400) : 1;
   if (farFade <= 0) return null;
-  const baseWidth = highlighted ? 1.2 : dim ? 0.3 : 0.6;
-  const baseOpacity = Math.min((highlighted ? 0.6 : dim ? 0.08 : 0.25) * (1 + glow * 0.3), 0.65) * farFade;
+  const baseWidth = highlighted ? 1.2 : dim ? 0.4 : 0.6;
+  const baseOpacity = (highlighted ? 0.6 : dim ? 0.18 : 0.25) * farFade;
   const color = highlighted ? '#ffffff' : '#aaaaaa';
   return (
     <Line

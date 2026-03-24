@@ -674,7 +674,7 @@ function SideDrawer({
 
       <AccordionSection title="Layers" accent={accent} defaultOpen={openCore}>
         <div role="group" aria-label="Display layers">
-        {layers.filter(l => !mobile || ['Stars', 'Constellations', 'Deep Sky', 'Oort Cloud'].includes(l.label) || l.label.startsWith('NEO')).map(l => (
+        {layers.filter(l => !mobile || ['Stars', 'Constellations', 'Deep Sky'].includes(l.label) || l.label.startsWith('NEO')).map(l => (
           <button
             key={l.label}
             onClick={l.fn}
@@ -723,7 +723,7 @@ function SideDrawer({
             ))}
           </div>
           <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>All Layers</div>
-          {layers.filter(l => !['Stars', 'Constellations', 'Deep Sky', 'Oort Cloud'].includes(l.label) && !l.label.startsWith('NEO')).map(l => (
+          {layers.filter(l => !['Stars', 'Constellations', 'Deep Sky'].includes(l.label) && !l.label.startsWith('NEO')).map(l => (
             <button key={l.label} onClick={l.fn} style={{
               display: 'flex', alignItems: 'center', gap: 8, width: '100%',
               padding: '8px 0', background: 'transparent', border: 'none', cursor: 'pointer',

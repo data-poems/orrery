@@ -95,8 +95,8 @@ export function Sun({ cameraDistance = 0, showGlyphOverlay = false }: { cameraDi
       {showGlyphOverlay && (
         <BodyGlyph symbolKey="Sol" color="rgba(255,196,108,0.95)" distanceFactor={0.86} size={92} />
       )}
-      <pointLight intensity={cameraDistance > 2 ? 5.8 : 6.4} color="#fff3d2" distance={220} />
-      <pointLight intensity={cameraDistance > 2 ? 2.6 : 3.0} color="#ffb25c" distance={140} />
+      <pointLight intensity={cameraDistance > 2 ? 5.8 : 6.4} color="#fff3d2" distance={0} />
+      <pointLight intensity={cameraDistance > 2 ? 2.6 : 3.0} color="#ffb25c" distance={0} />
       <Html
         position={[0, 0.25, 0]}
         center

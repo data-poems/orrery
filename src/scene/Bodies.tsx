@@ -85,18 +85,14 @@ export function Sun({ cameraDistance = 0, showGlyphOverlay = false }: { cameraDi
         <sphereGeometry args={[0.15, 48, 48]} />
         <meshBasicMaterial map={tex} toneMapped={false} />
       </mesh>
-      {/* Graduated corona glow shells */}
+      {/* Soft corona glow — additive so edges blend smoothly */}
       <mesh>
-        <sphereGeometry args={[0.19, 32, 32]} />
-        <meshBasicMaterial color="#ffaa33" transparent opacity={0.08} depthWrite={false} />
+        <sphereGeometry args={[0.22, 32, 32]} />
+        <meshBasicMaterial color="#ffaa44" transparent opacity={0.06} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
       </mesh>
       <mesh>
-        <sphereGeometry args={[0.24, 32, 32]} />
-        <meshBasicMaterial color="#ff8800" transparent opacity={0.04} depthWrite={false} />
-      </mesh>
-      <mesh>
-        <sphereGeometry args={[0.30, 32, 32]} />
-        <meshBasicMaterial color="#ff6600" transparent opacity={0.02} depthWrite={false} />
+        <sphereGeometry args={[0.32, 32, 32]} />
+        <meshBasicMaterial color="#ff8833" transparent opacity={0.03} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
       </mesh>
       {showGlyphOverlay && (
         <BodyGlyph symbolKey="Sol" color="rgba(255,196,108,0.95)" distanceFactor={0.86} size={92} />

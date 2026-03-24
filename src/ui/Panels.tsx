@@ -1121,14 +1121,14 @@ export default function Panels(props: PanelProps) {
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
         }}>
           <span style={{
-            fontSize: mobile ? 32 : 44, fontWeight: 300, letterSpacing: 6,
+            fontSize: mobile ? 42 : 56, fontWeight: 300, letterSpacing: 8,
             color: 'rgba(255,255,255,0.85)',
             fontFamily: "'Cormorant Garamond','Garamond','Baskerville','Georgia',serif",
           }}>
             {fmtTime(simTime)}
           </span>
           <span style={{
-            fontSize: mobile ? 15 : 17, fontWeight: 300, letterSpacing: 2,
+            fontSize: mobile ? 18 : 22, fontWeight: 300, letterSpacing: 3,
             color: 'rgba(255,255,255,0.55)', fontStyle: 'italic',
           }}>
             {fmtDate(simTime)}

@@ -1433,24 +1433,6 @@ export default function Panels(props: PanelProps) {
         Orrery
       </div>
 
-      {/* ── Back button (when zoomed into a planet/moon) ── */}
-      {!cinematic && navStack.length > 1 && (
-        <button
-          onClick={props.navigateBack}
-          aria-label="Back"
-          style={{
-            position: 'absolute', top: mobile ? 58 : 14, left: mobile ? 10 : 90,
-            background: 'rgba(0,0,0,0.4)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 4, padding: mobile ? '6px 12px' : '4px 10px',
-            color: 'rgba(255,255,255,0.7)', fontSize: mobile ? 11 : 12,
-            fontFamily: 'inherit', fontWeight: 300, letterSpacing: 1,
-            cursor: 'pointer', zIndex: 15,
-            backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-          }}
-        >
-          {'\u2190'} {navStack[navStack.length - 2]}
-        </button>
       )}
 
       {/* ── Zoom controls + stargazer toggle (desktop only) ── */}

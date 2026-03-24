@@ -1032,7 +1032,7 @@ export default function Panels(props: PanelProps) {
     selSpacecraft, setSelSpacecraft,
   } = props;
 
-  const { theme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const accent = theme.uiAccent;
   const accentRgb = theme.uiAccentRgb;
   const mobile = useIsMobile();
@@ -1488,7 +1488,7 @@ export default function Panels(props: PanelProps) {
               {/* Theme dots */}
               <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                 {THEMES.map(t => (
-                  <button key={t.id} onClick={() => { const { setTheme } = useThemeRef.current; setTheme(t); }} style={{
+                  <button key={t.id} onClick={() => setTheme(t)} style={{
                     width: 20, height: 20, borderRadius: '50%', background: t.uiAccent,
                     border: theme.id === t.id ? '2px solid #fff' : '2px solid transparent',
                     cursor: 'pointer', padding: 0,

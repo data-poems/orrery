@@ -201,9 +201,9 @@ function OrreryInner() {
 
   // ─── Cinematic: tight highlight reel through scale levels ────────────────────
   const cinematicSteps = useMemo((): CinematicStep[] => [
-    { ...CINEMATIC_DEFAULTS, camPreset: 7, duration: 5000, label: 'Sol', autoRotateSpeed: 0.4 },
-    { ...CINEMATIC_DEFAULTS, camPreset: 0, duration: 4000, label: 'Inner Planets', asteroidBelt: true, autoRotateSpeed: 0.25 },
-    { ...CINEMATIC_DEFAULTS, camPreset: 9, duration: 5000, label: 'Oort Cloud', dwarf: true, deepSky: true, deepSpace: true, autoRotateSpeed: 0.08 },
+    { ...CINEMATIC_DEFAULTS, camPreset: 9, duration: 5000, label: 'Deep Space', deepSky: true, deepSpace: true, dwarf: true, autoRotateSpeed: 0.06 },
+    { ...CINEMATIC_DEFAULTS, camPreset: 1, duration: 5000, label: 'Solar System', asteroidBelt: true, dwarf: true, autoRotateSpeed: 0.2 },
+    { ...CINEMATIC_DEFAULTS, camPreset: 0, duration: 4000, label: 'Inner Planets', asteroidBelt: true, autoRotateSpeed: 0.3 },
     { ...CINEMATIC_DEFAULTS, focusPlanet: 2, duration: 5000, label: 'Earth', autoRotateSpeed: 0.5 },
   ], []);
 

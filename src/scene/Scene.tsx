@@ -331,7 +331,7 @@ export default function Scene({
   return (
     <>
       <color attach="background" args={['#000000']} />
-      <ambientLight intensity={0.15} />
+      <ambientLight intensity={0.35} />
       <Sun cameraDistance={cameraDistance} showGlyphOverlay={showBodyGlyphs} />
       <AUGrid cameraDistance={cameraDistance} />
       <RealAsteroidBelt jd={jd} visible={showAsteroidBelt} onLoad={() => onLoadComplete?.('asteroids')} />

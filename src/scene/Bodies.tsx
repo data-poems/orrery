@@ -248,13 +248,6 @@ export function Planet({ planet, T, selected, onSelect, hovered, onHover, moonFo
       </mesh>
       {planet.tex === 'earth' && <EarthClouds radius={r} />}
       {planet.hasRings && <SaturnRings radius={r} />}
-      {/* Distance-adaptive glow beacon */}
-      {cameraDistance > 30 && planet.tex !== 'earth' && (
-        <mesh>
-          <sphereGeometry args={[r * glow, 32, 32]} />
-          <meshBasicMaterial color={planet.color} transparent opacity={0.3} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
-        </mesh>
-      )}
       {showGlyphOverlay && BODY_SYMBOLS[planet.name] && (
         <BodyGlyph
           symbolKey={planet.name}

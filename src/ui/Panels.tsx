@@ -1161,12 +1161,12 @@ export default function Panels(props: PanelProps) {
 
         {/* Data source facts — rotates during tour */}
         <div style={{
-          position: 'absolute', bottom: mobile ? 80 : 90,
-          left: 20, right: 20,
+          position: 'absolute', bottom: mobile ? 84 : 96,
+          left: 16, right: 16,
           textAlign: 'center',
-          color: 'rgba(255,255,255,0.25)', fontSize: mobile ? 12 : 13,
-          fontWeight: 300, fontStyle: 'italic', letterSpacing: 0.5,
-          transition: 'opacity 0.5s ease',
+          color: 'rgba(255,255,255,0.35)', fontSize: mobile ? 15 : 16,
+          fontWeight: 300, fontStyle: 'italic', letterSpacing: 0.3,
+          lineHeight: 1.5,
         }}>
           {TOUR_FACTS[factIdx]}
         </div>

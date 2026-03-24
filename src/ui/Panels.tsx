@@ -1475,11 +1475,11 @@ export default function Panels(props: PanelProps) {
             return (
               <button key={label} onClick={() => onPresetSelect(idx)} style={{
                 padding: '6px 0', flex: 1,
-                fontSize: 9, fontFamily: 'inherit', fontWeight: active ? 500 : 300,
+                fontSize: 10, fontFamily: 'inherit', fontWeight: active ? 600 : 400,
                 letterSpacing: 1, textTransform: 'uppercase',
-                color: active ? accent : 'rgba(255,255,255,0.4)',
-                background: active ? `rgba(${accentRgb},0.12)` : 'rgba(0,0,0,0.3)',
-                border: `1px solid ${active ? `rgba(${accentRgb},0.25)` : 'rgba(255,255,255,0.06)'}`,
+                color: active ? accent : 'rgba(255,255,255,0.7)',
+                background: active ? `rgba(${accentRgb},0.15)` : 'rgba(0,0,0,0.4)',
+                border: `1px solid ${active ? `rgba(${accentRgb},0.3)` : 'rgba(255,255,255,0.1)'}`,
                 borderRadius: 3, cursor: 'pointer',
                 backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
               }}>{label}</button>

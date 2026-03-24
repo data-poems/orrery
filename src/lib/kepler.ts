@@ -119,12 +119,18 @@ export function orbitPath(p: PlanetDef, T: number, n = 180): THREE.Vector3[] {
 // ─── Asteroid/NEO orbit from raw elements ───────────────────────────────────────
 
 export function asteroidOrbitPath(a: number, e: number, I_deg: number, Om_deg: number, w_deg: number, n = 180): THREE.Vector3[] {
+  if (!isFinite(a) || !isFinite(e) || a <= 0 || e < 0) return [];
+  // Clamp eccentricity to avoid hyperbolic/parabolic infinities
+  const ec = Math.min(e, 0.99);
   const I = I_deg * DEG, Om = Om_deg * DEG, w = w_deg * DEG;
   const cw = Math.cos(w), sw = Math.sin(w), co = Math.cos(Om), so = Math.sin(Om), ci = Math.cos(I), si = Math.sin(I);
   const pts: THREE.Vector3[] = [];
   for (let i = 0; i <= n; i++) {
     const th = (i / n) * Math.PI * 2;
-    const r = a * (1 - e * e) / (1 + e * Math.cos(th));
+    const denom = 1 + ec * Math.cos(th);
+    if (Math.abs(denom) < 1e-6) continue;
+    const r = a * (1 - ec * ec) / denom;
+    if (!isFinite(r) || Math.abs(r) > 200) continue;
     const xp = r * Math.cos(th), yp = r * Math.sin(th);
     const x = (cw * co - sw * so * ci) * xp + (-sw * co - cw * so * ci) * yp;
     const y = (cw * so + sw * co * ci) * xp + (-sw * so + cw * co * ci) * yp;

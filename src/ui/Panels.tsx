@@ -26,7 +26,7 @@ function Btn({ children, onClick, style, label }: {
 }) {
   return (
     <button onClick={onClick} aria-label={label} style={{
-      background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)',
+      background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)',
       fontSize: 15, cursor: 'pointer', fontFamily: 'inherit',
       padding: '4px 8px', lineHeight: 1.4, minWidth: 44, minHeight: 44,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -40,7 +40,7 @@ function Btn({ children, onClick, style, label }: {
 function Stat({ label, val, c }: { label: string; val: string | number; c?: string }) {
   return (
     <div>
-      <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 300 }}>{label}</div>
+      <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 300 }}>{label}</div>
       <div style={{ color: c || '#fff', fontSize: 15, marginTop: 1 }}>{val}</div>
     </div>
   );
@@ -85,7 +85,7 @@ function ZoomControls() {
     background: 'rgba(255,255,255,0.06)',
     border: '1px solid rgba(255,255,255,0.08)',
     borderRadius: 6,
-    color: 'rgba(255,255,255,0.5)',
+    color: 'rgba(255,255,255,0.7)',
     width: 36, height: 36,
     cursor: 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -165,7 +165,7 @@ function ScaleIndicator({ cameraDistance }: { cameraDistance: number }) {
           <div key={lm.label} style={{
             position: 'absolute', left: 16, top: `${pct}%`,
             transform: 'translateY(-50%)',
-            fontSize: 8, color: 'rgba(255,255,255,0.15)',
+            fontSize: 8, color: 'rgba(255,255,255,0.7)',
             whiteSpace: 'nowrap', fontWeight: 300, letterSpacing: 0.5,
           }}>
             <span style={{
@@ -198,7 +198,7 @@ function InfoPanel({
             aria-label={closeLabel}
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
-              color: 'rgba(255,255,255,0.3)', fontSize: 14, fontFamily: 'inherit',
+              color: 'rgba(255,255,255,0.7)', fontSize: 14, fontFamily: 'inherit',
               padding: '0 0 4px', lineHeight: 1,
             }}
           >
@@ -206,7 +206,7 @@ function InfoPanel({
           </button>
         </div>
         <div style={{ color: accent, fontSize: 17, fontWeight: 500, letterSpacing: 1 }}>{title}</div>
-        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 300, marginTop: 2, letterSpacing: 1 }}>{subtitle}</div>
+        <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 300, marginTop: 2, letterSpacing: 1 }}>{subtitle}</div>
         <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 14, fontWeight: 300, marginTop: 10, lineHeight: 1.6, fontStyle: 'italic' }}>{description}</div>
         {children}
       </div>
@@ -253,7 +253,7 @@ function BodyTreeItem({
             display: 'flex', alignItems: 'center', gap: 8, width: '100%',
             padding: mobile ? '8px 16px 8px 36px' : '4px 16px 4px 34px',
             background: 'transparent', border: 'none', cursor: 'pointer',
-            fontFamily: 'inherit', color: 'rgba(255,255,255,0.45)',
+            fontFamily: 'inherit', color: 'rgba(255,255,255,0.65)',
             fontSize: mobile ? 15 : 14, fontStyle: 'italic', fontWeight: 300,
             minHeight: mobile ? 40 : 'auto', textAlign: 'left',
           }}
@@ -271,7 +271,7 @@ function BodyTreeItem({
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
-      color: 'rgba(255,255,255,0.25)', fontSize: 11, letterSpacing: 2,
+      color: 'rgba(255,255,255,0.65)', fontSize: 11, letterSpacing: 2,
       textTransform: 'uppercase', fontWeight: 300,
       padding: '12px 16px 6px',
     }}>
@@ -383,7 +383,7 @@ function MiniAccordion({
         <span
           aria-hidden="true"
           style={{
-            color: 'rgba(255,255,255,0.35)',
+            color: 'rgba(255,255,255,0.72)',
             transform: open ? 'rotate(90deg)' : 'rotate(0deg)',
             transition: 'transform 0.18s ease',
           }}
@@ -482,11 +482,11 @@ function SideDrawer({
   ];
 
   const sourceItem: React.CSSProperties = {
-    color: 'rgba(255,255,255,0.55)', fontSize: 13, lineHeight: 1.8, fontWeight: 300,
+    color: 'rgba(255,255,255,0.72)', fontSize: 13, lineHeight: 1.8, fontWeight: 300,
   };
 
   const kbdRow: React.CSSProperties = {
-    display: 'flex', gap: 12, fontSize: 13, color: 'rgba(255,255,255,0.5)',
+    display: 'flex', gap: 12, fontSize: 13, color: 'rgba(255,255,255,0.7)',
     fontWeight: 300, lineHeight: 1.8,
   };
 
@@ -500,7 +500,7 @@ function SideDrawer({
     borderBottom: `1px solid rgba(${accentRgb},0.24)`,
   };
   const statusText: React.CSSProperties = {
-    color: 'rgba(255,255,255,0.58)', fontSize: 12, lineHeight: 1.65, fontWeight: 300,
+    color: 'rgba(255,255,255,0.75)', fontSize: 12, lineHeight: 1.65, fontWeight: 300,
   };
   const liveSources = [
     { label: 'NOAA SWPC solar wind summary', url: 'https://services.swpc.noaa.gov/products/summary/solar-wind-speed.json', note: 'Live solar-wind speed in the HUD.' },
@@ -560,7 +560,7 @@ function SideDrawer({
           <div style={{ color: '#fff', fontSize: mobile ? 22 : 26, fontWeight: 300, letterSpacing: 2, fontFamily: "'Cormorant', serif" }}>
             {fmtTime(simTime)}
           </div>
-          <div style={{ color: 'rgba(255,255,255,0.42)', fontSize: 12, fontStyle: 'italic', fontWeight: 300 }}>
+          <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, fontStyle: 'italic', fontWeight: 300 }}>
             {fmtDate(simTime)}
           </div>
           <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 14px' }}>
@@ -665,7 +665,7 @@ function SideDrawer({
         {/* Dwarf planets separator */}
         <div style={{
           padding: '8px 16px 4px', fontSize: 9, letterSpacing: 2,
-          color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', fontWeight: 300,
+          color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', fontWeight: 300,
         }}>
           Dwarf Planets
         </div>
@@ -702,7 +702,7 @@ function SideDrawer({
             }} />
             <span style={{ flex: 1 }}>{l.label}</span>
             {l.key && !mobile && (
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', fontWeight: 300 }}>{l.key}</span>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: 300 }}>{l.key}</span>
             )}
           </button>
         ))}
@@ -712,13 +712,13 @@ function SideDrawer({
       {mobile ? (
       <AccordionSection title="More" accent={accent} defaultOpen={false}>
         <div style={{ padding: '0 16px 8px' }}>
-          <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>Status</div>
+          <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>Status</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px', marginBottom: 12 }}>
             <Stat label="Moon" val={`${moon.name}, ${moon.ill}%`} c={accent} />
             <Stat label="Rate" val={speedLabel(speed)} />
             {solarWind && <Stat label="Solar Wind" val={solarWind} />}
           </div>
-          <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>Theme</div>
+          <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>Theme</div>
           <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
             {THEMES.map(t => (
               <button key={t.id} onClick={() => setTheme(t)} aria-label={t.name} style={{
@@ -727,7 +727,7 @@ function SideDrawer({
               }} />
             ))}
           </div>
-          <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>All Layers</div>
+          <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>All Layers</div>
           {layers.filter(l => !['Stars', 'Constellations', 'Deep Sky', 'Deep Space'].includes(l.label) && !l.label.startsWith('NEO')).map(l => (
             <button key={l.label} onClick={l.fn} style={{
               display: 'flex', alignItems: 'center', gap: 8, width: '100%',
@@ -805,7 +805,7 @@ function SideDrawer({
               </button>
             ))}
           </div>
-          <div style={{ color: 'rgba(255,255,255,0.42)', fontSize: 11, lineHeight: 1.5, marginTop: 8 }}>
+          <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, lineHeight: 1.5, marginTop: 8 }}>
             Keeps the panel denser on mobile without changing the 3D scene.
           </div>
         </div>
@@ -816,10 +816,10 @@ function SideDrawer({
         <AccordionSection title="NEO Today" accent={accent} defaultOpen={false}>
           <div style={{ padding: '0 16px' }}>
             {neoStatus === 'loading' && (
-              <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11, fontStyle: 'italic', padding: '8px 0' }}>Loading NASA data...</div>
+              <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, fontStyle: 'italic', padding: '8px 0' }}>Loading NASA data...</div>
             )}
             {neoStatus === 'error' && (
-              <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, fontStyle: 'italic', padding: '8px 0' }}>
+              <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 11, fontStyle: 'italic', padding: '8px 0' }}>
                 NASA API rate limited -- try again later
               </div>
             )}
@@ -844,12 +844,12 @@ function SideDrawer({
                   <span style={{ color: '#fff', fontSize: mobile ? 14 : 13 }}>{neo.name.replace(/[()]/g, '')}</span>
                   {neo.orbit?.loaded && <span style={{ color: accent, fontSize: 9, marginLeft: 'auto', fontStyle: 'italic' }}>orbit</span>}
                 </div>
-                <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, marginTop: 2, fontWeight: 300 }}>
+                <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 10, marginTop: 2, fontWeight: 300 }}>
                   {neo.missLunar.toFixed(1)} LD {'\u00b7'} {neo.velKms.toFixed(1)} km/s {'\u00b7'} {Math.round(neo.dMin)}{'\u2013'}{Math.round(neo.dMax)} m
                 </div>
               </div>
             ))}
-            <div style={{ color: 'rgba(255,255,255,0.15)', fontSize: 9, marginTop: 8, fontStyle: 'italic', fontWeight: 300 }}>Source: NASA JPL NeoWs / SBDB</div>
+            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 9, marginTop: 8, fontStyle: 'italic', fontWeight: 300 }}>Source: NASA JPL NeoWs / SBDB</div>
           </div>
         </AccordionSection>
       )}
@@ -867,13 +867,13 @@ function SideDrawer({
             {info.objects.length > 0 && (
               <>
                 <div style={{
-                  color: 'rgba(255,255,255,0.3)', fontSize: 11, letterSpacing: 2,
+                  color: 'rgba(255,255,255,0.7)', fontSize: 11, letterSpacing: 2,
                   textTransform: 'uppercase', fontWeight: 300, marginTop: 12, marginBottom: 4,
                 }}>
                   Notable Objects
                 </div>
                 {info.objects.map(obj => (
-                  <div key={obj} style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 300, lineHeight: 1.6 }}>
+                  <div key={obj} style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 300, lineHeight: 1.6 }}>
                     {obj}
                   </div>
                 ))}
@@ -893,7 +893,7 @@ function SideDrawer({
         >
           <div style={{
             display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px',
-            marginTop: 12, color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 300,
+            marginTop: 12, color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 300,
           }}>
             <div>Distance <span style={{ color: '#fff', fontWeight: 400 }}>{selSpacecraft.distAU} AU</span></div>
             <div>Speed <span style={{ color: '#fff', fontWeight: 400 }}>{selSpacecraft.speedAUyr} AU/yr</span></div>
@@ -906,7 +906,7 @@ function SideDrawer({
       <AccordionSection title="About" accent={accent} defaultOpen={false}>
         <div style={{ padding: '0 16px 20px' }}>
         <div style={{ color: '#fff', fontSize: 18, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase' }}>Orrery</div>
-        <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13, fontStyle: 'italic', fontWeight: 300, marginTop: 2 }}>Interactive Solar System</div>
+        <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 13, fontStyle: 'italic', fontWeight: 300, marginTop: 2 }}>Interactive Solar System</div>
 
         <MiniAccordion title="Data Status" defaultOpen={!mobile}>
           <div style={statusText}>This scene uses real astronomical datasets throughout.</div>
@@ -956,7 +956,7 @@ function SideDrawer({
 
       {/* Built By — always visible, not collapsible */}
       <div style={{ padding: '12px 16px 6px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 400 }}>Luke Steuber</div>
+        <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 400 }}>Luke Steuber</div>
         <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
           <a href="https://lukesteuber.com" target="_blank" rel="noopener noreferrer" style={{ color: accent, fontSize: 11, textDecoration: 'none', fontWeight: 300 }}>lukesteuber.com</a>
           <a href="https://datapoems.io" target="_blank" rel="noopener noreferrer" style={{ color: accent, fontSize: 11, textDecoration: 'none', fontWeight: 300 }}>datapoems.io</a>
@@ -965,11 +965,11 @@ function SideDrawer({
 
       {/* Galactic Center — always visible */}
       <div style={{ padding: '8px 16px 16px', textAlign: 'center' }}>
-        <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: 9, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 4 }}>Galactic Center</div>
-        <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, fontStyle: 'italic', fontWeight: 300 }}>
+        <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 9, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 4 }}>Galactic Center</div>
+        <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontStyle: 'italic', fontWeight: 300 }}>
           Sgr A* {'\u00b7'} 26,000 ly {'\u00b7'} 4M M{'\u2609'}
         </div>
-        <div style={{ color: 'rgba(255,255,255,0.15)', fontSize: 9, fontStyle: 'italic', fontWeight: 300, marginTop: 2 }}>
+        <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 9, fontStyle: 'italic', fontWeight: 300, marginTop: 2 }}>
           You are here.
         </div>
       </div>
@@ -1100,7 +1100,7 @@ export default function Panels(props: PanelProps) {
   // ─── Cinematic overlay (rendered above main UI when active) ──────────────────
   const cinematicOverlay = cinematic ? (() => {
     const dim: React.CSSProperties = {
-      color: 'rgba(255,255,255,0.5)', fontSize: mobile ? 16 : 18, fontWeight: 300,
+      color: 'rgba(255,255,255,0.7)', fontSize: mobile ? 16 : 18, fontWeight: 300,
       letterSpacing: 1.5, fontStyle: 'italic',
     };
     return (
@@ -1129,7 +1129,7 @@ export default function Panels(props: PanelProps) {
           </span>
           <span style={{
             fontSize: mobile ? 18 : 22, fontWeight: 300, letterSpacing: 3,
-            color: 'rgba(255,255,255,0.55)', fontStyle: 'italic',
+            color: 'rgba(255,255,255,0.72)', fontStyle: 'italic',
           }}>
             {fmtDate(simTime)}
           </span>
@@ -1149,7 +1149,7 @@ export default function Panels(props: PanelProps) {
           <div style={{
             marginTop: mobile ? 10 : 14,
             fontSize: mobile ? 18 : 22, fontWeight: 300, letterSpacing: 5,
-            color: 'rgba(255,255,255,0.35)',
+            color: 'rgba(255,255,255,0.72)',
             textTransform: 'uppercase',
           }}>
             {cinematicLabel}
@@ -1159,7 +1159,7 @@ export default function Panels(props: PanelProps) {
         {/* Exit hint */}
         <div style={{
           position: 'absolute', bottom: mobile ? 48 : 56,
-          color: 'rgba(255,255,255,0.35)', fontSize: mobile ? 16 : 18,
+          color: 'rgba(255,255,255,0.72)', fontSize: mobile ? 16 : 18,
           letterSpacing: 3, fontWeight: 300, fontStyle: 'italic',
         }}>
           {mobile ? 'tap' : 'click'} to explore
@@ -1337,13 +1337,13 @@ export default function Panels(props: PanelProps) {
                   {selectedMoon ? selectedMoon.name : sp!.name}
                 </div>
                 {!cardMinimized && (
-                  <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, fontWeight: 300, fontStyle: 'italic', letterSpacing: 0.5 }}>
+                  <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 10, fontWeight: 300, fontStyle: 'italic', letterSpacing: 0.5 }}>
                     {selectedMoon ? `Moon of ${sp!.name}` : sp!.type}
                   </div>
                 )}
               </div>
             </div>
-            <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, padding: '4px 8px', fontWeight: 300 }}>{cardMinimized ? '\u25b8' : '\u25be'}</span>
+            <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, padding: '4px 8px', fontWeight: 300 }}>{cardMinimized ? '\u25b8' : '\u25be'}</span>
           </div>
 
           {/* Collapsible body */}
@@ -1369,7 +1369,7 @@ export default function Panels(props: PanelProps) {
               {/* Breadcrumb nav */}
               <div style={{ display: 'flex', gap: 4, marginTop: 10, flexWrap: 'wrap' }}>
                 {navStack.map((crumb, i) => (
-                  <span key={i} style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', fontWeight: 300 }}>
+                  <span key={i} style={{ fontSize: 9, color: 'rgba(255,255,255,0.65)', fontWeight: 300 }}>
                     {i > 0 && <span style={{ margin: '0 4px' }}>{'\u203a'}</span>}
                     <span
                       role="button"
@@ -1422,7 +1422,7 @@ export default function Panels(props: PanelProps) {
               </>
             )}
             {selNeo.orbit && !selNeo.orbit.loaded && (
-              <div style={{ gridColumn: '1/-1', color: 'rgba(255,255,255,0.3)', fontSize: 9 }}>Loading orbital elements...</div>
+              <div style={{ gridColumn: '1/-1', color: 'rgba(255,255,255,0.7)', fontSize: 9 }}>Loading orbital elements...</div>
             )}
           </div>
           <a
@@ -1443,7 +1443,7 @@ export default function Panels(props: PanelProps) {
         tabIndex={0}
         onClick={() => setShowInfo(p => !p)}
         onKeyDown={e => { if (e.key === 'Enter') setShowInfo(p => !p); }}
-        style={{ position: 'absolute', top: 14, left: 14, color: 'rgba(255,255,255,0.15)', fontSize: mobile ? 14 : 15, letterSpacing: 5, textTransform: 'uppercase', zIndex: 5, fontWeight: 300, cursor: 'pointer' }}
+        style={{ position: 'absolute', top: 14, left: 14, color: 'rgba(255,255,255,0.7)', fontSize: mobile ? 14 : 15, letterSpacing: 5, textTransform: 'uppercase', zIndex: 5, fontWeight: 300, cursor: 'pointer' }}
       >
         Orrery
       </div>
@@ -1552,9 +1552,9 @@ export default function Panels(props: PanelProps) {
         >
           <div onClick={e => e.stopPropagation()} style={{ maxWidth: 360, width: '100%' }}>
             <div style={{ color: '#fff', fontSize: 22, fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', textAlign: 'center', marginBottom: 16 }}>Orrery</div>
-            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, fontStyle: 'italic', textAlign: 'center', marginBottom: 20 }}>Real data. Real time.</div>
+            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontStyle: 'italic', textAlign: 'center', marginBottom: 20 }}>Real data. Real time.</div>
 
-            <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>Catalog Data</div>
+            <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>Catalog Data</div>
             {[
               '41,119 stars \u2014 HYG Database',
               '88 constellations \u2014 IAU / d3-celestial',
@@ -1567,10 +1567,10 @@ export default function Panels(props: PanelProps) {
               '5 spacecraft \u2014 NASA/JPL',
               '2K/4K textures \u2014 Solar System Scope (CC BY 4.0)',
             ].map(s => (
-              <div key={s} style={{ color: 'rgba(255,255,255,0.55)', fontSize: 14, fontWeight: 300, lineHeight: 1.8 }}>{s}</div>
+              <div key={s} style={{ color: 'rgba(255,255,255,0.72)', fontSize: 14, fontWeight: 300, lineHeight: 1.8 }}>{s}</div>
             ))}
 
-            <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginTop: 16, marginBottom: 8 }}>Live Data</div>
+            <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginTop: 16, marginBottom: 8 }}>Live Data</div>
             {[
               'Near-Earth objects \u2014 NASA NeoWs API',
               'Asteroid orbits \u2014 JPL Small-Body Database',
@@ -1587,18 +1587,18 @@ export default function Panels(props: PanelProps) {
 
             {/* Galactic Center */}
             <div style={{ marginTop: 28, padding: '14px 0', borderTop: '1px solid rgba(255,255,255,0.06)', textAlign: 'center' }}>
-              <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 8 }}>Galactic Center</div>
-              <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13, fontStyle: 'italic', fontWeight: 300, lineHeight: 1.6 }}>
+              <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 8 }}>Galactic Center</div>
+              <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13, fontStyle: 'italic', fontWeight: 300, lineHeight: 1.6 }}>
                 Sagittarius A* {'\u00b7'} 26,000 ly {'\u00b7'} 4M solar masses
               </div>
-              <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11, fontStyle: 'italic', fontWeight: 300, marginTop: 6 }}>
+              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontStyle: 'italic', fontWeight: 300, marginTop: 6 }}>
                 You are here.
               </div>
             </div>
 
             <div style={{ marginTop: 12, textAlign: 'center' }}>
               <button onClick={() => setShowInfo(false)} style={{
-                background: 'none', border: `1px solid rgba(${accentRgb},0.2)`, color: 'rgba(255,255,255,0.4)',
+                background: 'none', border: `1px solid rgba(${accentRgb},0.2)`, color: 'rgba(255,255,255,0.6)',
                 fontSize: 12, fontFamily: 'inherit', padding: '8px 20px', borderRadius: 4, cursor: 'pointer',
               }}>Close</button>
             </div>

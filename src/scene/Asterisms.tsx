@@ -65,7 +65,18 @@ export function AsterismField({ visible }: { visible: boolean }) {
   return (
     <group ref={groupRef}>
       <group rotation={[ECLIPTIC_TILT, 0, 0]}>
-        <lineSegments geometry={lineGeo} material={materialRef.current} />
+        <lineSegments geometry={lineGeo}>
+          <lineDashedMaterial
+            ref={matRef}
+            color={new THREE.Color(1.0, 0.86, 0.63)}
+            transparent
+            opacity={0.25}
+            dashSize={4}
+            gapSize={3}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+          />
+        </lineSegments>
         {/* Asterism labels at centroids */}
         {centroids.map(c => (
           <group key={c.name} position={c.pos}>

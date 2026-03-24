@@ -8,7 +8,7 @@
  * No emoji anywhere.
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import type { NEO, CamPreset } from '../lib/kepler';
 import { ALL_BODIES } from '../data/planets';
 import { getMoonsForPlanet } from '../data/moons';
@@ -1182,8 +1182,8 @@ export default function Panels(props: PanelProps) {
       {/* Panel drawer tab (desktop only — mobile uses bottom toolbar gear) */}
       {!mobile && <button
         onClick={() => setPanelOpen((p: boolean) => !p)}
-        onMouseEnter={() => { if (!mobile) setPanelPeek(true); }}
-        onMouseLeave={() => { if (!mobile && !panelOpen) setPanelPeek(false); }}
+        onMouseEnter={() => { if (!mobile) startPeek(); }}
+        onMouseLeave={() => { if (!mobile && !panelOpen) endPeek(); }}
         aria-label={panelOpen ? 'Collapse panel' : 'Open panel'}
         aria-expanded={panelOpen}
         style={{
@@ -1273,8 +1273,8 @@ export default function Panels(props: PanelProps) {
         showDeepSpace={showDeepSpace} setShowDeepSpace={setShowDeepSpace}
         selConstellation={selConstellation} setSelConstellation={setSelConstellation}
         selSpacecraft={selSpacecraft} setSelSpacecraft={setSelSpacecraft}
-        onHoverStart={() => { if (!mobile) setPanelPeek(true); }}
-        onHoverEnd={() => { if (!mobile && !panelOpen) setPanelPeek(false); }}
+        onHoverStart={() => { if (!mobile) startPeek(); }}
+        onHoverEnd={() => { if (!mobile && !panelOpen) endPeek(); }}
         panelFontScale={panelFontScale}
       />
 

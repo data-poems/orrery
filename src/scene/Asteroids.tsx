@@ -185,7 +185,7 @@ export function AsteroidOrbitLine({ neo }: { neo: NEO }) {
     return asteroidOrbitPath(neo.orbit.a, neo.orbit.e, neo.orbit.i, neo.orbit.om, neo.orbit.w);
   }, [neo.orbit]);
 
-  if (!pts) return null;
+  if (!pts || pts.length < 2) return null;
   const col = neo.hazardous ? '#ff6644' : '#44ffaa';
   return <Line points={pts} color={col} lineWidth={0.8} transparent opacity={0.5} />;
 }

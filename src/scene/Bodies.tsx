@@ -398,9 +398,9 @@ export function OrbitRing({ planet, T, dim, highlighted, cameraDistance = 0 }: {
   // Fade out orbit rings — invisible from deep space (Oort/tour start)
   const farFade = cameraDistance > 200 ? Math.max(0, 1 - (cameraDistance - 200) / 400) : 1;
   if (farFade <= 0) return null;
-  const baseWidth = highlighted ? 1.2 : dim ? 0.4 : 0.6;
-  const baseOpacity = (highlighted ? 0.6 : dim ? 0.18 : 0.25) * farFade;
-  const color = highlighted ? '#ffffff' : '#aaaaaa';
+  const baseWidth = highlighted ? 1.4 : dim ? 0.5 : 0.8;
+  const baseOpacity = (highlighted ? 0.75 : dim ? 0.35 : 0.45) * farFade;
+  const color = highlighted ? '#ffffff' : '#cccccc';
   return (
     <Line
       points={pts}

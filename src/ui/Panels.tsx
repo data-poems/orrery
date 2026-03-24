@@ -447,7 +447,7 @@ function SideDrawer({
   showAsteroidBelt: boolean; setShowAsteroidBelt: (fn: (p: boolean) => boolean) => void;
   showComets: boolean; setShowComets: (fn: (p: boolean) => boolean) => void;
   showMeteors: boolean; setShowMeteors: (fn: (p: boolean) => boolean) => void;
-  showSatellites: boolean; setShowSatellites: (fn: (p: boolean) => boolean) => void;
+  showSatellites?: boolean; setShowSatellites?: (fn: (p: boolean) => boolean) => void;
   showDeepSky: boolean; setShowDeepSky: (fn: (p: boolean) => boolean) => void;
   showDeepSpace: boolean; setShowDeepSpace: (fn: (p: boolean) => boolean) => void;
   selConstellation: string | null; setSelConstellation: (id: string | null) => void;
@@ -984,7 +984,7 @@ export interface PanelProps {
   showAsteroidBelt: boolean; setShowAsteroidBelt: (fn: (p: boolean) => boolean) => void;
   showComets: boolean; setShowComets: (fn: (p: boolean) => boolean) => void;
   showMeteors: boolean; setShowMeteors: (fn: (p: boolean) => boolean) => void;
-  showSatellites: boolean; setShowSatellites: (fn: (p: boolean) => boolean) => void;
+  showSatellites?: boolean; setShowSatellites?: (fn: (p: boolean) => boolean) => void;
   showDeepSky: boolean; setShowDeepSky: (fn: (p: boolean) => boolean) => void;
   selConstellation: string | null; setSelConstellation: (id: string | null) => void;
   panelOpen: boolean; setPanelOpen: (fn: boolean | ((p: boolean) => boolean)) => void;

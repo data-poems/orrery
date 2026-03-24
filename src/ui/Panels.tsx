@@ -1411,8 +1411,84 @@ export default function Panels(props: PanelProps) {
         Orrery
       </div>
 
-      {/* ── Zoom controls ── */}
-      <ZoomControls />
+      {/* ── Zoom controls (desktop only) ── */}
+      {!mobile && <ZoomControls />}
+
+      {/* ── Mobile bottom toolbar: zoom presets + stargazer + gear ── */}
+      {mobile && !cinematic && (
+        <div style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0,
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: `8px 10px max(8px, env(safe-area-inset-bottom))`,
+          background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.7) 40%, rgba(0,0,0,0.85) 100%)',
+          zIndex: 25,
+        }}>
+          {/* Zoom presets */}
+          {['Inner', 'System', 'Outer', 'Oort', 'Stellar'].map(label => {
+            const idx = cams.findIndex(c => c.label === label);
+            if (idx < 0) return null;
+            const active = camIdx === idx;
+            return (
+              <button
+                key={label}
+                onClick={() => onPresetSelect(idx)}
+                style={{
+                  flex: 1,
+                  padding: '8px 0',
+                  fontSize: 10, fontFamily: 'inherit', fontWeight: active ? 500 : 300,
+                  letterSpacing: 0.8,
+                  color: active ? accent : 'rgba(255,255,255,0.5)',
+                  background: active ? `rgba(${accentRgb},0.15)` : 'transparent',
+                  border: `1px solid ${active ? `rgba(${accentRgb},0.3)` : 'rgba(255,255,255,0.06)'}`,
+                  borderRadius: 4, cursor: 'pointer',
+                  minHeight: 36,
+                }}
+              >{label}</button>
+            );
+          })}
+          {/* Stargazer toggle */}
+          <button
+            onClick={() => {
+              setConstellationFocus(p => !p);
+              if (!constellationFocus) {
+                setShowStars(p => true || p);
+                setShowConstellations(p => true || p);
+                setShowDeepSky(p => true || p);
+              }
+            }}
+            aria-pressed={constellationFocus}
+            style={{
+              padding: '8px 10px',
+              fontSize: 10, fontFamily: 'inherit', fontWeight: constellationFocus ? 500 : 300,
+              letterSpacing: 0.5,
+              color: constellationFocus ? accent : 'rgba(255,255,255,0.5)',
+              background: constellationFocus ? `rgba(${accentRgb},0.15)` : 'transparent',
+              border: `1px solid ${constellationFocus ? `rgba(${accentRgb},0.3)` : 'rgba(255,255,255,0.06)'}`,
+              borderRadius: 4, cursor: 'pointer',
+              minHeight: 36, whiteSpace: 'nowrap',
+            }}
+          >{'\u2726'}</button>
+          {/* Gear icon → opens full panel */}
+          <button
+            onClick={() => setPanelOpen((p: boolean) => !p)}
+            aria-label="Settings"
+            style={{
+              padding: '8px',
+              background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.06)',
+              borderRadius: 4, cursor: 'pointer',
+              color: panelOpen ? accent : 'rgba(255,255,255,0.35)',
+              minHeight: 36, minWidth: 36,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
+              <circle cx="7" cy="7" r="2.5" />
+              <path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13M2.8 2.8l1.1 1.1M10.1 10.1l1.1 1.1M2.8 11.2l1.1-1.1M10.1 3.9l1.1-1.1" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* ── Screen reader announcements ── */}
       <div aria-live="polite" className="sr-only" role="status">

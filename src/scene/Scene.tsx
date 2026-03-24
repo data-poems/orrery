@@ -48,7 +48,7 @@ function AUGrid({ cameraDistance = 0 }: { cameraDistance?: number }) {
 
 // ─── Camera controller ──────────────────────────────────────────────────────────
 
-function CamCtrl({ focusTarget, positions, cinematic, camPreset, cinematicRotateSpeed, stepDuration, onCameraDistance }: {
+function CamCtrl({ focusTarget, positions, cinematic, camPreset, cinematicRotateSpeed, onCameraDistance }: {
   focusTarget: FocusTarget | null;
   positions: Map<number, [number, number, number]>;
   cinematic: boolean;

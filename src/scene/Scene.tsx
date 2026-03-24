@@ -284,7 +284,6 @@ export interface SceneProps {
   constellationFocus: boolean;
   cinematic: boolean;
   cinematicRotateSpeed: number;
-  stepDuration: number;
   onMoonSelect?: (planetIdx: number, moonIdx: number) => void;
   selMoonIdx?: number | null;
   onCameraDistance?: (d: number) => void;
@@ -303,7 +302,7 @@ export default function Scene({
   focusTarget, onPositionsUpdate, showDwarf,
   showStars, showConstellations, showAsterisms, showAsteroidBelt,
   showComets, showMeteors, showSatellites, showDeepSky, showDeepSpace,
-  constellationFocus, cinematic, cinematicRotateSpeed, stepDuration, onMoonSelect, selMoonIdx, onCameraDistance, cameraDistance, camPreset,
+  constellationFocus, cinematic, cinematicRotateSpeed, onMoonSelect, selMoonIdx, onCameraDistance, cameraDistance, camPreset,
   showBodyGlyphs = false,
   selComet, setSelComet, selMeteor, setSelMeteor, selSatellite, setSelSatellite,
   selSpacecraft, setSelSpacecraft,

@@ -1,61 +1,85 @@
-# Orrery — Interactive 3D Solar System
+# Orrery
 
-A browser-based mechanical orrery built with **React 19 + Three.js (R3F)** and live NASA data feeds.
+[![Live](https://img.shields.io/badge/live-orrery.solar-blue)](https://orrery.solar)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue.svg)](https://www.typescriptlang.org/)
+[![Three.js](https://img.shields.io/badge/Three.js-r183-black.svg)](https://threejs.org/)
 
-## Features
+From Earth to the Oort Cloud. Interactive, 41,000 stars, 88 constellations, real data, mostly live. Fake scales.
 
-| Feature | Detail |
-|---|---|
-| **8 planets** | NASA texture maps (Solar System Scope, CC BY 4.0) |
-| **Accurate positions** | JPL J2000 Keplerian elements with secular rates |
-| **Milky Way skybox** | Equirectangular star field background |
-| **Planet click-to-focus** | Camera flies to orbit any selected planet |
-| **Planet info cards** | Type, moons, temperature, gravity, orbital elements |
-| **Time animation** | Variable playback from 1x real-time to 1 yr/s |
-| **Live NEO data** | NASA NeoWs API — today's near-Earth objects |
-| **Asteroid orbits** | Full orbital ellipses via NASA SBDB API on demand |
-| **11 views** | Keyboard presets for `1-0`, plus Stargazer and Tour modes |
-| **Smooth transitions** | lerp-based camera with OrbitControls damping |
-| **Moon phase** | Accurate lunar phase indicator |
+**[orrery.solar](https://orrery.solar)**
 
-## Keyboard Shortcuts
+---
 
-| Key | Action |
-|---|---|
-| 1–0 | Camera presets |
-| - | Stargazer view |
-| M | Toggle control panel |
-| Space | Pause / resume simulation |
-| S / L / K / N | Toggle stars, constellations, deep sky, and NEOs |
-| C / R / I / O | Toggle comets, meteor showers, satellites, and deep space |
-| F | Start tour mode |
-| Esc | Back / deselect / close drawer |
-| Click planet | Focus camera on planet |
-| Click NEO | Show orbital elements + draw orbit |
+## What's in it
 
-## Data Sources
+- **41,119 stars** from the HYG Database, plotted by magnitude and B-V color index
+- **88 constellations** with IAU stick figures (d3-celestial)
+- **8 planets + 3 dwarf planets + 32 moons** from JPL Horizons (J2000 Keplerian elements with secular rates)
+- **3,000 main-belt asteroids** with Kirkwood gap distribution
+- **110+ deep sky objects** (Messier + bright NGC/IC from OpenNGC)
+- **20+ comets** from the Minor Planet Center
+- **14 meteor shower radiants** from the IAU Meteor Data Center
+- **5 interstellar spacecraft** (Voyager 1 at 165 AU, Voyager 2 at 139 AU, New Horizons, Pioneer 10/11)
+- **Oort Cloud** particle shell (2,000-50,000 AU)
 
-- **Planetary positions** — JPL Horizons Keplerian elements (J2000 epoch)
-- **Textures** — Solar System Scope (CC BY 4.0)
-- **Near-Earth Objects** — NASA NeoWs API
-- **Asteroid orbital elements** — NASA JPL SBDB API
+### Live data
 
-## Tech Stack
+- **Near-Earth objects** updated daily from NASA NeoWs
+- **Asteroid orbits on demand** from JPL Small-Body Database
+- **Solar wind speed** from NOAA Space Weather Prediction Center
+- **Satellite TLEs** from CelesTrak (ISS + active stations, SGP4 propagation)
 
-- React 19 + TypeScript
-- Three.js via @react-three/fiber + @react-three/drei
-- Vite 8 for development and bundling
-- No backend required — all data from public NASA APIs
+### Features
 
-## Getting Started
+- Cinematic opening tour: deep space down to Earth
+- Stargazer mode with zodiac glyphs and constellation labels
+- Click any planet to zoom in, click its moons to drill down
+- Time controls from real-time to 100 years per second
+- 4 colorblind-accessible themes
+- Mobile-first responsive design with touch controls
+- 2K textures on mobile, 4K on desktop
+- Pre-gzipped data files (82% savings)
+
+## Running locally
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-Open http://localhost:5173
+Opens at http://localhost:5173
+
+```bash
+pnpm build    # TypeScript check + Vite build + gzip data
+pnpm lint     # ESLint
+pnpm preview  # Serve production build
+```
+
+## Tech
+
+React 19, TypeScript 5.9, Three.js (r183) via @react-three/fiber + @react-three/drei, Vite 8. No backend. All data from public APIs and bundled catalogs.
+
+## Data sources
+
+| Source | What |
+|--------|------|
+| [JPL Horizons](https://ssd.jpl.nasa.gov/horizons/) | Planetary orbital elements |
+| [HYG Database](https://astronexus.com/projects/hyg) | Star catalog (41K stars) |
+| [d3-celestial](https://github.com/ofrohn/d3-celestial) | Constellation lines, Milky Way outline |
+| [OpenNGC](https://github.com/mattiaverga/OpenNGC) | Deep sky objects |
+| [Minor Planet Center](https://minorplanetcenter.net/data) | Asteroids, comets |
+| [IAU MDC](https://www.ta3.sk/IAUC22DB/MDC2007/) | Meteor showers |
+| [Solar System Scope](https://www.solarsystemscope.com/textures/) | Planet textures (CC BY 4.0) |
+| [NASA NeoWs](https://api.nasa.gov/) | Live near-Earth objects |
+| [JPL SBDB](https://ssd-api.jpl.nasa.gov/doc/sbdb.html) | Asteroid orbital elements |
+| [NOAA SWPC](https://services.swpc.noaa.gov/) | Live solar wind |
+| [CelesTrak](https://celestrak.org/NORAD/elements/) | Satellite TLEs |
 
 ## License
 
-MIT — textures are CC BY 4.0 (Solar System Scope). NASA data is public domain.
+MIT. Planet textures are CC BY 4.0 (Solar System Scope). NASA/NOAA data is public domain.
+
+## Author
+
+**Luke Steuber** - [lukesteuber.com](https://lukesteuber.com) - [datapoems.io](https://datapoems.io)

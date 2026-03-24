@@ -956,6 +956,8 @@ function SideDrawer({
         </MiniAccordion>
         </div>
       </AccordionSection>
+      </>
+      )}
     </div>
   );
 }

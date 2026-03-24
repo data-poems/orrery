@@ -1483,13 +1483,13 @@ export default function Panels(props: PanelProps) {
           aria-label="Stargazer mode"
           aria-pressed={constellationFocus}
           style={{
-            position: 'absolute', bottom: 104, right: 14,
+            position: 'absolute', bottom: 108, right: 14,
             background: constellationFocus ? `rgba(${accentRgb},0.15)` : 'rgba(255,255,255,0.06)',
             border: `1px solid ${constellationFocus ? `rgba(${accentRgb},0.3)` : 'rgba(255,255,255,0.08)'}`,
-            borderRadius: 6, width: 36, height: 36,
-            color: constellationFocus ? accent : 'rgba(255,255,255,0.5)',
+            borderRadius: 6, width: 44, height: 44,
+            color: constellationFocus ? accent : 'rgba(255,255,255,0.6)',
             cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: 'inherit', fontSize: 14, zIndex: 5,
+            fontFamily: 'inherit', fontSize: 18, zIndex: 5,
             backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
           }}
         >{'\u2726'}</button>

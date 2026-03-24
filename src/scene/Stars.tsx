@@ -752,8 +752,8 @@ export function ConstellationLabels({ visible, focus, onSelect, onLoad }: { visi
                   {focus && c.symbol && (
                     <svg
                       viewBox={c.symbol.viewBox}
-                      width={260}
-                      height={260}
+                      width={64}
+                      height={64}
                       aria-hidden="true"
                       style={{
                         position: 'absolute',

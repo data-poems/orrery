@@ -43,7 +43,7 @@ export function AsterismField({ visible }: { visible: boolean }) {
     return { lineGeo: geo, centroids: cents };
   }, []);
 
-  const material = useMemo(() => new THREE.LineDashedMaterial({
+  const materialRef = useRef(new THREE.LineDashedMaterial({
     color: new THREE.Color(1.0, 0.86, 0.63), // warm gold
     transparent: true,
     opacity: 0.25,
@@ -51,15 +51,14 @@ export function AsterismField({ visible }: { visible: boolean }) {
     gapSize: 3,
     blending: THREE.AdditiveBlending,
     depthWrite: false,
-  }), []);
+  }));
 
   // Camera follow + distance fade
   useFrame(() => {
     if (!visible || !groupRef.current) return;
     groupRef.current.position.copy(camera.position);
-    // Fade out at deep zoom distances
     const dist = camera.position.length();
-    material.opacity = dist > 500 ? Math.max(0.02, 0.25 * (1 - (dist - 500) / 500)) : 0.25;
+    materialRef.current.opacity = dist > 500 ? Math.max(0.02, 0.25 * (1 - (dist - 500) / 500)) : 0.25;
   });
 
   // Compute dash distances when geometry is ready
@@ -72,7 +71,7 @@ export function AsterismField({ visible }: { visible: boolean }) {
   return (
     <group ref={groupRef}>
       <group rotation={[ECLIPTIC_TILT, 0, 0]}>
-        <lineSegments geometry={lineGeo} material={material} />
+        <lineSegments geometry={lineGeo} material={materialRef.current} />
         {/* Asterism labels at centroids */}
         {centroids.map(c => (
           <group key={c.name} position={c.pos}>

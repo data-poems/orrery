@@ -212,15 +212,18 @@ function SpacecraftDot({ craft, selected, onSelect }: {
   const color = craft.status === 'active' ? '#44ff88' : '#888888';
   const size = selected ? 1.5 : 0.8;
 
+  const DEG = Math.PI / 180;
+
   return (
     <group>
-      {/* Craft dot */}
-      <mesh
-        position={pos}
-        onClick={(e) => { e.stopPropagation(); onSelect(); }}
-      >
-        <sphereGeometry args={[size, 8, 8]} />
-        <meshBasicMaterial color={color} toneMapped={false} />
+      {/* Craft marker — 3 crossed planes (starburst) */}
+      <group position={pos} onClick={(e) => { e.stopPropagation(); onSelect(); }}>
+        {[0, 60, 120].map(angle => (
+          <mesh key={angle} rotation={[0, 0, angle * DEG]}>
+            <planeGeometry args={[size * 0.4, size * 2]} />
+            <meshBasicMaterial color={color} toneMapped={false} side={THREE.DoubleSide} transparent opacity={0.9} depthWrite={false} />
+          </mesh>
+        ))}
       </mesh>
       {/* Glow */}
       <GlowSphere color={color} opacity={0.3} position={pos} scale={[size * 4, size * 4, 1]} />

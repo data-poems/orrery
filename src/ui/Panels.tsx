@@ -553,7 +553,7 @@ function SideDrawer({
         ...({ zoom: panelFontScale } as React.CSSProperties),
       }}
     >
-      <AccordionSection title="Status" accent={accent} defaultOpen>
+      {!mobile && <AccordionSection title="Status" accent={accent} defaultOpen>
         <div style={{ padding: '0 16px 10px' }}>
           <div style={{ color: '#fff', fontSize: mobile ? 22 : 26, fontWeight: 300, letterSpacing: 2, fontFamily: "'Cormorant', serif" }}>
             {fmtTime(simTime)}
@@ -568,7 +568,7 @@ function SideDrawer({
             {solarWind ? <Stat label="Solar Wind" val={solarWind} /> : <Stat label="Solar Wind" val="Unavailable" />}
           </div>
         </div>
-      </AccordionSection>
+      </AccordionSection>}
 
       <AccordionSection title="Speed" accent={accent} defaultOpen={openCore}>
         <div style={{ padding: '0 16px 8px' }}>

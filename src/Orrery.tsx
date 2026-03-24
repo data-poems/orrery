@@ -226,7 +226,6 @@ function OrreryInner() {
 
     setCinematic(false);
     setShowStars(true);
-    setShowConstellations(true);
     setShowDeepSky(true);
     setSelPlanet(2);
     setCamIdx(-1);

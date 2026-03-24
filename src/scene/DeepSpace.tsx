@@ -224,9 +224,7 @@ function SpacecraftDot({ craft, selected, onSelect }: {
             <meshBasicMaterial color={color} toneMapped={false} side={THREE.DoubleSide} transparent opacity={0.9} depthWrite={false} />
           </mesh>
         ))}
-      </mesh>
-      {/* Glow */}
-      <GlowSphere color={color} opacity={0.3} position={pos} scale={[size * 4, size * 4, 1]} />
+      </group>
       {/* Label */}
       <Html position={[pos[0], pos[1] + 3, pos[2]]} center distanceFactor={50} style={{ pointerEvents: 'none' }} zIndexRange={[1, 0]}>
         <div style={{

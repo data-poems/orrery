@@ -446,10 +446,18 @@ function OrreryInner() {
       setFocusTarget(prev => prev ? { planetIdx: prev.planetIdx, pos: prev.pos } : null);
       setNavStack(prev => prev.slice(0, -1));
     } else if (selPlanet !== null) {
+      // Go back one zoom step based on the planet's distance
+      const planet = ALL_BODIES[selPlanet];
+      const a = planet.a;
+      // Pick the closest preset that contains this planet's orbit
+      let camTarget = 0; // Inner
+      if (a > 5) camTarget = 1; // System (Jupiter+)
+      if (a > 20) camTarget = 4; // Outer (Uranus+)
+      if (a > 40) camTarget = 5; // Kuiper (Pluto+)
       setSelPlanet(null);
       setFocusTarget(null);
       setSelMoonIdx(null);
-      setCamIdx(1);
+      setCamIdx(camTarget);
       setNavStack(['Solar System']);
     }
   }, [cinematic, navStack, selMoonIdx, selPlanet, exitCinematicToInteractive]);

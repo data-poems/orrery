@@ -1052,6 +1052,9 @@ export default function Panels(props: PanelProps) {
   const accentRgb = theme.uiAccentRgb;
   const mobile = useIsMobile();
   const [panelPeek, setPanelPeek] = useState(false);
+  const peekTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startPeek = useCallback(() => { if (peekTimeout.current) clearTimeout(peekTimeout.current); setPanelPeek(true); }, []);
+  const endPeek = useCallback(() => { peekTimeout.current = setTimeout(() => setPanelPeek(false), 400); }, []);
   const [cardMinimized, setCardMinimized] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [panelNudge, setPanelNudge] = useState(false);

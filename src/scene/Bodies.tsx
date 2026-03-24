@@ -203,10 +203,9 @@ function SaturnRings({ radius }: { radius: number }) {
 
 // ─── Planet ─────────────────────────────────────────────────────────────────────
 
-export function Planet({ planet, T, selected, onSelect, hovered, onHover, moonFocused, cameraDistance = 0, showGlyphOverlay = false }: {
+export function Planet({ planet, T, selected, onSelect, hovered, onHover, moonFocused, showGlyphOverlay = false }: {
   planet: PlanetDef; T: number; selected: boolean; onSelect: () => void;
   hovered: boolean; onHover: (h: boolean) => void; moonFocused?: boolean;
-  cameraDistance?: number;
   showGlyphOverlay?: boolean;
 }) {
   const ref = useRef<THREE.Mesh>(null);

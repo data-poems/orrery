@@ -1216,7 +1216,7 @@ export default function Panels(props: PanelProps) {
         </svg>
       </button>}
       <SideDrawer
-        open={panelVisible}
+        open={panelVisible && !mobile}
         accent={accent}
         accentRgb={accentRgb}
         mobile={mobile}

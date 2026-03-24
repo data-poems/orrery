@@ -719,7 +719,7 @@ export function ConstellationLabels({ visible, focus, onSelect, onLoad }: { visi
             {visibleLabels.has(c.id) && (
               <Html
                 center
-                distanceFactor={focus ? 40 : 80}
+                distanceFactor={focus ? 20 : 80}
                 style={{ pointerEvents: onSelect ? 'auto' : 'none' }}
                 zIndexRange={[1, 0]}
               >

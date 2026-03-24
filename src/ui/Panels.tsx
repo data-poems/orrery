@@ -1041,7 +1041,7 @@ export default function Panels(props: PanelProps) {
   const [panelFontScale, setPanelFontScale] = useState(loadPanelFontScale);
   const sp = selPlanet !== null ? ALL_BODIES[selPlanet] : null;
   const mobilePanelHeight = '38vh';
-  const mobilePanelOffset = panelOpen ? `calc(${mobilePanelHeight} + 8px)` : '8px';
+  const mobilePanelOffset = panelOpen ? `calc(${mobilePanelHeight} + 8px)` : '56px';
   const panelVisible = panelOpen || (!mobile && panelPeek);
   const showPanelNudge = panelNudge && !mobile && !panelVisible;
 

@@ -1446,8 +1446,6 @@ export default function Panels(props: PanelProps) {
         Orrery
       </div>
 
-      )}
-
       {/* ── Zoom controls + stargazer toggle (desktop only) ── */}
       {!mobile && <ZoomControls />}
       {!mobile && !cinematic && (

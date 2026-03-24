@@ -1032,7 +1032,7 @@ export default function Panels(props: PanelProps) {
     selSpacecraft, setSelSpacecraft,
   } = props;
 
-  const { theme, setTheme } = useTheme();
+  const { theme } = useTheme();
   const accent = theme.uiAccent;
   const accentRgb = theme.uiAccentRgb;
   const mobile = useIsMobile();

@@ -228,7 +228,7 @@ export function Planet({ planet, T, selected, onSelect, hovered, onHover, moonFo
   const glyphDistanceFactor = Math.max(0.68, labelDistanceFactor * 0.72);
   const glyphSize = THREE.MathUtils.lerp(32, 96, labelScale / 1.5);
   // Invisible click target: larger sphere for easier selection
-  const hitRadius = Math.max(r * 3, 0.15);
+  const hitRadius = Math.max(r * 5, 0.25);
 
   useFrame((_, dt) => {
     if (ref.current) ref.current.rotation.y += dt * 0.12;
@@ -322,15 +322,25 @@ export function Satellite({ moon, parentPos, jd, selected, onSelect, hovered, on
 
   useFrame((_, dt) => { if (ref.current) ref.current.rotation.y += dt * 0.05; });
 
+  const moonHitRadius = Math.max(moon.radius * 5, 0.02);
+
   return (
     <group>
+      {/* Invisible larger click target for moons */}
+      <mesh
+        position={pos}
+        renderOrder={10}
+        onClick={onSelect ? (e) => { e.stopPropagation(); onSelect(); } : undefined}
+        onPointerEnter={onHover ? () => onHover(true) : undefined}
+        onPointerLeave={onHover ? () => onHover(false) : undefined}
+      >
+        <sphereGeometry args={[moonHitRadius, 12, 12]} />
+        <meshBasicMaterial visible={false} />
+      </mesh>
       <mesh
         ref={ref}
         position={pos}
         renderOrder={11}
-        onClick={onSelect ? (e) => { e.stopPropagation(); onSelect(); } : undefined}
-        onPointerEnter={onHover ? () => onHover(true) : undefined}
-        onPointerLeave={onHover ? () => onHover(false) : undefined}
       >
         <sphereGeometry args={[moon.radius, 24, 24]} />
         {isEarthMoon ? (

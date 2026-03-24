@@ -190,7 +190,6 @@ function OrreryInner() {
   const [camIdx, setCamIdx] = useState(0);
   const [panelOpen, setPanelOpen] = useState(false);
   const [cinematicRotateSpeed, setCinematicRotateSpeed] = useState(0.5);
-  const [stepDuration, setStepDuration] = useState(6000);
   const positionsRef = useRef(new Map<number, [number, number, number]>());
 
   const jd = useMemo(() => julianDate(simTime), [simTime]);
@@ -248,7 +247,7 @@ function OrreryInner() {
     const step = cinematicSteps[idx % cinematicSteps.length];
     setSelMoonIdx(null);
     setNavStack([step.label]);
-    setStepDuration(step.duration);
+
 
     if (step.focusPlanet !== undefined) {
       setCamIdx(-1);

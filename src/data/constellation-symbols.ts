@@ -1,8 +1,10 @@
 /*
- * Zodiac SVG symbols used by Stargazer overlays.
+ * Zodiac SVG symbols — formal astronomical glyph style.
  *
- * These correspond to the classical astrological signs described in:
- * https://en.wikipedia.org/wiki/Astrological_symbols
+ * Refined calligraphic paths based on classical astrological typography.
+ * Designed for rendering as stroke-only at various sizes with drop-shadow glow.
+ *
+ * To revert: cp src/data/constellation-symbols.ts.bak src/data/constellation-symbols.ts
  */
 
 export interface ConstellationSymbolSvg {
@@ -13,67 +15,82 @@ export interface ConstellationSymbolSvg {
 const VB = '0 0 100 100';
 
 export const ZODIAC_SYMBOLS: Record<string, ConstellationSymbolSvg> = {
+  // Aries ♈ — ram's horns, elegant sweep
   Ari: { viewBox: VB, paths: [
-    'M50 84 C50 56 46 38 32 24 C26 18 18 18 14 24 C10 30 10 40 16 48',
-    'M50 84 C50 56 54 38 68 24 C74 18 82 18 86 24 C90 30 90 40 84 48',
+    'M50 88 C50 62 48 46 38 32 C32 24 24 20 18 22 C12 24 8 32 10 40 C12 46 18 50 24 48',
+    'M50 88 C50 62 52 46 62 32 C68 24 76 20 82 22 C88 24 92 32 90 40 C88 46 82 50 76 48',
   ] },
+  // Taurus ♉ — bull's head, open arc with circle
   Tau: { viewBox: VB, paths: [
-    'M32 58 A18 18 0 1 0 68 58 A18 18 0 1 0 32 58',
-    'M32 44 C24 34 22 22 28 16 C36 8 48 14 50 28',
-    'M68 44 C76 34 78 22 72 16 C64 8 52 14 50 28',
+    'M50 72 A20 20 0 1 1 50 32 A20 20 0 1 1 50 72',
+    'M22 42 C22 28 34 14 50 14 C66 14 78 28 78 42',
+    'M22 42 C18 48 14 42 16 36',
+    'M78 42 C82 48 86 42 84 36',
   ] },
+  // Gemini ♊ — twin pillars with crossbars
   Gem: { viewBox: VB, paths: [
-    'M28 18 H72',
-    'M28 82 H72',
-    'M36 18 C42 36 42 64 36 82',
-    'M64 18 C58 36 58 64 64 82',
+    'M24 16 C36 16 64 16 76 16',
+    'M24 84 C36 84 64 84 76 84',
+    'M34 16 C38 32 38 68 34 84',
+    'M66 16 C62 32 62 68 66 84',
   ] },
+  // Cancer ♋ — interlocking spirals
   Cnc: { viewBox: VB, paths: [
-    'M28 34 C18 34 12 42 12 52 C12 64 20 72 32 72 C44 72 52 64 52 52 C52 40 44 32 32 32 C24 32 18 36 14 42',
-    'M72 66 C82 66 88 58 88 48 C88 36 80 28 68 28 C56 28 48 36 48 48 C48 60 56 68 68 68 C76 68 82 64 86 58',
+    'M26 36 C14 36 8 46 8 54 C8 66 18 74 30 74 C40 74 48 68 48 58 C48 48 40 42 30 42',
+    'M74 64 C86 64 92 54 92 46 C92 34 82 26 70 26 C60 26 52 32 52 42 C52 52 60 58 70 58',
+    'M30 42 L70 58',
   ] },
+  // Leo ♌ — lion's mane with tail curl
   Leo: { viewBox: VB, paths: [
-    'M24 70 C36 54 48 44 62 42 C76 40 86 30 86 18 C86 10 80 6 74 6 C66 6 60 12 60 20 C60 30 68 38 78 38',
-    'M24 70 C18 78 16 88 24 94 C32 100 42 96 46 88 C50 80 48 70 40 64 C32 58 22 60 18 68',
+    'M22 68 C30 52 44 42 58 40 C70 38 80 30 82 20 C84 12 78 6 72 8 C66 10 62 16 64 24 C66 32 74 36 82 34',
+    'M22 68 C16 76 14 86 20 92 C26 98 36 96 40 88 C44 80 42 70 34 66',
   ] },
+  // Virgo ♍ — sheaf of wheat, vertical strokes with tail
   Vir: { viewBox: VB, paths: [
-    'M18 78 V28',
-    'M18 28 C28 36 30 52 30 78',
-    'M30 28 C40 36 42 52 42 78',
-    'M42 28 C52 36 54 52 54 78',
-    'M54 28 C64 36 66 52 66 78',
-    'M66 78 C66 90 76 92 84 82',
+    'M16 76 L16 26',
+    'M16 30 C24 30 30 38 30 48 L30 76',
+    'M30 30 C38 30 44 38 44 48 L44 76',
+    'M44 30 C52 30 58 38 58 48 L58 76',
+    'M58 76 C58 86 66 90 74 86 C80 82 84 76 82 68',
+    'M72 62 L82 52',
   ] },
+  // Libra ♎ — scales, horizontal beam with arc
   Lib: { viewBox: VB, paths: [
-    'M18 66 H82',
-    'M26 50 H74',
-    'M26 50 C30 36 40 28 50 28 C60 28 70 36 74 50',
+    'M16 68 L84 68',
+    'M24 52 L76 52',
+    'M24 52 C28 36 38 26 50 26 C62 26 72 36 76 52',
   ] },
+  // Scorpio ♏ — like Virgo but with arrow tail
   Sco: { viewBox: VB, paths: [
-    'M18 78 V28',
-    'M18 28 C28 36 30 52 30 78',
-    'M30 28 C40 36 42 52 42 78',
-    'M42 28 C52 36 54 52 54 78',
-    'M54 28 C64 36 66 52 66 78',
-    'M66 78 H78 L70 70',
+    'M16 76 L16 26',
+    'M16 30 C24 30 30 38 30 48 L30 76',
+    'M30 30 C38 30 44 38 44 48 L44 76',
+    'M44 30 C52 30 58 38 58 48 L58 76',
+    'M58 76 L72 76 L82 66',
+    'M82 66 L76 76',
+    'M82 66 L82 76',
   ] },
+  // Sagittarius ♐ — arrow diagonal with crossbar
   Sgr: { viewBox: VB, paths: [
-    'M18 82 L82 18',
-    'M56 18 H82 V44',
-    'M18 18 L44 44',
+    'M20 80 L80 20',
+    'M56 20 L80 20 L80 44',
+    'M32 52 L52 32',
   ] },
+  // Capricorn ♑ — sea-goat, horn with fish tail loop
   Cap: { viewBox: VB, paths: [
-    'M18 78 V32 C18 24 28 24 34 30 C40 36 40 52 40 78',
-    'M40 60 C46 46 58 38 70 38 C82 38 90 46 90 58 C90 70 82 78 70 78 C58 78 50 70 50 58 C50 46 58 38 70 38',
+    'M16 76 L16 30 C16 22 24 20 30 24 C36 28 38 38 38 50 L38 76',
+    'M38 58 C44 44 56 36 68 36 C80 36 88 44 88 56 C88 68 80 76 68 76 C56 76 48 68 48 56 C48 44 56 36 68 36',
   ] },
+  // Aquarius ♒ — double wave
   Aqr: { viewBox: VB, paths: [
-    'M14 38 L28 24 L42 38 L56 24 L70 38 L84 24',
-    'M14 70 L28 56 L42 70 L56 56 L70 70 L84 56',
+    'M12 40 C18 30 24 30 30 40 C36 50 42 50 48 40 C54 30 60 30 66 40 C72 50 78 50 84 40',
+    'M12 64 C18 54 24 54 30 64 C36 74 42 74 48 64 C54 54 60 54 66 64 C72 74 78 74 84 64',
   ] },
+  // Pisces ♓ — two arcs with bar
   Psc: { viewBox: VB, paths: [
-    'M30 20 C20 30 18 44 18 50 C18 56 20 70 30 80',
-    'M70 20 C80 30 82 44 82 50 C82 56 80 70 70 80',
-    'M30 50 H70',
+    'M28 18 C16 28 14 42 14 50 C14 58 16 72 28 82',
+    'M72 18 C84 28 86 42 86 50 C86 58 84 72 72 82',
+    'M28 50 L72 50',
   ] },
 };
 

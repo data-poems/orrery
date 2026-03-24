@@ -719,7 +719,7 @@ export function ConstellationLabels({ visible, focus, onSelect, onLoad }: { visi
             {visibleLabels.has(c.id) && (
               <Html
                 center
-                distanceFactor={focus ? 5 : 80}
+                {...(focus ? {} : { distanceFactor: 80 })}
                 style={{ pointerEvents: onSelect ? 'auto' : 'none' }}
                 zIndexRange={[1, 0]}
               >
@@ -728,7 +728,7 @@ export function ConstellationLabels({ visible, focus, onSelect, onLoad }: { visi
                   style={{
                     color: c.color,
                     opacity: labelOpacity,
-                    fontSize: focus ? 96 : 10,
+                    fontSize: focus ? 24 : 10,
                     fontFamily: "'Cormorant Garamond', serif",
                     fontStyle: 'italic',
                     fontWeight: 400,
@@ -794,7 +794,7 @@ export function ConstellationLabels({ visible, focus, onSelect, onLoad }: { visi
                       </g>
                     </svg>
                   )}
-                  <span style={{ display: 'block', fontSize: focus ? 96 : 10, fontWeight: 400, fontStyle: 'normal', letterSpacing: focus ? 6 : 2, textTransform: 'uppercase' }}>{c.latin}</span>
+                  <span style={{ display: 'block', fontSize: focus ? 24 : 10, fontWeight: 400, fontStyle: 'normal', letterSpacing: focus ? 6 : 2, textTransform: 'uppercase' }}>{c.latin}</span>
                   {c.english && <span style={{ display: 'block', fontSize: focus ? 56 : 7, opacity: 0.68, marginTop: focus ? 10 : 2 }}>{c.english}</span>}
                 </div>
               </Html>

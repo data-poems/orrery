@@ -1156,7 +1156,8 @@ export default function Panels(props: PanelProps) {
   return (
     <>
       {cinematicOverlay}
-      <button
+      {/* Panel drawer tab (desktop only — mobile uses bottom toolbar gear) */}
+      {!mobile && <button
         onClick={() => setPanelOpen((p: boolean) => !p)}
         onMouseEnter={() => { if (!mobile) setPanelPeek(true); }}
         onMouseLeave={() => { if (!mobile && !panelOpen) setPanelPeek(false); }}
@@ -1164,7 +1165,7 @@ export default function Panels(props: PanelProps) {
         aria-expanded={panelOpen}
         style={{
           ...drawerTab,
-          ...(mobile
+          ...(false // mobile branch removed — desktop only now
             ? {
                 top: 'auto',
                 bottom: 16,
@@ -1212,7 +1213,7 @@ export default function Panels(props: PanelProps) {
             <circle cx="8" cy="13.5" r="1.5" fill="currentColor" stroke="none" />
           </g>
         </svg>
-      </button>
+      </button>}
       <SideDrawer
         open={panelVisible}
         accent={accent}

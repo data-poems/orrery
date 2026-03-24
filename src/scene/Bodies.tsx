@@ -80,20 +80,23 @@ export function Sun({ cameraDistance = 0, showGlyphOverlay = false }: { cameraDi
   });
   return (
     <group>
-      {/* Compact white-hot core */}
-      <mesh>
-        <sphereGeometry args={[0.102, 48, 48]} />
-        <meshBasicMaterial color="#fff5d8" toneMapped={false} transparent opacity={0.72} blending={THREE.AdditiveBlending} depthWrite={false} />
-      </mesh>
       {/* Main textured photosphere */}
       <mesh ref={ref}>
-        <sphereGeometry args={[0.146, 64, 64]} />
-        <meshBasicMaterial map={tex} toneMapped={false} color="#fff7ec" />
+        <sphereGeometry args={[0.15, 48, 48]} />
+        <meshBasicMaterial map={tex} toneMapped={false} />
       </mesh>
-      {/* Thin chromosphere tint */}
+      {/* Graduated corona glow shells */}
       <mesh>
-        <sphereGeometry args={[0.152, 64, 64]} />
-        <meshBasicMaterial color="#ffb24a" toneMapped={false} transparent opacity={0.16} blending={THREE.AdditiveBlending} depthWrite={false} />
+        <sphereGeometry args={[0.19, 32, 32]} />
+        <meshBasicMaterial color="#ffaa33" transparent opacity={0.08} depthWrite={false} />
+      </mesh>
+      <mesh>
+        <sphereGeometry args={[0.24, 32, 32]} />
+        <meshBasicMaterial color="#ff8800" transparent opacity={0.04} depthWrite={false} />
+      </mesh>
+      <mesh>
+        <sphereGeometry args={[0.30, 32, 32]} />
+        <meshBasicMaterial color="#ff6600" transparent opacity={0.02} depthWrite={false} />
       </mesh>
       {showGlyphOverlay && (
         <BodyGlyph symbolKey="Sol" color="rgba(255,196,108,0.95)" distanceFactor={0.86} size={92} />

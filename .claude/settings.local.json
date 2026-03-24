@@ -23,7 +23,8 @@
       "Read(//usr/local/lib/python3.10/dist-packages/SpiralMap/**)",
       "Read(//usr/local/lib/python3.10/dist-packages/**)",
       "Bash(aider --version)",
-      "Bash(sudo caddy:*)"
+      "Bash(sudo caddy:*)",
+      "mcp__plugin_playwright_playwright__browser_evaluate"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -405,11 +405,11 @@ function SideDrawer({
   cams, camIdx, onPresetSelect,
   selPlanet, setSelPlanet, onMoonSelect,
   neos, neoStatus, selNeo, setSelNeo,
-  showNeo, showStars, showConstellations, showDwarf,
-  showAsteroidBelt, showComets, showMeteors, showDeepSky,
+  showNeo, showStars, showConstellations, showAsterisms: _showAsterisms, constellationFocus: _constellationFocus, showDwarf,
+  showAsteroidBelt, showComets, showMeteors, showSatellites: _showSatellites, showDeepSky,
   showDeepSpace,
-  setShowNeo, setShowStars, setShowConstellations,
-  setShowDwarf, setShowAsteroidBelt, setShowComets, setShowMeteors, setShowDeepSky,
+  setShowNeo, setShowStars, setShowConstellations, setShowAsterisms: _setShowAsterisms, setConstellationFocus: _setConstellationFocus,
+  setShowDwarf, setShowAsteroidBelt, setShowComets, setShowMeteors, setShowSatellites: _setShowSatellites, setShowDeepSky,
   setShowDeepSpace,
   selConstellation, setSelConstellation,
   selSpacecraft, setSelSpacecraft,
@@ -447,7 +447,7 @@ function SideDrawer({
   showAsteroidBelt: boolean; setShowAsteroidBelt: (fn: (p: boolean) => boolean) => void;
   showComets: boolean; setShowComets: (fn: (p: boolean) => boolean) => void;
   showMeteors: boolean; setShowMeteors: (fn: (p: boolean) => boolean) => void;
-  showSatellites?: boolean; setShowSatellites?: (fn: (p: boolean) => boolean) => void;
+  showSatellites: boolean; setShowSatellites: (fn: (p: boolean) => boolean) => void;
   showDeepSky: boolean; setShowDeepSky: (fn: (p: boolean) => boolean) => void;
   showDeepSpace: boolean; setShowDeepSpace: (fn: (p: boolean) => boolean) => void;
   selConstellation: string | null; setSelConstellation: (id: string | null) => void;
@@ -984,7 +984,7 @@ export interface PanelProps {
   showAsteroidBelt: boolean; setShowAsteroidBelt: (fn: (p: boolean) => boolean) => void;
   showComets: boolean; setShowComets: (fn: (p: boolean) => boolean) => void;
   showMeteors: boolean; setShowMeteors: (fn: (p: boolean) => boolean) => void;
-  showSatellites?: boolean; setShowSatellites?: (fn: (p: boolean) => boolean) => void;
+  showSatellites: boolean; setShowSatellites: (fn: (p: boolean) => boolean) => void;
   showDeepSky: boolean; setShowDeepSky: (fn: (p: boolean) => boolean) => void;
   selConstellation: string | null; setSelConstellation: (id: string | null) => void;
   panelOpen: boolean; setPanelOpen: (fn: boolean | ((p: boolean) => boolean)) => void;

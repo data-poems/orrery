@@ -1159,6 +1159,18 @@ export default function Panels(props: PanelProps) {
           </div>
         </div>
 
+        {/* Data source facts — rotates during tour */}
+        <div style={{
+          position: 'absolute', bottom: mobile ? 80 : 90,
+          left: 20, right: 20,
+          textAlign: 'center',
+          color: 'rgba(255,255,255,0.25)', fontSize: mobile ? 12 : 13,
+          fontWeight: 300, fontStyle: 'italic', letterSpacing: 0.5,
+          transition: 'opacity 0.5s ease',
+        }}>
+          {TOUR_FACTS[factIdx]}
+        </div>
+
         {/* Exit hint */}
         <div style={{
           position: 'absolute', bottom: mobile ? 48 : 56,

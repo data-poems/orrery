@@ -1075,26 +1075,8 @@ export default function Panels(props: PanelProps) {
   // Current body label from nav stack
   const cinematicLabel = navStack[navStack.length - 1] || '';
 
-  // Rotating data facts for cinematic
-  const TOUR_FACTS = [
-    '41,119 stars \u00b7 88 constellations \u00b7 HYG Database + d3-celestial',
-    '8 planets \u00b7 3 dwarf planets \u00b7 32 moons \u00b7 JPL Horizons',
-    '3,000 main-belt asteroids \u00b7 20+ comets \u00b7 Minor Planet Center',
-    '110+ deep sky objects \u00b7 14 meteor showers \u00b7 OpenNGC + IAU MDC',
-    '5 spacecraft \u00b7 Voyager 1 at 165 AU \u00b7 New Horizons at 63 AU',
-    'Live: near-Earth objects \u00b7 NASA NeoWs \u00b7 updated daily',
-    'Live: solar wind speed \u00b7 NOAA Space Weather Prediction Center',
-    'Live: satellite positions \u00b7 CelesTrak TLEs \u00b7 SGP4 propagation',
-    'Live: asteroid orbits on demand \u00b7 JPL Small-Body Database',
-    '2K/4K planet textures \u00b7 Solar System Scope \u00b7 CC BY 4.0',
-  ];
-  const [factIdx, setFactIdx] = useState(0);
   useEffect(() => {
     if (!cinematic) return;
-    setFactIdx(Math.floor(Math.random() * TOUR_FACTS.length));
-    const id = setInterval(() => setFactIdx(i => (i + 1) % TOUR_FACTS.length), 4000);
-    return () => clearInterval(id);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cinematic]);
 
   // ─── Cinematic overlay (rendered above main UI when active) ──────────────────

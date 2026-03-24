@@ -156,7 +156,6 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, cinematicRotate
       : focusTarget?.planetIdx ?? camPreset?.follow ?? null;
 
     const remainDist = camera.position.distanceTo(tPos.current);
-    const elapsed = Date.now() - lastTargetChange.current;
 
     // Smooth factor: for cinematic, we want it to take most of the duration
     // For interactive, we want it snappy (2.2).

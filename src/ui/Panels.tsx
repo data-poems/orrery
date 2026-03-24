@@ -707,6 +707,40 @@ function SideDrawer({
         </div>
       </AccordionSection>
 
+      {mobile ? (
+      <AccordionSection title="More" accent={accent} defaultOpen={false}>
+        <div style={{ padding: '0 16px 8px' }}>
+          <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>Status</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px', marginBottom: 12 }}>
+            <Stat label="Moon" val={`${moon.name}, ${moon.ill}%`} c={accent} />
+            <Stat label="Rate" val={speedLabel(speed)} />
+            {solarWind && <Stat label="Solar Wind" val={solarWind} />}
+          </div>
+          <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>Theme</div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            {THEMES.map(t => (
+              <button key={t.id} onClick={() => setTheme(t)} aria-label={t.name} style={{
+                width: 24, height: 24, borderRadius: '50%', background: t.uiAccent, border: theme.id === t.id ? '2px solid #fff' : '2px solid transparent',
+                cursor: 'pointer', padding: 0,
+              }} />
+            ))}
+          </div>
+          <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>All Layers</div>
+          {layers.filter(l => !['Stars', 'Constellations', 'Deep Sky', 'Deep Space'].includes(l.label) && !l.label.startsWith('NEO')).map(l => (
+            <button key={l.label} onClick={l.fn} style={{
+              display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+              padding: '8px 0', background: 'transparent', border: 'none', cursor: 'pointer',
+              fontFamily: 'inherit', fontSize: 13,
+              color: l.on ? accent : 'rgba(255,255,255,0.45)', fontWeight: l.on ? 400 : 300, textAlign: 'left',
+            }}>
+              <span style={{ width: 12, height: 12, borderRadius: 3, border: `1.5px solid ${l.on ? accent : 'rgba(255,255,255,0.2)'}`, background: l.on ? `rgba(${accentRgb},0.15)` : 'transparent' }} />
+              {l.label}
+            </button>
+          ))}
+        </div>
+      </AccordionSection>
+      ) : (
+      <>
       <AccordionSection title="Theme" accent={accent} defaultOpen={false}>
         <div role="radiogroup" aria-label="Color theme">
         {THEMES.map(t => (

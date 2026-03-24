@@ -256,7 +256,7 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, cinematicRotate
       enableDamping
       dampingFactor={0.08}
       minDistance={0.05}
-      maxDistance={100000}
+      maxDistance={200000}
       autoRotate={cinematic || camPreset?.autoRotate || false}
       autoRotateSpeed={cinematic ? cinematicRotateSpeed * 0.78 : camPreset?.autoRotate ? 0.1 : 0}
     />

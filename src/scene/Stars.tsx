@@ -794,8 +794,8 @@ export function ConstellationLabels({ visible, focus, onSelect, onLoad }: { visi
                       </g>
                     </svg>
                   )}
-                  <span style={{ display: 'block', fontSize: focus ? 11 : 9, fontWeight: 500, fontStyle: 'normal', letterSpacing: 1.8, textTransform: 'uppercase' }}>{c.latin}</span>
-                  {c.english && <span style={{ display: 'block', fontSize: focus ? 8 : 7, opacity: 0.68 }}>{c.english}</span>}
+                  <span style={{ display: 'block', fontSize: focus ? 16 : 10, fontWeight: 500, fontStyle: 'normal', letterSpacing: 2, textTransform: 'uppercase' }}>{c.latin}</span>
+                  {c.english && <span style={{ display: 'block', fontSize: focus ? 12 : 7, opacity: 0.68, marginTop: 2 }}>{c.english}</span>}
                 </div>
               </Html>
             )}

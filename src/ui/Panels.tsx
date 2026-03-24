@@ -1105,7 +1105,7 @@ export default function Panels(props: PanelProps) {
             {fmtTime(simTime)}
           </span>
           <span style={{
-            fontSize: mobile ? 11 : 13, fontWeight: 300, letterSpacing: 2,
+            fontSize: mobile ? 15 : 17, fontWeight: 300, letterSpacing: 2,
             color: 'rgba(255,255,255,0.55)', fontStyle: 'italic',
           }}>
             {fmtDate(simTime)}

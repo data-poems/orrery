@@ -201,8 +201,10 @@ function OrreryInner() {
 
   // ─── Cinematic: tight highlight reel through scale levels ────────────────────
   const cinematicSteps = useMemo((): CinematicStep[] => [
-    { ...CINEMATIC_DEFAULTS, camPreset: 7, duration: 6000, label: 'Sol', autoRotateSpeed: 0.3 },
-    { ...CINEMATIC_DEFAULTS, camPreset: 11, duration: 6000, label: 'Stellar Neighborhood', dwarf: true, deepSky: true, deepSpace: true, autoRotateSpeed: 0.06 },
+    { ...CINEMATIC_DEFAULTS, camPreset: 7, duration: 5000, label: 'Sol', autoRotateSpeed: 0.4 },
+    { ...CINEMATIC_DEFAULTS, camPreset: 0, duration: 4000, label: 'Inner Planets', asteroidBelt: true, autoRotateSpeed: 0.25 },
+    { ...CINEMATIC_DEFAULTS, camPreset: 11, duration: 5000, label: 'Stellar Neighborhood', dwarf: true, deepSky: true, deepSpace: true, autoRotateSpeed: 0.06 },
+    { ...CINEMATIC_DEFAULTS, focusPlanet: 2, duration: 5000, label: 'Earth', autoRotateSpeed: 0.5 },
   ], []);
 
   const cinematicIdx = useRef(0);
@@ -295,11 +297,17 @@ function OrreryInner() {
     // Use setInterval to poll elapsed time — robust against React re-renders
     const id = setInterval(() => {
       const elapsed = Date.now() - cinematicStart.current;
-      const dur = cinematicSteps[cinematicIdx.current % cinematicSteps.length].duration;
+      const dur = cinematicSteps[cinematicIdx.current].duration;
       if (elapsed >= dur) {
-        cinematicIdx.current = (cinematicIdx.current + 1) % cinematicSteps.length;
-        cinematicStart.current = Date.now();
-        applyCinematicStep(cinematicIdx.current);
+        const next = cinematicIdx.current + 1;
+        if (next >= cinematicSteps.length) {
+          // Tour complete — exit to interactive (Earth focus)
+          exitCinematicToInteractive();
+        } else {
+          cinematicIdx.current = next;
+          cinematicStart.current = Date.now();
+          applyCinematicStep(next);
+        }
       }
     }, 500);
 

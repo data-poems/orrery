@@ -679,7 +679,6 @@ function OrreryInner() {
             constellationFocus={constellationFocus}
             cinematic={cinematic}
             cinematicRotateSpeed={cinematicRotateSpeed}
-            stepDuration={stepDuration}
             onMoonSelect={handleMoonSelect}
             selMoonIdx={selMoonIdx}
             onCameraDistance={setCameraDistance}

@@ -203,7 +203,7 @@ function OrreryInner() {
   const cinematicSteps = useMemo((): CinematicStep[] => [
     { ...CINEMATIC_DEFAULTS, camPreset: 7, duration: 5000, label: 'Sol', autoRotateSpeed: 0.4 },
     { ...CINEMATIC_DEFAULTS, camPreset: 0, duration: 4000, label: 'Inner Planets', asteroidBelt: true, autoRotateSpeed: 0.25 },
-    { ...CINEMATIC_DEFAULTS, camPreset: 11, duration: 5000, label: 'Stellar Neighborhood', dwarf: true, deepSky: true, deepSpace: true, autoRotateSpeed: 0.06 },
+    { ...CINEMATIC_DEFAULTS, camPreset: 9, duration: 5000, label: 'Oort Cloud', dwarf: true, deepSky: true, deepSpace: true, autoRotateSpeed: 0.08 },
     { ...CINEMATIC_DEFAULTS, focusPlanet: 2, duration: 5000, label: 'Earth', autoRotateSpeed: 0.5 },
   ], []);
 

@@ -83,12 +83,8 @@ export function Sun({ cameraDistance = 0, showGlyphOverlay = false }: { cameraDi
       {/* Main textured photosphere */}
       <mesh ref={ref}>
         <sphereGeometry args={[0.15, 48, 48]} />
-        <meshBasicMaterial map={tex} toneMapped={false} depthWrite={false} />
+        <meshBasicMaterial map={tex} toneMapped={false} />
       </mesh>
-      {/* Corona — sprite billboard glow instead of sphere shells */}
-      <sprite scale={[0.8, 0.8, 1]}>
-        <spriteMaterial color="#ffaa44" transparent opacity={0.08} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
-      </sprite>
       {showGlyphOverlay && (
         <BodyGlyph symbolKey="Sol" color="rgba(255,196,108,0.95)" distanceFactor={0.86} size={92} />
       )}

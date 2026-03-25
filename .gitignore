@@ -37,7 +37,16 @@ __pycache__/
 *.pyc
 
 # Agent cruft
+.claude/
+CLAUDE.md
+GEMINI.md
+AGENTS.md
+CRITIC.md
+ONBOARD.md
+SUGGESTIONS.md
+REPO_AUDIT.md
 HANDOFF.md
+*_STATUS.md
 *_RECOMMENDATIONS.md
 .aider*
 swarm/

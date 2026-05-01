@@ -599,14 +599,19 @@ export function ConstellationLines({ visible, focus, onLoad, selectedId }: { vis
     attr.needsUpdate = true;
   }, [selectedId, geometry, lineData]);
 
+  // hasSelection is a function of selectedId only — push it once per change, not per frame.
+  // Avoids a one-frame stale-state edge case if the lines toggle visibility while selected.
+  useEffect(() => {
+    const lineMat = lineMatRef.current;
+    if (lineMat) lineMat.uniforms.hasSelection.value = selectedId ? 1 : 0;
+  }, [selectedId]);
+
   // Distance-based fade (boosted in focus mode)
-  useFrame((_, delta) => {
+  useFrame((state) => {
     if (!visible) return;
     const lineMat = lineMatRef.current;
-    if (lineMat) {
-      lineMat.uniforms.hasSelection.value = selectedId ? 1 : 0;
-      lineMat.uniforms.time.value += delta;
-    }
+    // sin(time * 2) is PI-periodic; bound time to avoid float precision drift in long sessions.
+    if (lineMat) lineMat.uniforms.time.value = state.clock.elapsedTime % Math.PI;
     // Observatory anchors camera at Earth's heliocentric position (~1 AU); the fade
     // thresholds below are heliocentric and would misfire as Earth orbits. Pin bright.
     if (OBSERVATORY_MODE) {

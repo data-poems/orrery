@@ -473,8 +473,15 @@ interface ColoredLineData {
   count: number;
 }
 
-function useConstellationLineData(): ColoredLineData | null {
-  const [data, setData] = useState<ColoredLineData | null>(null);
+interface ColoredLineDataWithIds extends ColoredLineData {
+  /** featureIds[i] gives the constellation feature index for vertex i. */
+  featureIds: Uint16Array;
+  /** featureIdMap[idx] gives the IAU abbreviation for that feature index. */
+  featureIdMap: string[];
+}
+
+function useConstellationLineData(): ColoredLineDataWithIds | null {
+  const [data, setData] = useState<ColoredLineDataWithIds | null>(null);
 
   useEffect(() => {
     fetch(BASE_PATH + 'constellations.lines.json')
@@ -482,9 +489,12 @@ function useConstellationLineData(): ColoredLineData | null {
       .then((geojson: ConstellationLineGeoJson) => {
         const segments: number[] = [];
         const segColors: number[] = [];
+        const segFeatureIds: number[] = [];
+        const featureIdMap: string[] = [];
 
         geojson.features.forEach((feature, featureIdx) => {
           const baseId = String(feature.id || '');
+          featureIdMap[featureIdx] = baseId;
           const [cr, cg, cb] = constellationColor(featureIdx, baseId);
           const coords = feature.geometry.coordinates;
           for (const lineString of coords) {
@@ -499,6 +509,7 @@ function useConstellationLineData(): ColoredLineData | null {
                 const p2 = arc[j + 1];
                 segments.push(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
                 segColors.push(cr, cg, cb, cr, cg, cb);
+                segFeatureIds.push(featureIdx, featureIdx);
               }
             }
           }
@@ -508,6 +519,8 @@ function useConstellationLineData(): ColoredLineData | null {
           positions: new Float32Array(segments),
           colors: new Float32Array(segColors),
           count: segments.length / 3,
+          featureIds: new Uint16Array(segFeatureIds),
+          featureIdMap,
         });
       })
       .catch(() => {});
@@ -516,25 +529,37 @@ function useConstellationLineData(): ColoredLineData | null {
   return data;
 }
 
-/** Glow line shader — additive blending with vertex colors */
+/** Glow line shader — additive blending with vertex colors. Selected constellation
+ *  gets full opacity + a subtle pulse; everything else dims to ~15%. */
 const glowLineVertexShader = `
   attribute vec3 color;
+  attribute float highlight;
   varying vec3 vColor;
+  varying float vHighlight;
   void main() {
     vColor = color;
+    vHighlight = highlight;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `;
 
 const glowLineFragmentShader = `
   varying vec3 vColor;
+  varying float vHighlight;
   uniform float opacity;
+  uniform float hasSelection;
+  uniform float time;
   void main() {
-    gl_FragColor = vec4(vColor, opacity);
+    float pulse = 1.0 + 0.18 * sin(time * 2.0);
+    float dim = opacity * 0.15;
+    float bright = min(1.0, opacity * pulse + 0.08);
+    float selected = mix(dim, bright, vHighlight);
+    float op = mix(opacity, selected, hasSelection);
+    gl_FragColor = vec4(vColor, op);
   }
 `;
 
-export function ConstellationLines({ visible, focus, onLoad }: { visible: boolean; focus?: boolean; onLoad?: () => void }) {
+export function ConstellationLines({ visible, focus, onLoad, selectedId }: { visible: boolean; focus?: boolean; onLoad?: () => void; selectedId: string | null }) {
   const lineData = useConstellationLineData();
   const { camera } = useThree();
 
@@ -542,23 +567,49 @@ export function ConstellationLines({ visible, focus, onLoad }: { visible: boolea
     if (lineData) onLoad?.();
   }, [lineData, onLoad]);
   const lineMatRef = useRef<THREE.ShaderMaterial | null>(null);
-  const lineUniforms = useMemo(() => ({ opacity: { value: 0.72 } }), []);
+  const lineUniforms = useMemo(() => ({
+    opacity: { value: 0.72 },
+    hasSelection: { value: 0 },
+    time: { value: 0 },
+  }), []);
 
   const geometry = useMemo(() => {
     if (!lineData) return null;
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(lineData.positions, 3));
     geo.setAttribute('color', new THREE.BufferAttribute(lineData.colors, 3));
+    geo.setAttribute('highlight', new THREE.BufferAttribute(new Float32Array(lineData.featureIds.length), 1));
     return geo;
   }, [lineData]);
 
+  // Update highlight attribute when selectedId changes (cheap — just iterate vertex array).
+  useEffect(() => {
+    if (!geometry || !lineData) return;
+    const attr = geometry.getAttribute('highlight') as THREE.BufferAttribute;
+    const arr = attr.array as Float32Array;
+    const targetIdx = selectedId ? lineData.featureIdMap.indexOf(selectedId) : -1;
+    if (targetIdx < 0) {
+      arr.fill(0);
+    } else {
+      const ids = lineData.featureIds;
+      for (let i = 0; i < arr.length; i++) {
+        arr[i] = ids[i] === targetIdx ? 1 : 0;
+      }
+    }
+    attr.needsUpdate = true;
+  }, [selectedId, geometry, lineData]);
+
   // Distance-based fade (boosted in focus mode)
-  useFrame(() => {
+  useFrame((_, delta) => {
     if (!visible) return;
+    const lineMat = lineMatRef.current;
+    if (lineMat) {
+      lineMat.uniforms.hasSelection.value = selectedId ? 1 : 0;
+      lineMat.uniforms.time.value += delta;
+    }
     // Observatory anchors camera at Earth's heliocentric position (~1 AU); the fade
     // thresholds below are heliocentric and would misfire as Earth orbits. Pin bright.
     if (OBSERVATORY_MODE) {
-      const lineMat = lineMatRef.current;
       if (lineMat) lineMat.uniforms.opacity.value = focus ? 0.92 : 0.34;
       return;
     }
@@ -578,7 +629,6 @@ export function ConstellationLines({ visible, focus, onLoad }: { visible: boolea
       else if (dist > 500) opacity = 0.55;
       else if (dist > 200) opacity = base - (dist - 200) / 300 * (base - 0.55);
     }
-    const lineMat = lineMatRef.current;
     if (!lineMat) return;
     lineMat.uniforms.opacity.value = opacity;
   });
@@ -742,6 +792,7 @@ export function ConstellationLabels({ visible, focus, onSelect, onLoad, selected
                     color: selected ? accent : c.color,
                     opacity: dimmed ? labelOpacity * 0.25 : selected ? 1 : labelOpacity,
                     fontSize: focus ? (selected ? 32 : 24) : (selected ? 16 : 10),
+                    transition: 'opacity 0.35s ease, color 0.35s ease, font-size 0.35s ease, text-shadow 0.35s ease',
                     fontFamily: "'Cormorant Garamond', serif",
                     fontStyle: 'italic',
                     fontWeight: 400,
@@ -750,7 +801,9 @@ export function ConstellationLabels({ visible, focus, onSelect, onLoad, selected
                     userSelect: 'none',
                     textAlign: 'center',
                     lineHeight: 1.3,
-                    textShadow: `0 0 10px ${c.color}, 0 0 24px ${c.color}, 0 0 36px rgba(0,0,0,0.9)`,
+                    textShadow: selected
+                      ? `0 0 14px ${accent}, 0 0 32px ${accent}, 0 0 48px rgba(0,0,0,0.95)`
+                      : `0 0 10px ${c.color}, 0 0 24px ${c.color}, 0 0 36px rgba(0,0,0,0.9)`,
                     cursor: onSelect ? 'pointer' : 'default',
                     position: 'relative',
                     minWidth: focus && c.symbol ? 200 : 210,

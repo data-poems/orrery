@@ -654,6 +654,12 @@ function OrreryInner() {
       if (k === 'o') setShowDeepSpace(p => !p);
       if (k === 'escape') {
         if (panelOpen) { setPanelOpen(false); return; }
+        if (OBSERVATORY_MODE) {
+          setSelConstellation(null);
+          setSelAsterism(null);
+          setSelDeepSky(null);
+          return;
+        }
         navigateBack();
         setSelNeo(null);
         setSelComet(null);

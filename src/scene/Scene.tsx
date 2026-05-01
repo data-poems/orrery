@@ -308,6 +308,8 @@ export interface SceneProps {
   onConstellationSelect?: (id: string) => void;
   onAsterismSelect?: (name: string) => void;
   onDeepSkySelect?: (id: string) => void;
+  selConstellationId?: string | null;
+  accentColor?: string;
 }
 
 export default function Scene({
@@ -320,6 +322,7 @@ export default function Scene({
   selComet, setSelComet, selMeteor, setSelMeteor, selSatellite, setSelSatellite,
   selSpacecraft, setSelSpacecraft,
   onConstellationSelect, onAsterismSelect, onDeepSkySelect,
+  selConstellationId, accentColor,
 }: SceneProps) {
   const [hov, setHov] = useState<number | null>(null);
   const [hovMoon, setHovMoon] = useState<number | null>(null);
@@ -399,7 +402,7 @@ export default function Scene({
       ))}
       <StarField visible={showStars} showDesignations={showConstellations} onLoad={() => onLoadComplete?.('stars')} />
       <ConstellationLines visible={showConstellations && cameraDistance < 600} focus={constellationFocus} onLoad={() => onLoadComplete?.('constellationLines')} />
-      <ConstellationLabels visible={showConstellations && cameraDistance < 600} focus={constellationFocus} onSelect={onConstellationSelect} onLoad={() => onLoadComplete?.('constellations')} />
+      <ConstellationLabels visible={showConstellations && cameraDistance < 600} focus={constellationFocus} onSelect={onConstellationSelect} onLoad={() => onLoadComplete?.('constellations')} selectedId={selConstellationId} accent={accentColor} />
       <AsterismField visible={showAsterisms && cameraDistance < 600} onSelect={onAsterismSelect} />
       <DeepSkyField visible={showDeepSky} onLoad={() => onLoadComplete?.('deepsky')} onSelect={onDeepSkySelect} />
       <CometField

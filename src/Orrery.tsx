@@ -12,7 +12,7 @@ import { ALL_BODIES, CAMS, camIndex } from './data/planets';
 import { getMoonsForPlanet } from './data/moons';
 import type { NEO, FocusTarget } from './lib/kepler';
 import { julianDate, moonPhase } from './lib/kepler';
-import { ThemeProvider } from './lib/themes';
+import { ThemeProvider, useTheme } from './lib/themes';
 import type { CometDef } from './data/comets';
 import type { MeteorShower } from './scene/Meteors';
 import type { SatellitePosition } from './lib/satellites';
@@ -128,6 +128,7 @@ const CINEMATIC_DEFAULTS: Omit<CinematicStep, 'duration' | 'label'> = {
 };
 
 function OrreryInner() {
+  const { theme } = useTheme();
   const neoCacheKey = useMemo(() => getTodayNeoCacheKey(), []);
   const initialNeoCache = useMemo(() => readNeoCache(neoCacheKey), [neoCacheKey]);
   const [neos, setNeos] = useState<NEO[]>(() => initialNeoCache ?? []);
@@ -688,6 +689,11 @@ function OrreryInner() {
           setCanvasCreated(true);
           if (cinematic) startCinematicTour();
         }}
+        onPointerMissed={OBSERVATORY_MODE ? () => {
+          setSelConstellation(null);
+          setSelAsterism(null);
+          setSelDeepSky(null);
+        } : undefined}
       >
         <Suspense fallback={null}>
           <Scene
@@ -710,6 +716,8 @@ function OrreryInner() {
             onConstellationSelect={(id) => { setSelConstellation(id); }}
             onAsterismSelect={(name) => { setSelAsterism(name); }}
             onDeepSkySelect={(id) => { setSelDeepSky(id); }}
+            selConstellationId={selConstellation}
+            accentColor={theme.uiAccent}
             constellationFocus={constellationFocus}
             cinematic={cinematic}
             cinematicRotateSpeed={cinematicRotateSpeed}

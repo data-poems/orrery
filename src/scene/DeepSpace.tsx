@@ -386,7 +386,7 @@ export function DeepSpaceField({ visible, selSpacecraft, setSelSpacecraft }: Dee
     <group>
       <MilkyWayBackdrop />
       {!OBSERVATORY_MODE && <OortCloud />}
-      <SpacecraftMarkers selSpacecraft={selSpacecraft} setSelSpacecraft={setSelSpacecraft} />
+      {!OBSERVATORY_MODE && <SpacecraftMarkers selSpacecraft={selSpacecraft} setSelSpacecraft={setSelSpacecraft} />}
       <NearStarMarkers />
       <GalaxyMarkers />
     </group>

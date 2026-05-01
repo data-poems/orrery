@@ -13,6 +13,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { ZODIAC_SYMBOLS, isZodiac, type ConstellationSymbolSvg } from '../data/constellation-symbols';
+import { OBSERVATORY_MODE } from '../lib/mode';
 import { raDecTo3D, ECLIPTIC_TILT, DEG } from '../lib/kepler';
 
 const SPHERE_RADIUS = 300;
@@ -554,6 +555,13 @@ export function ConstellationLines({ visible, focus, onLoad }: { visible: boolea
   // Distance-based fade (boosted in focus mode)
   useFrame(() => {
     if (!visible) return;
+    // Observatory anchors camera at Earth's heliocentric position (~1 AU); the fade
+    // thresholds below are heliocentric and would misfire as Earth orbits. Pin bright.
+    if (OBSERVATORY_MODE) {
+      const lineMat = lineMatRef.current;
+      if (lineMat) lineMat.uniforms.opacity.value = focus ? 0.92 : 0.34;
+      return;
+    }
     const dist = camera.position.length();
     const base = focus ? 0.92 : 0.34;
     const minFade = focus ? 0.42 : 0.03;
@@ -644,7 +652,7 @@ function useConstellationCentroids(): ConstellationCentroid[] {
   return centroids;
 }
 
-export function ConstellationLabels({ visible, focus, onSelect, onLoad }: { visible: boolean; focus?: boolean; onSelect?: (id: string) => void; onLoad?: () => void }) {
+export function ConstellationLabels({ visible, focus, onSelect, onLoad, selectedId, accent }: { visible: boolean; focus?: boolean; onSelect?: (id: string) => void; onLoad?: () => void; selectedId?: string | null; accent?: string }) {
   const centroids = useConstellationCentroids();
   const { camera } = useThree();
 
@@ -674,18 +682,20 @@ export function ConstellationLabels({ visible, focus, onSelect, onLoad }: { visi
     if (now - lastLabelUpdateRef.current < LABEL_UPDATE_INTERVAL_MS) return;
     lastLabelUpdateRef.current = now;
 
-    const dist = camera.position.length();
     const base = focus ? 0.85 : 0.4;
     let opacity = base;
-    if (!focus) {
-      if (dist < 1) opacity = 0;
-      else if (dist < 5) opacity = base * ((dist - 1) / 4);
-      else if (dist > 500) opacity = 0.05;
-      else if (dist > 200) opacity = base - (dist - 200) / 300 * (base - 0.05);
-    } else {
-      if (dist < 1) opacity = 0.3;
-      else if (dist > 500) opacity = 0.4;
-      else if (dist > 200) opacity = base - (dist - 200) / 300 * (base - 0.4);
+    if (!OBSERVATORY_MODE) {
+      const dist = camera.position.length();
+      if (!focus) {
+        if (dist < 1) opacity = 0;
+        else if (dist < 5) opacity = base * ((dist - 1) / 4);
+        else if (dist > 500) opacity = 0.05;
+        else if (dist > 200) opacity = base - (dist - 200) / 300 * (base - 0.05);
+      } else {
+        if (dist < 1) opacity = 0.3;
+        else if (dist > 500) opacity = 0.4;
+        else if (dist > 200) opacity = base - (dist - 200) / 300 * (base - 0.4);
+      }
     }
     if (Math.abs(labelOpacityRef.current - opacity) > 0.02) {
       labelOpacityRef.current = opacity;
@@ -726,9 +736,9 @@ export function ConstellationLabels({ visible, focus, onSelect, onLoad }: { visi
                 <div
                   onClick={onSelect ? (e) => { e.stopPropagation(); onSelect(c.id); } : undefined}
                   style={{
-                    color: c.color,
-                    opacity: labelOpacity,
-                    fontSize: focus ? 24 : 10,
+                    color: selectedId === c.id && accent ? accent : c.color,
+                    opacity: selectedId && selectedId !== c.id ? labelOpacity * 0.25 : (selectedId === c.id ? 1 : labelOpacity),
+                    fontSize: selectedId === c.id ? (focus ? 32 : 16) : (focus ? 24 : 10),
                     fontFamily: "'Cormorant Garamond', serif",
                     fontStyle: 'italic',
                     fontWeight: 400,

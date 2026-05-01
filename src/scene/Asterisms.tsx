@@ -9,6 +9,7 @@ import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { ASTERISMS } from '../data/asterisms';
 import { raDecTo3D, ECLIPTIC_TILT } from '../lib/kepler';
+import { OBSERVATORY_MODE } from '../lib/mode';
 
 const SPHERE_RADIUS = 300;
 
@@ -49,9 +50,13 @@ export function AsterismField({ visible, onSelect }: { visible: boolean; onSelec
   useFrame(() => {
     if (!visible || !groupRef.current) return;
     groupRef.current.position.copy(camera.position);
-    const dist = camera.position.length();
     if (matRef.current) {
-      matRef.current.opacity = dist > 500 ? Math.max(0.02, 0.25 * (1 - (dist - 500) / 500)) : 0.25;
+      if (OBSERVATORY_MODE) {
+        matRef.current.opacity = 0.25;
+      } else {
+        const dist = camera.position.length();
+        matRef.current.opacity = dist > 500 ? Math.max(0.02, 0.25 * (1 - (dist - 500) / 500)) : 0.25;
+      }
     }
   });
 

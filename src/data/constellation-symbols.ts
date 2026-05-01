@@ -86,10 +86,10 @@ export const ZODIAC_SYMBOLS: Record<string, ConstellationSymbolSvg> = {
     'M12 40 C18 30 24 30 30 40 C36 50 42 50 48 40 C54 30 60 30 66 40 C72 50 78 50 84 40',
     'M12 64 C18 54 24 54 30 64 C36 74 42 74 48 64 C54 54 60 54 66 64 C72 74 78 74 84 64',
   ] },
-  // Pisces ♓ — two arcs with bar
+  // Pisces ♓ — two crescents opening outward, joined by a horizontal bar
   Psc: { viewBox: VB, paths: [
-    'M28 18 C16 28 14 42 14 50 C14 58 16 72 28 82',
-    'M72 18 C84 28 86 42 86 50 C86 58 84 72 72 82',
+    'M14 18 C26 28 28 42 28 50 C28 58 26 72 14 82',
+    'M86 18 C74 28 72 42 72 50 C72 58 74 72 86 82',
     'M28 50 L72 50',
   ] },
 };

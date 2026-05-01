@@ -1348,8 +1348,8 @@ export default function Panels(props: PanelProps) {
   return (
     <>
       {cinematicOverlay}
-      {/* Panel drawer tab (desktop only — mobile uses bottom toolbar gear) */}
-      {!mobile && <button
+      {/* Panel drawer tab (desktop only — mobile uses bottom toolbar gear; hidden in observatory) */}
+      {!mobile && !observatoryMode && <button
         onClick={() => setPanelOpen((p: boolean) => !p)}
         onMouseEnter={() => { if (!mobile) startPeek(); }}
         onMouseLeave={() => { if (!mobile && !panelOpen) endPeek(); }}
@@ -1406,7 +1406,7 @@ export default function Panels(props: PanelProps) {
           </g>
         </svg>
       </button>}
-      <SideDrawer
+      {!observatoryMode && <SideDrawer
         open={panelVisible && !mobile}
         accent={accent}
         accentRgb={accentRgb}
@@ -1448,7 +1448,7 @@ export default function Panels(props: PanelProps) {
         onHoverEnd={() => { if (!mobile && !panelOpen) endPeek(); }}
         panelFontScale={panelFontScale}
         observatoryMode={observatoryMode}
-      />
+      />}
 
       {/* ── Background blur overlay when body selected (hidden in observatory mode) ── */}
       {sp && !observatoryMode && (
@@ -1594,7 +1594,7 @@ export default function Panels(props: PanelProps) {
       )}
 
       {/* ── Scale indicator ── */}
-      {!mobile && <ScaleIndicator cameraDistance={cameraDistance} />}
+      {!mobile && !observatoryMode && <ScaleIndicator cameraDistance={cameraDistance} />}
 
       {/* ── Selected NEO detail ── */}
       {selNeo && (
@@ -1656,8 +1656,8 @@ export default function Panels(props: PanelProps) {
       </div>
 
       {/* ── Zoom controls + stargazer toggle (desktop only) ── */}
-      {!mobile && <ZoomControls />}
-      {!mobile && !cinematic && (
+      {!mobile && !observatoryMode && <ZoomControls />}
+      {!mobile && !cinematic && !observatoryMode && (
         <button
           onClick={() => {
             setConstellationFocus(p => !p);

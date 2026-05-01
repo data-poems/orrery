@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { OBSERVATORY_MODE } from '../lib/mode';
 
 export default function LoadingScreen({ ready, progress = 0 }: { ready: boolean; progress?: number }) {
   const [visible, setVisible] = useState(true);
@@ -17,10 +18,13 @@ export default function LoadingScreen({ ready, progress = 0 }: { ready: boolean;
 
   if (!visible) return null;
 
+  const title = OBSERVATORY_MODE ? 'Observatory' : 'Orrery';
+  const tagline = OBSERVATORY_MODE ? 'Look up.' : 'Real data. Real time.';
+
   return (
     <div
       role="alert"
-      aria-label="Loading solar system"
+      aria-label={`Loading ${title.toLowerCase()}`}
       style={{
         position: 'absolute', inset: 0, zIndex: 100,
         background: '#000',
@@ -38,7 +42,7 @@ export default function LoadingScreen({ ready, progress = 0 }: { ready: boolean;
         textTransform: 'uppercase', fontWeight: 300,
         marginBottom: 14,
       }}>
-        Orrery
+        {title}
       </div>
 
       <div style={{
@@ -47,7 +51,7 @@ export default function LoadingScreen({ ready, progress = 0 }: { ready: boolean;
         fontWeight: 300, letterSpacing: 2,
         marginBottom: 32,
       }}>
-        Real data. Real time.
+        {tagline}
       </div>
 
       <div style={{

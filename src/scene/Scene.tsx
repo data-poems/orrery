@@ -295,6 +295,8 @@ export interface SceneProps {
   selSatellite: SatellitePosition | null; setSelSatellite: (s: SatellitePosition | null) => void;
   selSpacecraft: Spacecraft | null; setSelSpacecraft: (s: Spacecraft | null) => void;
   onConstellationSelect?: (id: string) => void;
+  onAsterismSelect?: (name: string) => void;
+  onDeepSkySelect?: (id: string) => void;
 }
 
 export default function Scene({
@@ -306,7 +308,7 @@ export default function Scene({
   showBodyGlyphs = false,
   selComet, setSelComet, selMeteor, setSelMeteor, selSatellite, setSelSatellite,
   selSpacecraft, setSelSpacecraft,
-  onConstellationSelect,
+  onConstellationSelect, onAsterismSelect, onDeepSkySelect,
 }: SceneProps) {
   const [hov, setHov] = useState<number | null>(null);
   const [hovMoon, setHovMoon] = useState<number | null>(null);
@@ -387,8 +389,8 @@ export default function Scene({
       <StarField visible={showStars} showDesignations={showConstellations} onLoad={() => onLoadComplete?.('stars')} />
       <ConstellationLines visible={showConstellations && cameraDistance < 600} focus={constellationFocus} onLoad={() => onLoadComplete?.('constellationLines')} />
       <ConstellationLabels visible={showConstellations && cameraDistance < 600} focus={constellationFocus} onSelect={onConstellationSelect} onLoad={() => onLoadComplete?.('constellations')} />
-      <AsterismField visible={showAsterisms && cameraDistance < 600} />
-      <DeepSkyField visible={showDeepSky} onLoad={() => onLoadComplete?.('deepsky')} />
+      <AsterismField visible={showAsterisms && cameraDistance < 600} onSelect={onAsterismSelect} />
+      <DeepSkyField visible={showDeepSky} onLoad={() => onLoadComplete?.('deepsky')} onSelect={onDeepSkySelect} />
       <CometField
         jd={jd}
         visible={showComets}

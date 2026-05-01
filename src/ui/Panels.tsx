@@ -10,14 +10,36 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import type { NEO, CamPreset } from '../lib/kepler';
-import { ALL_BODIES } from '../data/planets';
+import { ALL_BODIES, camIndex } from '../data/planets';
 import { getMoonsForPlanet } from '../data/moons';
 import { useTheme, THEMES } from '../lib/themes';
 import { bokehCard, drawerPanel, drawerTab, bottomSheet, useIsMobile } from './styles';
 import type { CometDef } from '../data/comets';
 import type { MeteorShower } from '../scene/Meteors';
 import type { SatellitePosition } from '../lib/satellites';
-import { MYTHOLOGY } from '../data/mythology';
+import { MYTHOLOGY, CONSTELLATION_NAMES, seasonForMonth, type SeasonName } from '../data/mythology';
+import { ASTERISMS } from '../data/asterisms';
+
+// Group MYTHOLOGY entries into Northern-hemisphere season buckets. Constellations
+// whose season string is "Spring (S)" etc. fall back to their literal first word.
+const SEASON_ORDER: SeasonName[] = ['Spring', 'Summer', 'Autumn', 'Winter'];
+const CONSTELLATIONS_BY_SEASON: Record<SeasonName, { abbrev: string; suffix: string }[]> = (() => {
+  const groups: Record<SeasonName, { abbrev: string; suffix: string }[]> = {
+    Spring: [], Summer: [], Autumn: [], Winter: [],
+  };
+  for (const [abbrev, info] of Object.entries(MYTHOLOGY)) {
+    const word = info.season.split(' ')[0] as SeasonName;
+    if (groups[word]) {
+      const m = info.season.match(/\((S|N)\)/);
+      groups[word].push({ abbrev, suffix: m ? `(${m[1]})` : '' });
+    }
+  }
+  for (const s of SEASON_ORDER) {
+    groups[s].sort((a, b) =>
+      (CONSTELLATION_NAMES[a.abbrev] ?? a.abbrev).localeCompare(CONSTELLATION_NAMES[b.abbrev] ?? b.abbrev));
+  }
+  return groups;
+})();
 
 // ─── Tiny UI primitives ─────────────────────────────────────────────────────────
 
@@ -396,6 +418,126 @@ function MiniAccordion({
   );
 }
 
+// ─── Deep Sky info popup (fetches deepsky.json on demand) ──────────────────
+
+interface DeepSkyEntry {
+  id: string; name: string; type: string; ra: number; dec: number;
+  mag: number; con: string; size: number;
+}
+
+let deepSkyCache: DeepSkyEntry[] | null = null;
+let deepSkyPromise: Promise<DeepSkyEntry[]> | null = null;
+
+function loadDeepSky(): Promise<DeepSkyEntry[]> {
+  if (deepSkyCache) return Promise.resolve(deepSkyCache);
+  if (deepSkyPromise) return deepSkyPromise;
+  deepSkyPromise = fetch(import.meta.env.BASE_URL + 'data/deepsky.json')
+    .then(r => r.json() as Promise<DeepSkyEntry[]>)
+    .then(d => { deepSkyCache = d; return d; });
+  return deepSkyPromise;
+}
+
+const DEEP_SKY_TYPE_LABEL: Record<string, string> = {
+  galaxy: 'Galaxy', globular: 'Globular cluster',
+  open: 'Open cluster', nebula: 'Nebula',
+};
+
+function DeepSkyInfo({ selDeepSky, accent, onClose }: {
+  selDeepSky: string; accent: string; onClose: () => void;
+}) {
+  const [obj, setObj] = useState<DeepSkyEntry | null>(null);
+  useEffect(() => {
+    let alive = true;
+    loadDeepSky().then(d => {
+      if (alive) setObj(d.find(o => o.id === selDeepSky) ?? null);
+    });
+    return () => { alive = false; };
+  }, [selDeepSky]);
+  if (!obj) return null;
+  const constellationName = CONSTELLATION_NAMES[obj.con] ?? obj.con;
+  const typeLabel = DEEP_SKY_TYPE_LABEL[obj.type] ?? obj.type;
+  return (
+    <InfoPanel
+      sectionTitle="Deep Sky"
+      title={obj.name || obj.id}
+      subtitle={`${typeLabel} · in ${constellationName}`}
+      description="" accent={accent}
+      onClose={onClose} closeLabel="Close deep sky info"
+    >
+      <div style={{
+        display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px',
+        marginTop: 10, color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 300,
+      }}>
+        {obj.id !== obj.name && <div>Catalog <span style={{ color: '#fff' }}>{obj.id}</span></div>}
+        <div>Magnitude <span style={{ color: '#fff' }}>{obj.mag.toFixed(1)}</span></div>
+        {obj.size > 0 && <div>Size <span style={{ color: '#fff' }}>{obj.size.toFixed(1)}′</span></div>}
+      </div>
+    </InfoPanel>
+  );
+}
+
+// ─── Tonight's Sky (observatory-mode constellation index by season) ──────────
+
+function TonightsSky({
+  simTime, accent, accentRgb, mobile, selConstellation, setSelConstellation,
+}: {
+  simTime: Date; accent: string; accentRgb: string; mobile: boolean;
+  selConstellation: string | null;
+  setSelConstellation: (id: string | null) => void;
+}) {
+  const currentSeason = seasonForMonth(simTime.getMonth());
+  return (
+    <AccordionSection title="Tonight's Sky" accent={accent} defaultOpen>
+      <div style={{
+        padding: '0 16px 8px', color: 'rgba(255,255,255,0.6)',
+        fontSize: 11, fontStyle: 'italic', fontWeight: 300,
+      }}>
+        Best viewing by season · click a constellation to highlight it
+      </div>
+      {SEASON_ORDER.map(season => (
+        <MiniAccordion
+          key={season}
+          title={season === currentSeason ? `${season} · now` : season}
+          defaultOpen={season === currentSeason}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {CONSTELLATIONS_BY_SEASON[season].map(b => (
+              <button
+                key={b.abbrev}
+                onClick={() => setSelConstellation(b.abbrev)}
+                style={{
+                  background: selConstellation === b.abbrev ? `rgba(${accentRgb},0.16)` : 'transparent',
+                  border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                  color: selConstellation === b.abbrev ? accent : 'rgba(255,255,255,0.7)',
+                  padding: mobile ? '8px 16px' : '5px 16px',
+                  fontSize: mobile ? 14 : 13,
+                  fontWeight: selConstellation === b.abbrev ? 500 : 300,
+                  textAlign: 'left', width: '100%',
+                  minHeight: mobile ? 40 : 'auto',
+                  display: 'flex', justifyContent: 'space-between', gap: 6,
+                }}
+              >
+                <span>{CONSTELLATION_NAMES[b.abbrev] ?? b.abbrev}</span>
+                {b.suffix && (
+                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, alignSelf: 'center' }}>
+                    {b.suffix}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </MiniAccordion>
+      ))}
+      <div style={{
+        padding: '8px 16px 0', color: 'rgba(255,255,255,0.5)',
+        fontSize: 10, fontWeight: 300, lineHeight: 1.5,
+      }}>
+        (S) marks constellations best seen from the southern hemisphere.
+      </div>
+    </AccordionSection>
+  );
+}
+
 // ─── Side Drawer ────────────────────────────────────────────────────────────────
 
 function SideDrawer({
@@ -412,10 +554,13 @@ function SideDrawer({
   setShowDwarf, setShowAsteroidBelt, setShowComets, setShowMeteors, setShowSatellites: _setShowSatellites, setShowDeepSky,
   setShowDeepSpace,
   selConstellation, setSelConstellation,
+  selAsterism, setSelAsterism,
+  selDeepSky, setSelDeepSky,
   selSpacecraft, setSelSpacecraft,
   onHoverStart,
   onHoverEnd,
   panelFontScale,
+  observatoryMode,
 }: {
   open: boolean;
   accent: string;
@@ -451,11 +596,14 @@ function SideDrawer({
   showDeepSky: boolean; setShowDeepSky: (fn: (p: boolean) => boolean) => void;
   showDeepSpace: boolean; setShowDeepSpace: (fn: (p: boolean) => boolean) => void;
   selConstellation: string | null; setSelConstellation: (id: string | null) => void;
+  selAsterism: string | null; setSelAsterism: (name: string | null) => void;
+  selDeepSky: string | null; setSelDeepSky: (id: string | null) => void;
   selSpacecraft: import('../data/deepspace').Spacecraft | null;
   setSelSpacecraft: (s: import('../data/deepspace').Spacecraft | null) => void;
   onHoverStart?: () => void;
   onHoverEnd?: () => void;
   panelFontScale: number;
+  observatoryMode: boolean;
 }) {
   const { theme, setTheme } = useTheme();
 
@@ -600,14 +748,21 @@ function SideDrawer({
         </div>
       </AccordionSection>
 
+      {observatoryMode && (
+        <TonightsSky
+          simTime={simTime} accent={accent} accentRgb={accentRgb} mobile={mobile}
+          selConstellation={selConstellation} setSelConstellation={setSelConstellation}
+        />
+      )}
+
       <AccordionSection title="Go To" accent={accent} defaultOpen={openCore}>
         {(() => {
         // Group presets logically: close → system → far → special
         const groups: { title: string; items: { label: string; idx: number }[] }[] = [
-          { title: 'Close', items: ['Sun', 'Inner', 'Belt'].map(l => ({ label: l, idx: cams.findIndex(c => c.label === l) })).filter(x => x.idx >= 0) },
-          { title: 'System', items: ['System', 'Top', 'Ecliptic'].map(l => ({ label: l, idx: cams.findIndex(c => c.label === l) })).filter(x => x.idx >= 0) },
-          { title: 'Deep', items: ['Outer', 'Kuiper', 'Oort', 'Stellar'].map(l => ({ label: l, idx: cams.findIndex(c => c.label === l) })).filter(x => x.idx >= 0) },
-          { title: 'Views', items: ['Screensaver', 'Stargazer'].map(l => ({ label: l, idx: cams.findIndex(c => c.label === l) })).filter(x => x.idx >= 0) },
+          { title: 'Close', items: ['Sun', 'Inner', 'Belt'].map(l => ({ label: l, idx: camIndex(l) })).filter(x => x.idx >= 0) },
+          { title: 'System', items: ['System', 'Top', 'Ecliptic'].map(l => ({ label: l, idx: camIndex(l) })).filter(x => x.idx >= 0) },
+          { title: 'Deep', items: (observatoryMode ? ['Outer', 'Kuiper'] : ['Outer', 'Kuiper', 'Oort', 'Stellar']).map(l => ({ label: l, idx: camIndex(l) })).filter(x => x.idx >= 0) },
+          { title: 'Views', items: ['Screensaver', 'Stargazer'].map(l => ({ label: l, idx: camIndex(l) })).filter(x => x.idx >= 0) },
         ];
         const btnStyle = {
           background: 'rgba(255,255,255,0.04)',
@@ -638,7 +793,7 @@ function SideDrawer({
         {/* Sun */}
         <div role="treeitem">
           <button
-            onClick={() => onPresetSelect(cams.findIndex(c => c.label === 'Sun'))}
+            onClick={() => onPresetSelect(camIndex('Sun'))}
             style={{
               display: 'flex', alignItems: 'center', gap: 8, width: '100%',
               padding: mobile ? '10px 16px' : '6px 16px',
@@ -854,7 +1009,8 @@ function SideDrawer({
         const info = MYTHOLOGY[selConstellation];
         return (
           <InfoPanel
-            sectionTitle="Constellation" title={selConstellation}
+            sectionTitle="Constellation"
+            title={CONSTELLATION_NAMES[selConstellation] ?? selConstellation}
             subtitle={`${info.origin} \u00b7 Best: ${info.season}`}
             description="" accent={accent}
             onClose={() => setSelConstellation(null)} closeLabel="Close constellation info"
@@ -877,6 +1033,25 @@ function SideDrawer({
           </InfoPanel>
         );
       })()}
+
+      {/* ── Asterism Info (when selected) ── */}
+      {selAsterism && (() => {
+        const ast = ASTERISMS.find(a => a.name === selAsterism);
+        if (!ast) return null;
+        return (
+          <InfoPanel
+            sectionTitle="Asterism" title={ast.name}
+            subtitle={`${ast.stars.length} stars`}
+            description={ast.description} accent={accent}
+            onClose={() => setSelAsterism(null)} closeLabel="Close asterism info"
+          />
+        );
+      })()}
+
+      {/* ── Deep Sky Info (when selected) ── */}
+      {selDeepSky && (
+        <DeepSkyInfo selDeepSky={selDeepSky} accent={accent} onClose={() => setSelDeepSky(null)} />
+      )}
 
       {/* ── Spacecraft Info (when selected) ── */}
       {selSpacecraft && (
@@ -986,6 +1161,8 @@ export interface PanelProps {
   showSatellites: boolean; setShowSatellites: (fn: (p: boolean) => boolean) => void;
   showDeepSky: boolean; setShowDeepSky: (fn: (p: boolean) => boolean) => void;
   selConstellation: string | null; setSelConstellation: (id: string | null) => void;
+  selAsterism: string | null; setSelAsterism: (name: string | null) => void;
+  selDeepSky: string | null; setSelDeepSky: (id: string | null) => void;
   panelOpen: boolean; setPanelOpen: (fn: boolean | ((p: boolean) => boolean)) => void;
   cinematic: boolean;
   navStack: string[];
@@ -1003,6 +1180,7 @@ export interface PanelProps {
   showDeepSpace: boolean; setShowDeepSpace: (fn: (p: boolean) => boolean) => void;
   selSpacecraft: import('../data/deepspace').Spacecraft | null;
   setSelSpacecraft: (s: import('../data/deepspace').Spacecraft | null) => void;
+  observatoryMode: boolean;
 }
 
 export default function Panels(props: PanelProps) {
@@ -1021,6 +1199,8 @@ export default function Panels(props: PanelProps) {
     showSatellites, setShowSatellites,
     showDeepSky, setShowDeepSky,
     selConstellation, setSelConstellation,
+    selAsterism, setSelAsterism,
+    selDeepSky, setSelDeepSky,
     panelOpen, setPanelOpen,
     cinematic,
     navStack,
@@ -1030,6 +1210,7 @@ export default function Panels(props: PanelProps) {
     selComet, selMeteor, selSatellite,
     showDeepSpace, setShowDeepSpace,
     selSpacecraft, setSelSpacecraft,
+    observatoryMode,
   } = props;
 
   const { theme } = useTheme();
@@ -1155,7 +1336,7 @@ export default function Panels(props: PanelProps) {
           color: 'rgba(255,255,255,0.12)', fontSize: mobile ? 14 : 16,
           letterSpacing: 8, textTransform: 'uppercase', fontWeight: 300,
         }}>
-          Orrery
+          {observatoryMode ? 'Observatory' : 'Orrery'}
         </div>
       </div>
     );
@@ -1257,14 +1438,17 @@ export default function Panels(props: PanelProps) {
         showDeepSky={showDeepSky} setShowDeepSky={setShowDeepSky}
         showDeepSpace={showDeepSpace} setShowDeepSpace={setShowDeepSpace}
         selConstellation={selConstellation} setSelConstellation={setSelConstellation}
+        selAsterism={selAsterism} setSelAsterism={setSelAsterism}
+        selDeepSky={selDeepSky} setSelDeepSky={setSelDeepSky}
         selSpacecraft={selSpacecraft} setSelSpacecraft={setSelSpacecraft}
         onHoverStart={() => { if (!mobile) startPeek(); }}
         onHoverEnd={() => { if (!mobile && !panelOpen) endPeek(); }}
         panelFontScale={panelFontScale}
+        observatoryMode={observatoryMode}
       />
 
-      {/* ── Background blur overlay when body selected ── */}
-      {sp && (
+      {/* ── Background blur overlay when body selected (hidden in observatory mode) ── */}
+      {sp && !observatoryMode && (
         <div
           aria-hidden="true"
           style={{
@@ -1281,8 +1465,8 @@ export default function Panels(props: PanelProps) {
         />
       )}
 
-      {/* ── Planet/Moon info card ── */}
-      {(sp || selectedMoon) && (
+      {/* ── Planet/Moon info card (hidden in observatory mode for a clean sky view) ── */}
+      {!observatoryMode && (sp || selectedMoon) && (
         <div
           role="dialog"
           aria-label={selectedMoon ? `${selectedMoon.name} details` : `${sp!.name} details`}
@@ -1465,7 +1649,7 @@ export default function Panels(props: PanelProps) {
         onKeyDown={e => { if (e.key === 'Enter') setShowInfo(p => !p); }}
         style={{ position: 'absolute', top: 14, left: 14, color: 'rgba(255,255,255,0.7)', fontSize: mobile ? 14 : 15, letterSpacing: 5, textTransform: 'uppercase', zIndex: 5, fontWeight: 300, cursor: 'pointer' }}
       >
-        Orrery
+        {observatoryMode ? 'Observatory' : 'Orrery'}
       </div>
 
       {/* ── Zoom controls + stargazer toggle (desktop only) ── */}
@@ -1502,8 +1686,8 @@ export default function Panels(props: PanelProps) {
           display: 'flex', alignItems: 'center', gap: 4,
           zIndex: 15,
         }}>
-          {['Inner', 'System', 'Outer', 'Oort'].map(label => {
-            const idx = cams.findIndex(c => c.label === label);
+          {(observatoryMode ? ['Inner', 'System', 'Outer'] : ['Inner', 'System', 'Outer', 'Oort']).map(label => {
+            const idx = camIndex(label);
             if (idx < 0) return null;
             const active = camIdx === idx;
             return (

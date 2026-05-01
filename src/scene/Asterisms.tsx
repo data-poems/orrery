@@ -12,7 +12,7 @@ import { raDecTo3D, ECLIPTIC_TILT } from '../lib/kepler';
 
 const SPHERE_RADIUS = 300;
 
-export function AsterismField({ visible }: { visible: boolean }) {
+export function AsterismField({ visible, onSelect }: { visible: boolean; onSelect?: (name: string) => void }) {
   const groupRef = useRef<THREE.Group>(null);
   const { camera } = useThree();
 
@@ -83,20 +83,29 @@ export function AsterismField({ visible }: { visible: boolean }) {
             <Html
               center
               distanceFactor={80}
-              style={{ pointerEvents: 'none' }}
+              style={{ pointerEvents: onSelect ? 'auto' : 'none' }}
               zIndexRange={[1, 0]}
             >
-              <div style={{
-                color: 'rgba(255,220,160,0.35)',
-                fontSize: 7,
-                fontFamily: "'Cormorant Garamond', serif",
-                fontWeight: 300,
-                fontStyle: 'italic',
-                whiteSpace: 'nowrap',
-                userSelect: 'none',
-                letterSpacing: 0.5,
-                textShadow: '0 0 8px rgba(255,180,60,0.2)',
-              }}>
+              <div
+                role={onSelect ? 'button' : undefined}
+                tabIndex={onSelect ? 0 : undefined}
+                onClick={onSelect ? (e) => { e.stopPropagation(); onSelect(c.name); } : undefined}
+                onKeyDown={onSelect ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(c.name); } } : undefined}
+                style={{
+                  color: 'rgba(255,220,160,0.5)',
+                  fontSize: 9,
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontWeight: 300,
+                  fontStyle: 'italic',
+                  whiteSpace: 'nowrap',
+                  userSelect: 'none',
+                  letterSpacing: 0.5,
+                  textShadow: '0 0 8px rgba(255,180,60,0.25)',
+                  cursor: onSelect ? 'pointer' : 'default',
+                  padding: '6px 10px',
+                  borderRadius: 3,
+                }}
+              >
                 {c.name}
               </div>
             </Html>

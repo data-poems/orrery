@@ -69,7 +69,7 @@ function useDeepSkyData(visible: boolean): DeepSkyObj[] | null {
   return data;
 }
 
-export function DeepSkyField({ visible, onLoad }: { visible: boolean; onLoad?: () => void }) {
+export function DeepSkyField({ visible, onLoad, onSelect }: { visible: boolean; onLoad?: () => void; onSelect?: (id: string) => void }) {
   const objects = useDeepSkyData(visible);
   const groupRef = useRef<THREE.Group>(null);
   const { camera } = useThree();
@@ -199,12 +199,17 @@ export function DeepSkyField({ visible, onLoad }: { visible: boolean; onLoad?: (
               <Html
                 center
                 distanceFactor={80}
-                style={{ pointerEvents: 'none' }}
+                style={{ pointerEvents: onSelect ? 'auto' : 'none' }}
                 zIndexRange={[1, 0]}
               >
-                <div style={{
+                <div
+                  role={onSelect ? 'button' : undefined}
+                  tabIndex={onSelect ? 0 : undefined}
+                  onClick={onSelect ? (e) => { e.stopPropagation(); onSelect(obj.id); } : undefined}
+                  onKeyDown={onSelect ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(obj.id); } } : undefined}
+                  style={{
                   color: TYPE_COLORS[obj.type] || 'rgba(180,200,255,0.3)',
-                  fontSize: obj.mag < 5 ? 7 : 6,
+                  fontSize: obj.mag < 5 ? 9 : 8,
                   fontFamily: "'Cormorant Garamond', serif",
                   fontWeight: 300,
                   whiteSpace: 'nowrap',
@@ -213,6 +218,9 @@ export function DeepSkyField({ visible, onLoad }: { visible: boolean; onLoad?: (
                   textShadow: '0 0 6px rgba(0,0,0,0.9)',
                   textAlign: 'center',
                   lineHeight: 1.2,
+                  cursor: onSelect ? 'pointer' : 'default',
+                  padding: '4px 6px',
+                  borderRadius: 3,
                 }}>
                   <span style={{ marginRight: 3 }}>{TYPE_SYMBOLS[obj.type] || '\u25CB'}</span>
                   {obj.id}

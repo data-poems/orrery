@@ -89,3 +89,10 @@ export const CAMS: CamPreset[] = [
   { key: '-', label: 'Stargazer', pos: [0, 3, 6],         tgt: [0, 0, 0] },
   { key: '=', label: 'Stellar',   pos: [0, 12000, 18000], tgt: [0, 0, 0] },
 ];
+
+const CAM_INDEX: Record<string, number> = Object.fromEntries(CAMS.map((c, i) => [c.label, i]));
+
+/** Look up a camera preset by label. Returns -1 if not found, matching `Array.findIndex` semantics. */
+export function camIndex(label: string): number {
+  return CAM_INDEX[label] ?? -1;
+}

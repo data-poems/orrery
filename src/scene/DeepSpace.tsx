@@ -1,5 +1,8 @@
 /*
  * Deep space layer — Oort Cloud, spacecraft, nearby stars, galaxy markers
+ *
+ * Observatory mode hides the Oort Cloud (it's a solar-system-scale element
+ * that doesn't fit a sky-and-inner-planets framing).
  */
 
 import { useMemo, useRef, useState, useEffect } from 'react';
@@ -12,6 +15,7 @@ import {
   heliocentricXYZ, raDecToSphere,
 } from '../data/deepspace';
 import { ECLIPTIC_TILT } from '../lib/kepler';
+import { OBSERVATORY_MODE } from '../lib/mode';
 import type { Spacecraft } from '../data/deepspace';
 
 // Simple additive-blended glow sphere used throughout deep space markers
@@ -50,9 +54,16 @@ function MilkyWayBackdrop() {
   const materialRef = useRef<THREE.ShaderMaterial | null>(null);
 
   useEffect(() => {
-    fetch(MW_DATA_PATH)
-      .then(r => r.json())
-      .then((data: MwGeoJson) => {
+    // Observatory mode opens with deep-space layer on, but the 187KB MW backdrop
+    // shouldn't compete with critical-path catalogs for first-paint bandwidth.
+    // Delay the fetch so stars/constellations/DSO finish first.
+    const delay = OBSERVATORY_MODE ? 1200 : 0;
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      if (cancelled) return;
+      fetch(MW_DATA_PATH)
+        .then(r => r.json())
+        .then((data: MwGeoJson) => {
         const positions: number[] = [];
         const opacities: number[] = [];
 
@@ -79,8 +90,10 @@ function MilkyWayBackdrop() {
         const geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
         geo.setAttribute('opacity', new THREE.BufferAttribute(new Float32Array(opacities), 1));
-        setGeometry(geo);
+        if (!cancelled) setGeometry(geo);
       });
+    }, delay);
+    return () => { cancelled = true; clearTimeout(timer); };
   }, []);
 
   const uniforms = useMemo(() => ({
@@ -372,7 +385,7 @@ export function DeepSpaceField({ visible, selSpacecraft, setSelSpacecraft }: Dee
   return (
     <group>
       <MilkyWayBackdrop />
-      <OortCloud />
+      {!OBSERVATORY_MODE && <OortCloud />}
       <SpacecraftMarkers selSpacecraft={selSpacecraft} setSelSpacecraft={setSelSpacecraft} />
       <NearStarMarkers />
       <GalaxyMarkers />

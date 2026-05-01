@@ -10,6 +10,42 @@ export interface ConstellationInfo {
   objects: string[];    // notable deep sky objects
 }
 
+// IAU 3-letter abbreviation → Latin name. Sourced from public/data/constellations.json.
+export const CONSTELLATION_NAMES: Record<string, string> = {
+  And: 'Andromeda', Ant: 'Antlia', Aps: 'Apus', Aql: 'Aquila', Aqr: 'Aquarius',
+  Ara: 'Ara', Ari: 'Aries', Aur: 'Auriga', Boo: 'Boötes', CMa: 'Canis Major',
+  CMi: 'Canis Minor', CVn: 'Canes Venatici', Cae: 'Caelum', Cam: 'Camelopardalis',
+  Cap: 'Capricornus', Car: 'Carina', Cas: 'Cassiopeia', Cen: 'Centaurus',
+  Cep: 'Cepheus', Cet: 'Cetus', Cha: 'Chamaeleon', Cir: 'Circinus', Cnc: 'Cancer',
+  Col: 'Columba', Com: 'Coma Berenices', CrA: 'Corona Austrina', CrB: 'Corona Borealis',
+  Crt: 'Crater', Cru: 'Crux', Crv: 'Corvus', Cyg: 'Cygnus', Del: 'Delphinus',
+  Dor: 'Dorado', Dra: 'Draco', Equ: 'Equuleus', Eri: 'Eridanus', For: 'Fornax',
+  Gem: 'Gemini', Gru: 'Grus', Her: 'Hercules', Hor: 'Horologium', Hya: 'Hydra',
+  Hyi: 'Hydrus', Ind: 'Indus', LMi: 'Leo Minor', Lac: 'Lacerta', Leo: 'Leo',
+  Lep: 'Lepus', Lib: 'Libra', Lup: 'Lupus', Lyn: 'Lynx', Lyr: 'Lyra',
+  Men: 'Mensa', Mic: 'Microscopium', Mon: 'Monoceros', Mus: 'Musca', Nor: 'Norma',
+  Oct: 'Octans', Oph: 'Ophiuchus', Ori: 'Orion', Pav: 'Pavo', Peg: 'Pegasus',
+  Per: 'Perseus', Phe: 'Phoenix', Pic: 'Pictor', PsA: 'Piscis Austrinus', Psc: 'Pisces',
+  Pup: 'Puppis', Pyx: 'Pyxis', Ret: 'Reticulum', Scl: 'Sculptor', Sco: 'Scorpius',
+  Sct: 'Scutum', Ser: 'Serpens Caput', Sex: 'Sextans', Sge: 'Sagitta', Sgr: 'Sagittarius',
+  Tau: 'Taurus', Tel: 'Telescopium', TrA: 'Triangulum Australe', Tri: 'Triangulum',
+  Tuc: 'Tucana', UMa: 'Ursa Major', UMi: 'Ursa Minor', Vel: 'Vela', Vir: 'Virgo',
+  Vol: 'Volans', Vul: 'Vulpecula',
+};
+
+export type SeasonName = 'Spring' | 'Summer' | 'Autumn' | 'Winter';
+
+/**
+ * Northern-hemisphere season for a given month (0-11).
+ * Spring: Mar–May, Summer: Jun–Aug, Autumn: Sep–Nov, Winter: Dec–Feb.
+ */
+export function seasonForMonth(month: number): SeasonName {
+  if (month >= 2 && month <= 4) return 'Spring';
+  if (month >= 5 && month <= 7) return 'Summer';
+  if (month >= 8 && month <= 10) return 'Autumn';
+  return 'Winter';
+}
+
 export const MYTHOLOGY: Record<string, ConstellationInfo> = {
   And: { origin: 'Greek', myth: 'Princess Andromeda, chained to a rock as sacrifice to Cetus, rescued by Perseus.', season: 'Autumn', objects: ['M31 Andromeda Galaxy'] },
   Ant: { origin: 'Lacaille 1756', myth: 'The Air Pump, honoring Robert Boyle\'s vacuum pump.', season: 'Spring', objects: [] },

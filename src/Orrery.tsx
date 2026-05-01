@@ -724,9 +724,9 @@ function OrreryInner() {
             showSatellites={showSatellites}
             showDeepSky={showDeepSky}
             showDeepSpace={showDeepSpace}
-            onConstellationSelect={(id) => { setSelConstellation(id); }}
-            onAsterismSelect={(name) => { setSelAsterism(name); }}
-            onDeepSkySelect={(id) => { setSelDeepSky(id); }}
+            onConstellationSelect={(id) => { setSelConstellation(prev => prev === id ? null : id); }}
+            onAsterismSelect={(name) => { setSelAsterism(prev => prev === name ? null : name); }}
+            onDeepSkySelect={(id) => { setSelDeepSky(prev => prev === id ? null : id); }}
             selConstellationId={selConstellation}
             accentColor={theme.uiAccent}
             constellationFocus={constellationFocus}

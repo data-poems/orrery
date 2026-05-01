@@ -711,7 +711,7 @@ function useConstellationCentroids(): ConstellationCentroid[] {
 export function ConstellationLabels({ visible, focus, onSelect, onLoad, selectedId, accent }: { visible: boolean; focus?: boolean; onSelect?: (id: string) => void; onLoad?: () => void; selectedId: string | null; accent: string }) {
   const centroids = useConstellationCentroids();
   const isMobile = useIsMobile();
-  const glyphSize = isMobile ? 44 : 64;
+  const glyphSize = isMobile ? 32 : 48;
   const { camera } = useThree();
 
   useEffect(() => {
@@ -816,7 +816,7 @@ export function ConstellationLabels({ visible, focus, onSelect, onLoad, selected
                     position: 'relative',
                     minWidth: focus && c.symbol ? 200 : 210,
                     minHeight: focus && c.symbol ? 120 : 180,
-                    padding: focus && c.symbol ? (isMobile ? '60px 14px 14px' : '80px 14px 14px') : 0,
+                    padding: focus && c.symbol ? (isMobile ? '46px 12px 12px' : '64px 14px 14px') : 0,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',

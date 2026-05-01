@@ -404,7 +404,7 @@ export default function Scene({
           {selNeo?.id === neo.id && <AsteroidOrbitLine neo={neo} />}
         </group>
       ))}
-      <StarField visible={showStars} showDesignations={showConstellations} onLoad={() => onLoadComplete?.('stars')} selectedConstellation={selConstellationId} accent={accentColor} />
+      <StarField visible={showStars} showDesignations={showConstellations} onLoad={() => onLoadComplete?.('stars')} />
       <ConstellationLines visible={showConstellations && cameraDistance < 600} focus={constellationFocus} onLoad={() => onLoadComplete?.('constellationLines')} selectedId={selConstellationId} />
       <ConstellationLabels visible={showConstellations && cameraDistance < 600} focus={constellationFocus} onSelect={onConstellationSelect} onLoad={() => onLoadComplete?.('constellations')} selectedId={selConstellationId} accent={accentColor} />
       <AsterismField visible={showAsterisms && cameraDistance < 600} onSelect={onAsterismSelect} />

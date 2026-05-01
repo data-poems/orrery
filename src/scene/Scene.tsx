@@ -15,6 +15,7 @@ import { RealAsteroidBelt, NeoDot, AsteroidOrbitLine } from './Asteroids';
 import { StarField, ConstellationLines, ConstellationLabels } from './Stars';
 import { AsterismField } from './Asterisms';
 import { DeepSkyField } from './DeepSky';
+import { OBSERVATORY_MODE } from '../lib/mode';
 import { CometField } from './Comets';
 import { MeteorField } from './Meteors';
 import { SatelliteField } from './Satellites';
@@ -97,10 +98,20 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, cinematicRotate
     return undefined;
   }, [focusTarget, offsetFromAngle]);
 
-  const computePresetFollowOffset = useCallback((pp: [number, number, number], preset: CamPreset) => ({
-    pos: [pp[0] + preset.pos[0], pp[1] + preset.pos[1], pp[2] + preset.pos[2]] as [number, number, number],
-    look: pp,
-  }), []);
+  const computePresetFollowOffset = useCallback((pp: [number, number, number], preset: CamPreset) => {
+    // Observe mode: camera AT the body, with a small epsilon for OrbitControls to orbit around.
+    // Target is the same body position so the user rotates a tiny sphere centered on the observer's vantage.
+    if (preset.observe) {
+      return {
+        pos: [pp[0] + 0.1, pp[1], pp[2]] as [number, number, number],
+        look: pp,
+      };
+    }
+    return {
+      pos: [pp[0] + preset.pos[0], pp[1] + preset.pos[1], pp[2] + preset.pos[2]] as [number, number, number],
+      look: pp,
+    };
+  }, []);
 
   // Trigger transition on focus or preset changes
   useEffect(() => {
@@ -329,10 +340,10 @@ export default function Scene({
     <>
       <color attach="background" args={['#000000']} />
       <ambientLight intensity={0.35} />
-      <Sun cameraDistance={cameraDistance} showGlyphOverlay={showBodyGlyphs} />
-      <AUGrid cameraDistance={cameraDistance} />
+      {!OBSERVATORY_MODE && <Sun cameraDistance={cameraDistance} showGlyphOverlay={showBodyGlyphs} />}
+      {!OBSERVATORY_MODE && <AUGrid cameraDistance={cameraDistance} />}
       <RealAsteroidBelt jd={jd} visible={showAsteroidBelt} onLoad={() => onLoadComplete?.('asteroids')} />
-      {visibleBodies.map((p) => {
+      {!OBSERVATORY_MODE && visibleBodies.map((p) => {
         const bodyIdx = ALL_BODIES.indexOf(p);
         return (
           <group key={p.name}>
@@ -355,7 +366,7 @@ export default function Scene({
         );
       })}
       {/* Render moons for all visible bodies */}
-      {visibleBodies.map((body) => {
+      {!OBSERVATORY_MODE && visibleBodies.map((body) => {
         const bodyIdx = ALL_BODIES.indexOf(body);
         const moons = getMoonsForPlanet(bodyIdx);
         const parentPos = positions.get(bodyIdx);
@@ -376,7 +387,7 @@ export default function Scene({
           </group>
         ));
       })}
-      {neos.map(neo => (
+      {!OBSERVATORY_MODE && neos.map(neo => (
         <group key={neo.id}>
           <NeoDot
             neo={neo} jd={jd}

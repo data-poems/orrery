@@ -88,6 +88,7 @@ export const CAMS: CamPreset[] = [
   { key: '0', label: 'Oort',      pos: [0, 900, 1400],     tgt: [0, 0, 0] },
   { key: '-', label: 'Stargazer', pos: [0, 3, 6],         tgt: [0, 0, 0] },
   { key: '=', label: 'Stellar',   pos: [0, 12000, 18000], tgt: [0, 0, 0] },
+  { key: 'e', label: 'Earth Observer', pos: [0.001, 0, 0], tgt: [0, 0, 0], follow: 2, observe: true },
 ];
 
 const CAM_INDEX: Record<string, number> = Object.fromEntries(CAMS.map((c, i) => [c.label, i]));

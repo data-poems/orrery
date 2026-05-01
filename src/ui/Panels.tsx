@@ -613,16 +613,19 @@ function SideDrawer({
   const neoLabel = neoStatus === 'loaded' ? `NEO (${neos.length})` :
                    neoStatus === 'error' ? 'NEO (unavailable)' : 'NEO (loading)';
 
-  const layers = [
+  const skyLayers = [
     { label: 'Stars', key: 'S', on: showStars, fn: () => setShowStars(p => !p) },
     { label: 'Constellations', key: 'L', on: showConstellations, fn: () => setShowConstellations(p => !p) },
     { label: 'Deep Sky', key: 'K', on: showDeepSky || showDeepSpace, fn: () => { setShowDeepSky(p => !p); setShowDeepSpace(p => !p); } },
+  ];
+  const solarSystemLayers = [
     { label: 'Dwarf Planets', key: 'D', on: showDwarf, fn: () => setShowDwarf(p => !p) },
     { label: neoLabel, key: 'N', on: showNeo, fn: () => setShowNeo(p => !p) },
     { label: 'Asteroid Belt', key: null, on: showAsteroidBelt, fn: () => setShowAsteroidBelt(p => !p) },
     { label: 'Comets', key: 'C', on: showComets, fn: () => setShowComets(p => !p) },
     { label: 'Meteor Showers', key: 'R', on: showMeteors, fn: () => setShowMeteors(p => !p) },
   ];
+  const layers = observatoryMode ? skyLayers : [...skyLayers, ...solarSystemLayers];
 
   const sourceItem: React.CSSProperties = {
     color: 'rgba(255,255,255,0.72)', fontSize: 13, lineHeight: 1.8, fontWeight: 300,
@@ -755,7 +758,7 @@ function SideDrawer({
         />
       )}
 
-      <AccordionSection title="Go To" accent={accent} defaultOpen={openCore}>
+      {!observatoryMode && <AccordionSection title="Go To" accent={accent} defaultOpen={openCore}>
         {(() => {
         // Group presets logically: close → system → far → special
         const groups: { title: string; items: { label: string; idx: number }[] }[] = [
@@ -786,9 +789,9 @@ function SideDrawer({
           </div>
         );
       })()}
-      </AccordionSection>
+      </AccordionSection>}
 
-      <AccordionSection title="Bodies" accent={accent} defaultOpen={false}>
+      {!observatoryMode && <AccordionSection title="Bodies" accent={accent} defaultOpen={false}>
         <div role="tree" aria-label="Celestial bodies">
         {/* Sun */}
         <div role="treeitem">
@@ -825,7 +828,7 @@ function SideDrawer({
             setSelPlanet={setSelPlanet} onMoonSelect={onMoonSelect} />
         ))}
         </div>
-      </AccordionSection>
+      </AccordionSection>}
 
       <AccordionSection title="Layers" accent={accent} defaultOpen={openCore}>
         <div role="group" aria-label="Display layers">
@@ -1679,8 +1682,8 @@ export default function Panels(props: PanelProps) {
         >{'\u2726'}</button>
       )}
 
-      {/* ── Mobile floating top controls ── */}
-      {mobile && !cinematic && (
+      {/* ── Mobile floating top controls (hidden in observatory — no solar-system presets to surface) ── */}
+      {mobile && !cinematic && !observatoryMode && (
         <div style={{
           position: 'fixed', top: 32, left: 10, right: 10,
           display: 'flex', alignItems: 'center', gap: 4,
@@ -1747,26 +1750,26 @@ export default function Panels(props: PanelProps) {
 
             <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>Catalog Data</div>
             {[
-              '41,119 stars \u2014 HYG Database',
-              '88 constellations \u2014 IAU / d3-celestial',
-              '8 planets + 3 dwarf planets \u2014 JPL Horizons',
-              '32 moons \u2014 JPL Horizons',
-              '3,000 main-belt asteroids \u2014 Minor Planet Center',
-              '110+ deep sky objects \u2014 OpenNGC',
-              '20+ comets \u2014 Minor Planet Center',
-              '14 meteor showers \u2014 IAU Meteor Data Center',
-              '5 spacecraft \u2014 NASA/JPL',
-              '2K/4K textures \u2014 Solar System Scope (CC BY 4.0)',
+              '41,119 stars \u00b7 HYG Database',
+              '88 constellations \u00b7 IAU / d3-celestial',
+              '8 planets + 3 dwarf planets \u00b7 JPL Horizons',
+              '32 moons \u00b7 JPL Horizons',
+              '3,000 main-belt asteroids \u00b7 Minor Planet Center',
+              '110+ deep sky objects \u00b7 OpenNGC',
+              '20+ comets \u00b7 Minor Planet Center',
+              '14 meteor showers \u00b7 IAU Meteor Data Center',
+              '5 spacecraft \u00b7 NASA/JPL',
+              '2K/4K textures \u00b7 Solar System Scope (CC BY 4.0)',
             ].map(s => (
               <div key={s} style={{ color: 'rgba(255,255,255,0.72)', fontSize: 14, fontWeight: 300, lineHeight: 1.8 }}>{s}</div>
             ))}
 
             <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginTop: 16, marginBottom: 8 }}>Live Data</div>
             {[
-              'Near-Earth objects \u2014 NASA NeoWs API',
-              'Asteroid orbits \u2014 JPL Small-Body Database',
-              'Solar wind \u2014 NOAA SWPC',
-              'Satellite TLEs \u2014 CelesTrak',
+              'Near-Earth objects \u00b7 NASA NeoWs API',
+              'Asteroid orbits \u00b7 JPL Small-Body Database',
+              'Solar wind \u00b7 NOAA SWPC',
+              'Satellite TLEs \u00b7 CelesTrak',
             ].map(s => (
               <div key={s} style={{ color: `rgba(${accentRgb},0.7)`, fontSize: 14, fontWeight: 300, lineHeight: 1.8 }}>{s}</div>
             ))}

@@ -40,6 +40,9 @@ export interface CamPreset {
   tgt: [number, number, number];
   follow?: number;
   autoRotate?: boolean;
+  /** When true with `follow`, camera position equals followed body's position
+   *  (with a tiny epsilon offset for OrbitControls). Used for Earth Observer mode. */
+  observe?: boolean;
 }
 
 export interface FocusTarget {

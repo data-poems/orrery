@@ -134,7 +134,8 @@ function OrreryInner() {
   const [neoStatus, setNeoStatus] = useState<'loading' | 'loaded' | 'error'>(() => initialNeoCache ? 'loaded' : 'loading');
   const [selNeo, setSelNeo] = useState<NEO | null>(null);
   // Cinematic mode is the default — start bare, reveal layers progressively.
-  // Observatory mode skips the cinematic and lands on the Inner Planets camera with sky layers on.
+  // Observatory mode skips the cinematic and anchors the camera at Earth's heliocentric position
+  // with sky layers on (no Sun, no planets, no orbital bodies).
   const [selPlanet, setSelPlanet] = useState<number | null>(null);
   const [showNeo, setShowNeo] = useState(false);
   const [showDwarf, setShowDwarf] = useState(false);
@@ -324,14 +325,14 @@ function OrreryInner() {
     return () => clearInterval(id);
   }, [cinematic, sceneReady, applyCinematicStep, cinematicSteps, exitCinematic]);
 
-  // Observatory mode: land on the Inner Planets camera preset with sky layers on.
+  // Observatory mode: anchor camera at Earth's position via the Earth Observer preset.
   // Fires once — `observatoryEntered` ref prevents re-entry on subsequent renders.
   const observatoryEntered = useRef(false);
   useEffect(() => {
     if (!OBSERVATORY_MODE || !sceneReady || observatoryEntered.current) return;
     observatoryEntered.current = true;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- entry-mode bootstrap, fires once
-    exitCinematic({ kind: 'preset', label: 'Inner' });
+    exitCinematic({ kind: 'preset', label: 'Earth Observer' });
   }, [sceneReady, exitCinematic]);
 
   // Prefetch tour-essential datasets when cinematic starts

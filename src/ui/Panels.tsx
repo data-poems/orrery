@@ -18,6 +18,7 @@ import type { CometDef } from '../data/comets';
 import type { MeteorShower } from '../scene/Meteors';
 import type { SatellitePosition } from '../lib/satellites';
 import { MYTHOLOGY, CONSTELLATION_NAMES, seasonForMonth, type SeasonName } from '../data/mythology';
+import { OBSERVATORY_MODE } from '../lib/mode';
 import { ASTERISMS } from '../data/asterisms';
 
 // Group MYTHOLOGY entries into Northern-hemisphere season buckets. Constellations
@@ -560,7 +561,6 @@ function SideDrawer({
   onHoverStart,
   onHoverEnd,
   panelFontScale,
-  observatoryMode,
 }: {
   open: boolean;
   accent: string;
@@ -603,9 +603,9 @@ function SideDrawer({
   onHoverStart?: () => void;
   onHoverEnd?: () => void;
   panelFontScale: number;
-  observatoryMode: boolean;
 }) {
   const { theme, setTheme } = useTheme();
+  const observatoryMode = OBSERVATORY_MODE;
 
   const planets = ALL_BODIES.slice(0, 8);
   const dwarfs = ALL_BODIES.slice(8);
@@ -1183,7 +1183,6 @@ export interface PanelProps {
   showDeepSpace: boolean; setShowDeepSpace: (fn: (p: boolean) => boolean) => void;
   selSpacecraft: import('../data/deepspace').Spacecraft | null;
   setSelSpacecraft: (s: import('../data/deepspace').Spacecraft | null) => void;
-  observatoryMode: boolean;
 }
 
 export default function Panels(props: PanelProps) {
@@ -1213,9 +1212,9 @@ export default function Panels(props: PanelProps) {
     selComet, selMeteor, selSatellite,
     showDeepSpace, setShowDeepSpace,
     selSpacecraft, setSelSpacecraft,
-    observatoryMode,
   } = props;
 
+  const observatoryMode = OBSERVATORY_MODE;
   const { theme } = useTheme();
   const accent = theme.uiAccent;
   const accentRgb = theme.uiAccentRgb;
@@ -1447,7 +1446,6 @@ export default function Panels(props: PanelProps) {
         onHoverStart={() => { if (!mobile) startPeek(); }}
         onHoverEnd={() => { if (!mobile && !panelOpen) endPeek(); }}
         panelFontScale={panelFontScale}
-        observatoryMode={observatoryMode}
       />}
 
       {/* ── Background blur overlay when body selected (hidden in observatory mode) ── */}
@@ -1657,7 +1655,7 @@ export default function Panels(props: PanelProps) {
 
       {/* ── Zoom controls + stargazer toggle (desktop only) ── */}
       {!mobile && !observatoryMode && <ZoomControls />}
-      {!mobile && !cinematic && !observatoryMode && (
+      {!mobile && !observatoryMode && !cinematic && (
         <button
           onClick={() => {
             setConstellationFocus(p => !p);

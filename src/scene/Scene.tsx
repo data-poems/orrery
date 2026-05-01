@@ -308,8 +308,8 @@ export interface SceneProps {
   onConstellationSelect?: (id: string) => void;
   onAsterismSelect?: (name: string) => void;
   onDeepSkySelect?: (id: string) => void;
-  selConstellationId?: string | null;
-  accentColor?: string;
+  selConstellationId: string | null;
+  accentColor: string;
 }
 
 export default function Scene({

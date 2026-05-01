@@ -774,7 +774,6 @@ function OrreryInner() {
         selMeteor={selMeteor} setSelMeteor={setSelMeteor}
         selSatellite={selSatellite} setSelSatellite={setSelSatellite}
         selSpacecraft={selSpacecraft} setSelSpacecraft={setSelSpacecraft}
-        observatoryMode={OBSERVATORY_MODE}
       />
     </div>
   );

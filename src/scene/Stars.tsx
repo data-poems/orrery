@@ -652,7 +652,7 @@ function useConstellationCentroids(): ConstellationCentroid[] {
   return centroids;
 }
 
-export function ConstellationLabels({ visible, focus, onSelect, onLoad, selectedId, accent }: { visible: boolean; focus?: boolean; onSelect?: (id: string) => void; onLoad?: () => void; selectedId?: string | null; accent?: string }) {
+export function ConstellationLabels({ visible, focus, onSelect, onLoad, selectedId, accent }: { visible: boolean; focus?: boolean; onSelect?: (id: string) => void; onLoad?: () => void; selectedId: string | null; accent: string }) {
   const centroids = useConstellationCentroids();
   const { camera } = useThree();
 
@@ -724,7 +724,10 @@ export function ConstellationLabels({ visible, focus, onSelect, onLoad, selected
   return (
     <group ref={groupRef}>
       <group rotation={[ECLIPTIC_TILT, 0, 0]}>
-        {centroids.map(c => (
+        {centroids.map(c => {
+          const selected = selectedId === c.id;
+          const dimmed = selectedId != null && !selected;
+          return (
           <group key={c.id} position={c.pos}>
             {visibleLabels.has(c.id) && (
               <Html
@@ -736,9 +739,9 @@ export function ConstellationLabels({ visible, focus, onSelect, onLoad, selected
                 <div
                   onClick={onSelect ? (e) => { e.stopPropagation(); onSelect(c.id); } : undefined}
                   style={{
-                    color: selectedId === c.id && accent ? accent : c.color,
-                    opacity: selectedId && selectedId !== c.id ? labelOpacity * 0.25 : (selectedId === c.id ? 1 : labelOpacity),
-                    fontSize: selectedId === c.id ? (focus ? 32 : 16) : (focus ? 24 : 10),
+                    color: selected ? accent : c.color,
+                    opacity: dimmed ? labelOpacity * 0.25 : selected ? 1 : labelOpacity,
+                    fontSize: focus ? (selected ? 32 : 24) : (selected ? 16 : 10),
                     fontFamily: "'Cormorant Garamond', serif",
                     fontStyle: 'italic',
                     fontWeight: 400,
@@ -810,7 +813,8 @@ export function ConstellationLabels({ visible, focus, onSelect, onLoad, selected
               </Html>
             )}
           </group>
-        ))}
+          );
+        })}
       </group>
     </group>
   );

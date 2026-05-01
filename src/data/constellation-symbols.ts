@@ -34,11 +34,10 @@ export const ZODIAC_SYMBOLS: Record<string, ConstellationSymbolSvg> = {
     'M34 16 C38 32 38 68 34 84',
     'M66 16 C62 32 62 68 66 84',
   ] },
-  // Cancer ♋ — interlocking spirals
+  // Cancer ♋ — two interlocking spirals (the standard "69-rotated" glyph)
   Cnc: { viewBox: VB, paths: [
     'M26 36 C14 36 8 46 8 54 C8 66 18 74 30 74 C40 74 48 68 48 58 C48 48 40 42 30 42',
     'M74 64 C86 64 92 54 92 46 C92 34 82 26 70 26 C60 26 52 32 52 42 C52 52 60 58 70 58',
-    'M30 42 L70 58',
   ] },
   // Leo ♌ — lion's mane with tail curl
   Leo: { viewBox: VB, paths: [
@@ -76,10 +75,10 @@ export const ZODIAC_SYMBOLS: Record<string, ConstellationSymbolSvg> = {
     'M56 20 L80 20 L80 44',
     'M32 52 L52 32',
   ] },
-  // Capricorn ♑ — sea-goat, horn with fish tail loop
+  // Capricorn ♑ — sea-goat: V-shaped goat horns leading into a fish-tail loop
   Cap: { viewBox: VB, paths: [
-    'M16 76 L16 30 C16 22 24 20 30 24 C36 28 38 38 38 50 L38 76',
-    'M38 58 C44 44 56 36 68 36 C80 36 88 44 88 56 C88 68 80 76 68 76 C56 76 48 68 48 56 C48 44 56 36 68 36',
+    'M16 28 L40 76 L52 52',
+    'M52 52 C60 36 76 36 84 48 C92 60 86 78 70 78 C58 78 50 70 52 60',
   ] },
   // Aquarius ♒ — double wave
   Aqr: { viewBox: VB, paths: [

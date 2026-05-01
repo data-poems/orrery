@@ -12,7 +12,7 @@ import { useRef, useState, useEffect, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
-import { ZODIAC_SYMBOLS, isZodiac, type ConstellationSymbolSvg } from '../data/constellation-symbols';
+import { ZODIAC_UNICODE } from '../data/constellation-symbols';
 import { OBSERVATORY_MODE } from '../lib/mode';
 import { useIsMobile } from '../ui/styles';
 import { raDecTo3D, ECLIPTIC_TILT, DEG } from '../lib/kepler';
@@ -731,7 +731,6 @@ interface ConstellationCentroid {
   english: string;
   pos: [number, number, number];
   color: string;  // per-constellation color (CSS rgb)
-  symbol: ConstellationSymbolSvg | null;
 }
 
 function useConstellationCentroids(): ConstellationCentroid[] {
@@ -759,7 +758,6 @@ function useConstellationCentroids(): ConstellationCentroid[] {
               english: feature.properties.en || '',
               pos,
               color: `rgb(${Math.round(r * 255)},${Math.round(g * 255)},${Math.round(b * 255)})`,
-              symbol: ZODIAC_SYMBOLS[baseId] ?? null,
             });
             featureIdx++;
           }
@@ -878,59 +876,40 @@ export function ConstellationLabels({ visible, focus, onSelect, onLoad, selected
                       : `0 0 10px ${c.color}, 0 0 24px ${c.color}, 0 0 36px rgba(0,0,0,0.9)`,
                     cursor: onSelect ? 'pointer' : 'default',
                     position: 'relative',
-                    minWidth: focus && c.symbol ? 200 : 210,
-                    minHeight: focus && c.symbol ? 120 : 180,
-                    padding: focus && c.symbol ? (isMobile ? '46px 12px 12px' : '64px 14px 14px') : 0,
+                    minWidth: focus && ZODIAC_UNICODE[c.id] ? 200 : 210,
+                    minHeight: focus && ZODIAC_UNICODE[c.id] ? 120 : 180,
+                    padding: focus && ZODIAC_UNICODE[c.id] ? (isMobile ? '46px 12px 12px' : '64px 14px 14px') : 0,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'flex-end',
                   }}
                 >
-                  {focus && c.symbol && (
-                    <svg
-                      viewBox={c.symbol.viewBox}
-                      width={glyphSize}
-                      height={glyphSize}
+                  {focus && ZODIAC_UNICODE[c.id] && (
+                    <span
                       aria-hidden="true"
                       style={{
                         position: 'absolute',
                         left: '50%',
                         top: '50%',
                         transform: 'translate(-50%, -58%)',
-                        overflow: 'visible',
                         pointerEvents: 'none',
-                        opacity: isZodiac(c.id) ? 0.94 : 0.8,
-                        filter: `drop-shadow(0 0 8px rgba(255,255,255,0.12)) drop-shadow(0 0 18px ${c.color})`,
+                        fontSize: glyphSize,
+                        lineHeight: 1,
+                        fontFamily: "'Noto Sans Symbols 2', 'Apple Symbols', 'Segoe UI Symbol', 'Cormorant Garamond', serif",
+                        fontWeight: 300,
+                        color: 'rgba(255,247,232,0.96)',
+                        textShadow: [
+                          `0 0 4px rgba(255,255,255,0.8)`,
+                          `0 0 14px ${c.color}`,
+                          `0 0 28px ${c.color}`,
+                          `0 0 42px rgba(0,0,0,0.85)`,
+                        ].join(', '),
+                        userSelect: 'none',
                       }}
                     >
-                      <g opacity={0.12}>
-                        {c.symbol.paths.map((path, idx) => (
-                          <path
-                            key={`glow-${c.id}-${idx}`}
-                            d={path}
-                            fill="none"
-                            stroke={c.color}
-                            strokeWidth={isZodiac(c.id) ? 10 : 9}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        ))}
-                      </g>
-                      <g opacity={0.96}>
-                        {c.symbol.paths.map((path, idx) => (
-                          <path
-                            key={`line-${c.id}-${idx}`}
-                            d={path}
-                            fill="none"
-                            stroke="rgba(255,247,232,0.96)"
-                            strokeWidth={isZodiac(c.id) ? 2.8 : 2.4}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        ))}
-                      </g>
-                    </svg>
+                      {ZODIAC_UNICODE[c.id]}
+                    </span>
                   )}
                   <span style={{ display: 'block', fontSize: focus ? 24 : 10, fontWeight: 400, fontStyle: 'normal', letterSpacing: focus ? 6 : 2, textTransform: 'uppercase' }}>{c.latin}</span>
                   {c.english && <span style={{ display: 'block', fontSize: focus ? 16 : 7, opacity: 0.68, marginTop: focus ? 4 : 2 }}>{c.english}</span>}

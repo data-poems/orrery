@@ -96,3 +96,25 @@ export const ZODIAC_SYMBOLS: Record<string, ConstellationSymbolSvg> = {
 export function isZodiac(id: string): boolean {
   return id in ZODIAC_SYMBOLS;
 }
+
+/**
+ * Authoritative Unicode astrological glyphs for the 12 zodiac constellations.
+ * Rendering these via the system font (with a serif fallback) guarantees the
+ * symbol shape is correct — no chance of bezier-path drift. Style with
+ * text-shadow / gradient for the visual richness that hand-traced SVG paths
+ * couldn't deliver.
+ */
+export const ZODIAC_UNICODE: Record<string, string> = {
+  Ari: '♈', // ♈
+  Tau: '♉', // ♉
+  Gem: '♊', // ♊
+  Cnc: '♋', // ♋
+  Leo: '♌', // ♌
+  Vir: '♍', // ♍
+  Lib: '♎', // ♎
+  Sco: '♏', // ♏
+  Sgr: '♐', // ♐
+  Cap: '♑', // ♑
+  Aqr: '♒', // ♒
+  Psc: '♓', // ♓
+};

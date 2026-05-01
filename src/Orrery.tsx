@@ -688,7 +688,12 @@ function OrreryInner() {
     >
       <Canvas
         dpr={[1, 1.5]}
-        camera={{ position: [0, 3, 4], fov: 55, near: 0.005, far: 250000 }}
+        camera={{
+          position: OBSERVATORY_MODE ? [1, 0.001, 0] : [0, 3, 4],
+          fov: 55,
+          near: 0.005,
+          far: 250000,
+        }}
         style={{ position: 'absolute', inset: 0 }}
         gl={{ antialias: true, logarithmicDepthBuffer: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.2 }}
         onCreated={() => {

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && node scripts/postgzip.mjs",
+    "build": "tsc -b && vite build && node scripts/postbuild-observatory-html.mjs && node scripts/postgzip.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "prebake": "tsx scripts/prebake.ts"

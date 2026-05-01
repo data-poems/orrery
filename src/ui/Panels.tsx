@@ -1168,6 +1168,7 @@ export interface PanelProps {
   selDeepSky: string | null; setSelDeepSky: (id: string | null) => void;
   panelOpen: boolean; setPanelOpen: (fn: boolean | ((p: boolean) => boolean)) => void;
   cinematic: boolean;
+  cinematicFading?: boolean;
   navStack: string[];
   navigateBack: () => void;
   navigateToLevel: (level: number) => void;
@@ -1205,6 +1206,7 @@ export default function Panels(props: PanelProps) {
     selDeepSky, setSelDeepSky,
     panelOpen, setPanelOpen,
     cinematic,
+    cinematicFading = false,
     navStack,
     selMoonIdx, cameraDistance,
     cams, camIdx, onPresetSelect,
@@ -1278,9 +1280,11 @@ export default function Panels(props: PanelProps) {
           display: 'flex', flexDirection: 'column',
           alignItems: 'center',
           cursor: 'pointer',
-          backdropFilter: 'blur(0.5px)',
-          WebkitBackdropFilter: 'blur(0.5px)',
+          backdropFilter: cinematicFading ? 'none' : 'blur(0.5px)',
+          WebkitBackdropFilter: cinematicFading ? 'none' : 'blur(0.5px)',
           pointerEvents: 'none',
+          opacity: cinematicFading ? 0 : 1,
+          transition: 'opacity 1s ease, backdrop-filter 1s ease, -webkit-backdrop-filter 1s ease',
         }}
       >
         {/* Top cluster: time, date, celestial data */}

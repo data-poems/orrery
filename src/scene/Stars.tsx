@@ -14,6 +14,7 @@ import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { ZODIAC_SYMBOLS, isZodiac, type ConstellationSymbolSvg } from '../data/constellation-symbols';
 import { OBSERVATORY_MODE } from '../lib/mode';
+import { useIsMobile } from '../ui/styles';
 import { raDecTo3D, ECLIPTIC_TILT, DEG } from '../lib/kepler';
 
 const SPHERE_RADIUS = 300;
@@ -774,6 +775,8 @@ function useConstellationCentroids(): ConstellationCentroid[] {
 export function ConstellationLabels({ visible, focus, onSelect, onLoad, selectedId, accent }: { visible: boolean; focus?: boolean; onSelect?: (id: string) => void; onLoad?: () => void; selectedId: string | null; accent: string }) {
   const centroids = useConstellationCentroids();
   const { camera } = useThree();
+  const isMobile = useIsMobile();
+  const glyphSize = isMobile ? 44 : 64;
 
   useEffect(() => {
     if (centroids.length > 0) onLoad?.();
@@ -877,7 +880,7 @@ export function ConstellationLabels({ visible, focus, onSelect, onLoad, selected
                     position: 'relative',
                     minWidth: focus && c.symbol ? 200 : 210,
                     minHeight: focus && c.symbol ? 120 : 180,
-                    padding: focus && c.symbol ? '80px 14px 14px' : 0,
+                    padding: focus && c.symbol ? (isMobile ? '60px 14px 14px' : '80px 14px 14px') : 0,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
@@ -887,8 +890,8 @@ export function ConstellationLabels({ visible, focus, onSelect, onLoad, selected
                   {focus && c.symbol && (
                     <svg
                       viewBox={c.symbol.viewBox}
-                      width={64}
-                      height={64}
+                      width={glyphSize}
+                      height={glyphSize}
                       aria-hidden="true"
                       style={{
                         position: 'absolute',

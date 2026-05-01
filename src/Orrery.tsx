@@ -205,15 +205,19 @@ function OrreryInner() {
   const camPreset = camIdx >= 0 && camIdx < CAMS.length ? CAMS[camIdx] : null;
 
   // ─── Cinematic: tight highlight reel through scale levels ────────────────────
+  // The last step (Earth) is held longer with a gentler rotation, then fades to
+  // interactive over CINEMATIC_FADE_MS so the handoff doesn't snap.
   const cinematicSteps = useMemo((): CinematicStep[] => [
     { ...CINEMATIC_DEFAULTS, camPreset: 9, duration: 5000, label: 'Deep Space', deepSky: true, deepSpace: true, dwarf: true, autoRotateSpeed: 0.06 },
     { ...CINEMATIC_DEFAULTS, camPreset: 1, duration: 5000, label: 'Solar System', asteroidBelt: true, dwarf: true, autoRotateSpeed: 0.2 },
     { ...CINEMATIC_DEFAULTS, camPreset: 0, duration: 4000, label: 'Inner Planets', asteroidBelt: true, autoRotateSpeed: 0.3 },
-    { ...CINEMATIC_DEFAULTS, focusPlanet: 2, duration: 5000, label: 'Earth', autoRotateSpeed: 0.5 },
+    { ...CINEMATIC_DEFAULTS, focusPlanet: 2, duration: 6800, label: 'Earth', autoRotateSpeed: 0.22 },
   ], []);
+  const CINEMATIC_FADE_MS = 1100;
 
   const cinematicIdx = useRef(0);
   const cinematicStart = useRef(0);
+  const [cinematicFading, setCinematicFading] = useState(false);
 
   // Space weather state for cinematic overlay (NOAA SWPC, no auth needed)
   const [solarWind, setSolarWind] = useState<string | null>(null);
@@ -298,6 +302,7 @@ function OrreryInner() {
   const startCinematicTour = useCallback(() => {
     cinematicIdx.current = 0;
     cinematicStart.current = Date.now();
+    setCinematicFading(false);
     applyCinematicStep(0);
     setCinematic(true);
   }, [applyCinematicStep]);
@@ -310,10 +315,21 @@ function OrreryInner() {
     const id = setInterval(() => {
       const elapsed = Date.now() - cinematicStart.current;
       const dur = cinematicSteps[cinematicIdx.current].duration;
+      const isLast = cinematicIdx.current === cinematicSteps.length - 1;
+
+      // On the final step, start the overlay fade-out before exit so the handoff
+      // to interactive doesn't snap. The overlay opacity transitions over
+      // CINEMATIC_FADE_MS while autoRotate continues.
+      if (isLast && elapsed >= dur - CINEMATIC_FADE_MS) {
+        setCinematicFading(true);
+      }
+
       if (elapsed >= dur) {
         const next = cinematicIdx.current + 1;
         if (next >= cinematicSteps.length) {
-          // Tour complete — exit to interactive (Earth focus)
+          // Tour complete — exit to interactive (Earth focus). The fade has been
+          // running for ~CINEMATIC_FADE_MS at this point, so the overlay is ~0.
+          setCinematicFading(false);
           exitCinematic();
         } else {
           cinematicIdx.current = next;
@@ -321,7 +337,7 @@ function OrreryInner() {
           applyCinematicStep(next);
         }
       }
-    }, 500);
+    }, 250);
 
     return () => clearInterval(id);
   }, [cinematic, sceneReady, applyCinematicStep, cinematicSteps, exitCinematic]);
@@ -767,6 +783,7 @@ function OrreryInner() {
         panelOpen={panelOpen}
         setPanelOpen={setPanelOpen}
         cinematic={cinematic}
+        cinematicFading={cinematicFading}
         navStack={navStack}
         navigateBack={navigateBack}
         navigateToLevel={navigateToLevel}

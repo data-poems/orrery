@@ -1344,9 +1344,23 @@ export default function Panels(props: PanelProps) {
     );
   })() : null;
 
+  const observatorySpotlightActive = observatoryMode && (selConstellation !== null || selAsterism !== null || selDeepSky !== null);
+
   return (
     <>
       {cinematicOverlay}
+      {/* Observatory spotlight vignette: dim the sky edges when a sky element is selected, focusing attention on the selection */}
+      {observatoryMode && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute', inset: 0, zIndex: 4, pointerEvents: 'none',
+            background: 'radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.32) 78%, rgba(0,0,0,0.55) 100%)',
+            opacity: observatorySpotlightActive ? 1 : 0,
+            transition: 'opacity 0.45s ease',
+          }}
+        />
+      )}
       {/* Panel drawer tab (desktop only — mobile uses bottom toolbar gear; hidden in observatory) */}
       {!mobile && !observatoryMode && <button
         onClick={() => setPanelOpen((p: boolean) => !p)}

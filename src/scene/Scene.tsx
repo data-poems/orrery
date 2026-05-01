@@ -268,6 +268,10 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, cinematicRotate
       maxDistance={200000}
       autoRotate={cinematic || camPreset?.autoRotate || false}
       autoRotateSpeed={cinematic ? cinematicRotateSpeed * 0.78 : camPreset?.autoRotate ? 0.1 : 0}
+      // Observatory: invert rotation so drag-right moves the sky right with your finger
+      // (matches Stellarium / Google Sky / Sky Map convention). Default Orrery keeps
+      // the standard CAD-style orbit since you're flying around the solar system there.
+      rotateSpeed={OBSERVATORY_MODE ? -1 : 1}
     />
   );
 }
@@ -400,7 +404,7 @@ export default function Scene({
           {selNeo?.id === neo.id && <AsteroidOrbitLine neo={neo} />}
         </group>
       ))}
-      <StarField visible={showStars} showDesignations={showConstellations} onLoad={() => onLoadComplete?.('stars')} />
+      <StarField visible={showStars} showDesignations={showConstellations} onLoad={() => onLoadComplete?.('stars')} selectedConstellation={selConstellationId} accent={accentColor} />
       <ConstellationLines visible={showConstellations && cameraDistance < 600} focus={constellationFocus} onLoad={() => onLoadComplete?.('constellationLines')} selectedId={selConstellationId} />
       <ConstellationLabels visible={showConstellations && cameraDistance < 600} focus={constellationFocus} onSelect={onConstellationSelect} onLoad={() => onLoadComplete?.('constellations')} selectedId={selConstellationId} accent={accentColor} />
       <AsterismField visible={showAsterisms && cameraDistance < 600} onSelect={onAsterismSelect} />

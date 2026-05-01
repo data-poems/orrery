@@ -339,8 +339,8 @@ export function StarField({ visible, showDesignations, onLoad, selectedConstella
     attr.needsUpdate = true;
   }, [selectedConstellation, geometry, starData]);
 
-  // Push uniform changes via the material ref. One effect with both deps is
-  // stricter than two separate effects (won't desync if the ref attaches mid-flight).
+  // One effect with both deps: atomic update when accent and selection change in the
+  // same render, and one fewer effect to schedule.
   useEffect(() => {
     const mat = starMatRef.current;
     if (!mat) return;
@@ -896,14 +896,19 @@ export function ConstellationLabels({ visible, focus, onSelect, onLoad, selected
                         pointerEvents: 'none',
                         fontSize: glyphSize,
                         lineHeight: 1,
-                        fontFamily: "'Noto Sans Symbols 2', 'Apple Symbols', 'Segoe UI Symbol', 'Cormorant Garamond', serif",
+                        // Symbol-font stack only — Cormorant Garamond is a Roman text serif and lacks
+                        // U+2648–U+2653, so falling back to it gave hollow boxes on systems missing the
+                        // priority symbol fonts. DejaVu Sans + Symbola are the two reliable Linux fallbacks.
+                        fontFamily: "'Noto Sans Symbols 2', 'Apple Symbols', 'Segoe UI Symbol', 'DejaVu Sans', 'Symbola', sans-serif",
                         fontWeight: 300,
                         color: 'rgba(255,247,232,0.96)',
+                        // 3 layers — white inner halo + two color halos. The outer black drop is
+                        // carried by the parent label's textShadow (rgba(0,0,0,0.95)), so we don't
+                        // duplicate the cost; mobile composites the smaller blur radii faster.
                         textShadow: [
                           `0 0 4px rgba(255,255,255,0.8)`,
                           `0 0 14px ${c.color}`,
                           `0 0 28px ${c.color}`,
-                          `0 0 42px rgba(0,0,0,0.85)`,
                         ].join(', '),
                         userSelect: 'none',
                       }}

@@ -143,7 +143,7 @@ function OrreryInner() {
   const [showStars, setShowStars] = useState(true);
   const [showConstellations, setShowConstellations] = useState(OBSERVATORY_MODE);
   // Asterisms span constellation boundaries (e.g. Diamond of Virgo cuts through 4 constellations);
-  // off-by-default in observatory so the sky reads cleanly. Re-enabled on click via the asterism layer toggle (planned).
+  // off-by-default in observatory so the sky reads cleanly. Toggle with 'a' (Panels UI is hidden in observatory).
   const [showAsterisms, setShowAsterisms] = useState(false);
   const [showAsteroidBelt, setShowAsteroidBelt] = useState(false);
   const [showComets, setShowComets] = useState(false);
@@ -682,7 +682,13 @@ function OrreryInner() {
   return (
     <div
       style={{
-        width: '100vw', height: '100dvh', background: '#000',
+        width: '100vw', height: '100dvh',
+        // Observatory: atmospheric radial — subtle violet at zenith fading to black at the
+        // horizon. Suggests scattered light from below the horizon without competing with
+        // the stars. Default Orrery keeps the pure black solar-system void.
+        background: OBSERVATORY_MODE
+          ? 'radial-gradient(ellipse at 50% 35%, rgba(20, 14, 38, 0.32) 0%, #000 70%)'
+          : '#000',
         position: 'relative', overflow: 'hidden',
         fontFamily: "'Cormorant Garamond','Garamond','Baskerville','Georgia',serif",
       }}

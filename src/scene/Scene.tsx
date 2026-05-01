@@ -168,7 +168,9 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, cinematicRotate
     const remainDist = camera.position.distanceTo(tPos.current);
 
     // Observe mode (e.g. Earth Observer in observatory) wants a gentle, never-snapping
-    // approach — the camera asymptotes toward the body's position with no settle cutoff.
+    // approach. posAlpha ≈ 0.008/frame at 60fps with smoothBase=0.5 → camera trails ~5s
+    // behind Earth's offset; never reaches because the target is recomputed each frame
+    // from Earth's new position. Acts as a low-pass filter on Earth's orbital motion.
     const observeMode = camPreset?.observe ?? false;
 
     // Smooth factor: cinematic stays at 0.6 (constant glide), observe mode gets a slow

@@ -78,7 +78,7 @@ export const ZODIAC_SYMBOLS: Record<string, ConstellationSymbolSvg> = {
   // Capricorn ♑ — sea-goat: V-shaped goat horns leading into a fish-tail loop
   Cap: { viewBox: VB, paths: [
     'M16 28 L40 76 L52 52',
-    'M52 52 C60 36 76 36 84 48 C92 60 86 78 70 78 C58 78 50 70 52 60',
+    'M52 52 C60 36 76 36 84 48 C92 60 86 78 70 78 C58 78 50 70 52 52',
   ] },
   // Aquarius ♒ — double wave
   Aqr: { viewBox: VB, paths: [

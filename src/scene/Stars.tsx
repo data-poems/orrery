@@ -151,6 +151,9 @@ interface StarData {
   count: number;
   namedStars: NamedStar[];
   bayerStars: BayerStar[];
+  /** constellationCodes[i] = small int matching constellationCodeMap[idx]; 255 = unassigned. */
+  constellationCodes: Uint8Array;
+  constellationCodeMap: string[];
 }
 
 /** Convert 3-letter bayer abbreviation to Greek symbol */
@@ -184,9 +187,12 @@ function useStarData(visible: boolean): StarData | null {
         const positions = new Float32Array(count * 3);
         const sizes = new Float32Array(count);
         const colors = new Float32Array(count * 3);
+        const constellationCodes = new Uint8Array(count);
+        const constellationCodeMap: string[] = [];
+        const codeIndex = new Map<string, number>();
         const namedStars: NamedStar[] = [];
         const bayerStars: BayerStar[] = [];
-        const namedSet = new Set<string>(); // track named stars to avoid double labels
+        const namedSet = new Set<string>();
 
         for (let i = 0; i < count; i++) {
           const f = features[i];
@@ -206,6 +212,20 @@ function useStarData(visible: boolean): StarData | null {
           colors[i * 3 + 1] = cg;
           colors[i * 3 + 2] = cb;
 
+          // Track which constellation each star belongs to (for click highlight).
+          const con = f.properties.con;
+          if (con) {
+            let idx = codeIndex.get(con);
+            if (idx === undefined) {
+              idx = constellationCodeMap.length;
+              constellationCodeMap.push(con);
+              codeIndex.set(con, idx);
+            }
+            constellationCodes[i] = idx;
+          } else {
+            constellationCodes[i] = 255;
+          }
+
           // Collect named bright stars for labels
           const name = f.properties.name;
           if (name && mag < 3.0) {
@@ -215,7 +235,6 @@ function useStarData(visible: boolean): StarData | null {
 
           // Collect Bayer-designated stars (skip if already named)
           const bayer = f.properties.bayer;
-          const con = f.properties.con;
           if (bayer && con && mag < 4.5) {
             const key = `${ra.toFixed(2)},${dec.toFixed(2)}`;
             if (!namedSet.has(key)) {
@@ -232,7 +251,7 @@ function useStarData(visible: boolean): StarData | null {
           }
         }
 
-        setData({ positions, sizes, colors, count, namedStars, bayerStars });
+        setData({ positions, sizes, colors, count, namedStars, bayerStars, constellationCodes, constellationCodeMap });
       })
       .catch(() => {});
   }, [visible, data]);
@@ -240,9 +259,39 @@ function useStarData(visible: boolean): StarData | null {
   return data;
 }
 
-export function StarField({ visible, showDesignations, onLoad }: { visible: boolean; showDesignations?: boolean; onLoad?: () => void }) {
+const starVertexShader = `
+  attribute float size;
+  attribute vec3 color;
+  attribute float highlight;
+  uniform vec3 accentColor;
+  uniform float hasSelection;
+  varying vec3 vColor;
+  void main() {
+    float boost = hasSelection * highlight;
+    vColor = mix(color, accentColor, boost * 0.55);
+    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+    gl_PointSize = size * (1.0 + boost * 0.7);
+    gl_Position = projectionMatrix * mvPosition;
+  }
+`;
+const starFragmentShader = `
+  varying vec3 vColor;
+  void main() {
+    float d = length(gl_PointCoord - vec2(0.5));
+    if (d > 0.5) discard;
+    float alpha = 0.85 * smoothstep(0.5, 0.2, d);
+    gl_FragColor = vec4(vColor, alpha);
+  }
+`;
+
+export function StarField({ visible, showDesignations, onLoad, selectedConstellation, accent }: { visible: boolean; showDesignations?: boolean; onLoad?: () => void; selectedConstellation: string | null; accent: string }) {
   const starData = useStarData(visible);
   const { camera } = useThree();
+  const starMatRef = useRef<THREE.ShaderMaterial | null>(null);
+  const starUniforms = useMemo(() => ({
+    accentColor: { value: new THREE.Color('#ffffff') },
+    hasSelection: { value: 0 },
+  }), []);
 
   useEffect(() => {
     if (starData || !visible) onLoad?.();
@@ -264,36 +313,39 @@ export function StarField({ visible, showDesignations, onLoad }: { visible: bool
     geo.setAttribute('position', new THREE.BufferAttribute(starData.positions, 3));
     geo.setAttribute('size', new THREE.BufferAttribute(starData.sizes, 1));
     geo.setAttribute('color', new THREE.BufferAttribute(starData.colors, 3));
+    geo.setAttribute('highlight', new THREE.BufferAttribute(new Float32Array(starData.count), 1));
     return geo;
   }, [starData]);
 
-  const material = useMemo(() => new THREE.ShaderMaterial({
-    vertexShader: `
-      attribute float size;
-      attribute vec3 color;
-      varying vec3 vColor;
-      void main() {
-        vColor = color;
-        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-        gl_PointSize = size;
-        gl_Position = projectionMatrix * mvPosition;
+  // Update per-vertex highlight when selection changes (cheap — iterate ~41K stars).
+  useEffect(() => {
+    if (!geometry || !starData) return;
+    const attr = geometry.getAttribute('highlight') as THREE.BufferAttribute;
+    const arr = attr.array as Float32Array;
+    const targetIdx = selectedConstellation
+      ? starData.constellationCodeMap.indexOf(selectedConstellation)
+      : -1;
+    if (targetIdx < 0) {
+      arr.fill(0);
+    } else {
+      const codes = starData.constellationCodes;
+      for (let i = 0; i < arr.length; i++) {
+        arr[i] = codes[i] === targetIdx ? 1 : 0;
       }
-    `,
-    fragmentShader: `
-      varying vec3 vColor;
-      void main() {
-        // Circular point with soft edge
-        float d = length(gl_PointCoord - vec2(0.5));
-        if (d > 0.5) discard;
-        float alpha = 0.85 * smoothstep(0.5, 0.2, d);
-        gl_FragColor = vec4(vColor, alpha);
-      }
-    `,
-    transparent: true,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-    depthTest: true,
-  }), []);
+    }
+    attr.needsUpdate = true;
+  }, [selectedConstellation, geometry, starData]);
+
+  // Push uniform changes via the material ref (matches ConstellationLines pattern).
+  useEffect(() => {
+    const mat = starMatRef.current;
+    if (mat) mat.uniforms.hasSelection.value = selectedConstellation ? 1 : 0;
+  }, [selectedConstellation]);
+
+  useEffect(() => {
+    const mat = starMatRef.current;
+    if (mat) mat.uniforms.accentColor.value.set(accent);
+  }, [accent]);
 
   // Cull named star labels + bayer designations to ~60° cone around camera direction
   useFrame(() => {
@@ -341,7 +393,18 @@ export function StarField({ visible, showDesignations, onLoad }: { visible: bool
 
   return (
     <CelestialGroup visible={visible}>
-      <points geometry={geometry} material={material} />
+      <points geometry={geometry}>
+        <shaderMaterial
+          ref={starMatRef}
+          vertexShader={starVertexShader}
+          fragmentShader={starFragmentShader}
+          uniforms={starUniforms}
+          transparent
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          depthTest
+        />
+      </points>
       {/* Named star labels */}
       {starData?.namedStars.map(star => (
         visibleNames.has(star.name) && (

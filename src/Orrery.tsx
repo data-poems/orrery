@@ -142,7 +142,9 @@ function OrreryInner() {
   const [showDwarf, setShowDwarf] = useState(false);
   const [showStars, setShowStars] = useState(true);
   const [showConstellations, setShowConstellations] = useState(OBSERVATORY_MODE);
-  const [showAsterisms, setShowAsterisms] = useState(OBSERVATORY_MODE);
+  // Asterisms span constellation boundaries (e.g. Diamond of Virgo cuts through 4 constellations);
+  // off-by-default in observatory so the sky reads cleanly. Re-enabled on click via the asterism layer toggle (planned).
+  const [showAsterisms, setShowAsterisms] = useState(false);
   const [showAsteroidBelt, setShowAsteroidBelt] = useState(false);
   const [showComets, setShowComets] = useState(false);
   const [showMeteors, setShowMeteors] = useState(false);

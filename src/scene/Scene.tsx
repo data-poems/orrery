@@ -167,9 +167,13 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, cinematicRotate
 
     const remainDist = camera.position.distanceTo(tPos.current);
 
-    // Smooth factor: for cinematic, we want it to take most of the duration
-    // For interactive, we want it snappy (2.2).
-    let smoothBase = cinematic ? 0.45 : 1.0;
+    // Observe mode (e.g. Earth Observer in observatory) wants a gentle, never-snapping
+    // approach — the camera asymptotes toward the body's position with no settle cutoff.
+    const observeMode = camPreset?.observe ?? false;
+
+    // Smooth factor: cinematic stays at 0.6 (constant glide), observe mode gets a slow
+    // 0.5 for the asymptotic approach, default interactive is 1.0 (snappy).
+    let smoothBase = cinematic ? 0.45 : observeMode ? 0.5 : 1.0;
 
     if (cinematic) {
       // Constant smooth speed during cinematic — no ease reset between steps
@@ -178,7 +182,9 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, cinematicRotate
 
     const smoothBoost = cinematic
       ? (remainDist > 10000 ? 0.35 : remainDist > 1000 ? 0.2 : remainDist > 100 ? 0.1 : 0)
-      : (remainDist > 10000 ? 0.8 : remainDist > 1000 ? 0.5 : remainDist > 100 ? 0.2 : 0);
+      : observeMode
+        ? 0
+        : (remainDist > 10000 ? 0.8 : remainDist > 1000 ? 0.5 : remainDist > 100 ? 0.2 : 0);
     const posAlpha = 1 - Math.exp(-(smoothBase + smoothBoost) * dt);
     const lookAlpha = 1 - Math.exp(-(smoothBase + smoothBoost * 0.7) * dt);
     const settleThreshold = remainDist > 10000 ? 120 : remainDist > 1000 ? 32 : remainDist > 100 ? 3 : 0.035;
@@ -207,7 +213,10 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, cinematicRotate
       if (pp) {
         const newTarget = new THREE.Vector3(...pp);
 
-        if (settling.current) {
+        // Observe mode never flips out of "settling" — the gentle lerp asymptotes
+        // toward the body's per-frame position so there is no abrupt stop. This
+        // doubles as smooth orbital tracking (camera lags slightly behind Earth).
+        if (settling.current || observeMode) {
           const off = focusTarget !== null ? computeFocusOffset(pp) : camPreset ? computePresetFollowOffset(pp, camPreset) : null;
           if (off) {
             tPos.current.set(...off.pos);
@@ -215,10 +224,10 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, cinematicRotate
           } else {
             tLook.current.copy(newTarget);
           }
-          
+
           camera.position.lerp(tPos.current, posAlpha);
           ctrl.target.lerp(tLook.current, lookAlpha);
-          if (camera.position.distanceTo(tPos.current) < settleThreshold) {
+          if (!observeMode && camera.position.distanceTo(tPos.current) < settleThreshold) {
             settling.current = false;
           }
         } else {

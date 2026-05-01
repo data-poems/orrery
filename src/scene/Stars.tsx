@@ -259,6 +259,9 @@ function useStarData(visible: boolean): StarData | null {
   return data;
 }
 
+// Module-scoped: changing the source string forces R3F to recompile the program.
+// Keep these stable. (A previous attempt put them in component scope and the
+// per-render string identity churn pinned the GPU during scene mount.)
 const starVertexShader = `
   attribute float size;
   attribute vec3 color;
@@ -336,16 +339,14 @@ export function StarField({ visible, showDesignations, onLoad, selectedConstella
     attr.needsUpdate = true;
   }, [selectedConstellation, geometry, starData]);
 
-  // Push uniform changes via the material ref (matches ConstellationLines pattern).
+  // Push uniform changes via the material ref. One effect with both deps is
+  // stricter than two separate effects (won't desync if the ref attaches mid-flight).
   useEffect(() => {
     const mat = starMatRef.current;
-    if (mat) mat.uniforms.hasSelection.value = selectedConstellation ? 1 : 0;
-  }, [selectedConstellation]);
-
-  useEffect(() => {
-    const mat = starMatRef.current;
-    if (mat) mat.uniforms.accentColor.value.set(accent);
-  }, [accent]);
+    if (!mat) return;
+    mat.uniforms.hasSelection.value = selectedConstellation ? 1 : 0;
+    mat.uniforms.accentColor.value.set(accent);
+  }, [selectedConstellation, accent]);
 
   // Cull named star labels + bayer designations to ~60° cone around camera direction
   useFrame(() => {

@@ -63,6 +63,10 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, cinematicRotate
   const tPos = useRef(new THREE.Vector3(...HOME_POS));
   const tLook = useRef(new THREE.Vector3(...HOME_TGT));
   const settling = useRef(true);
+  // True once the user has grabbed OrbitControls in observe mode — flips the camera
+  // from "lerp toward Earth Observer offset" (entry transition) to "translate with
+  // Earth's orbital motion" (don't fight the user's chosen view direction).
+  const observeUserTook = useRef(false);
   const prevTrackPos = useRef(new THREE.Vector3());
   const lastDistanceReportRef = useRef(0);
   const lastDistanceValueRef = useRef(0);
@@ -152,10 +156,18 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, cinematicRotate
   useEffect(() => {
     const ctrl = ctrlRef.current;
     if (!ctrl) return;
-    const stop = () => { if (!cinematic) settling.current = false; };
+    const stop = () => {
+      if (!cinematic) settling.current = false;
+      observeUserTook.current = true;
+    };
     ctrl.addEventListener('start', stop);
     return () => ctrl.removeEventListener('start', stop);
   }, [cinematic]);
+
+  // Reset the observe-took flag whenever the preset changes (e.g. re-entering observatory).
+  useEffect(() => {
+    observeUserTook.current = false;
+  }, [camPreset]);
 
   useFrame((_, dt) => {
     const ctrl = ctrlRef.current;
@@ -215,10 +227,10 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, cinematicRotate
       if (pp) {
         const newTarget = new THREE.Vector3(...pp);
 
-        // Observe mode never flips out of "settling" — the gentle lerp asymptotes
-        // toward the body's per-frame position so there is no abrupt stop. This
-        // doubles as smooth orbital tracking (camera lags slightly behind Earth).
-        if (settling.current || observeMode) {
+        // Observe mode lerps gently toward Earth Observer offset — but ONLY until
+        // the user grabs OrbitControls. After that, switch to translate-tracking so
+        // we don't fight the user's chosen view direction (the auto-reset bug).
+        if (settling.current || (observeMode && !observeUserTook.current)) {
           const off = focusTarget !== null ? computeFocusOffset(pp) : camPreset ? computePresetFollowOffset(pp, camPreset) : null;
           if (off) {
             tPos.current.set(...off.pos);

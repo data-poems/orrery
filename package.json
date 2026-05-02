@@ -5,12 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && node scripts/postbuild-observatory-html.mjs && node scripts/postgzip.mjs",
+    "build": "pnpm build:web",
+    "build:web": "tsc -b && vite build && node scripts/postbuild-observatory-html.mjs && node scripts/postgzip.mjs",
+    "build:ios": "tsc -b && VITE_CAPACITOR=true vite build --base=./",
+    "ios:sync": "pnpm build:ios && cap sync ios",
+    "ios:open": "cap open ios",
     "lint": "eslint .",
     "preview": "vite preview",
     "prebake": "tsx scripts/prebake.ts"
   },
   "dependencies": {
+    "@capacitor/core": "^8.3.1",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.1",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "@types/three": "^0.183.1",
@@ -20,6 +27,8 @@
     "three": "^0.183.2"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.3.1",
+    "@capacitor/ios": "^8.3.1",
     "@eslint/js": "^9.39.4",
     "@types/node": "^24.12.0",
     "@types/react": "^19.2.14",

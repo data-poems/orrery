@@ -548,11 +548,11 @@ function SideDrawer({
   cams, camIdx, onPresetSelect,
   selPlanet, setSelPlanet, onMoonSelect,
   neos, neoStatus, selNeo, setSelNeo,
-  showNeo, showStars, showConstellations, showAsterisms: _showAsterisms, constellationFocus: _constellationFocus, showDwarf,
-  showAsteroidBelt, showComets, showMeteors, showSatellites: _showSatellites, showDeepSky,
+  showNeo, showStars, showConstellations, showDwarf,
+  showAsteroidBelt, showComets, showMeteors, showDeepSky,
   showDeepSpace,
-  setShowNeo, setShowStars, setShowConstellations, setShowAsterisms: _setShowAsterisms, setConstellationFocus: _setConstellationFocus,
-  setShowDwarf, setShowAsteroidBelt, setShowComets, setShowMeteors, setShowSatellites: _setShowSatellites, setShowDeepSky,
+  setShowNeo, setShowStars, setShowConstellations,
+  setShowDwarf, setShowAsteroidBelt, setShowComets, setShowMeteors, setShowDeepSky,
   setShowDeepSpace,
   selConstellation, setSelConstellation,
   selAsterism, setSelAsterism,
@@ -1370,26 +1370,12 @@ export default function Panels(props: PanelProps) {
         aria-expanded={panelOpen}
         style={{
           ...drawerTab,
-          ...(false // mobile branch removed — desktop only now
-            ? {
-                top: 'auto',
-                bottom: 16,
-                right: 12,
-                transform: 'none',
-                width: 44,
-                height: 44,
-                borderRadius: 999,
-                borderRight: '1px solid rgba(255,255,255,0.08)',
-              }
-            : {
-                top: '50%',
-                right: 0,
-                transform: `translateY(-50%) translateX(${showPanelNudge ? -8 : 0}px)`,
-                width: 36,
-                height: 76,
-                borderRadius: '12px 0 0 12px',
-                borderRight: 'none',
-              }),
+          top: '50%',
+          right: 0,
+          transform: `translateY(-50%) translateX(${showPanelNudge ? -8 : 0}px)`,
+          width: 36,
+          height: 76,
+          borderRadius: '12px 0 0 12px',
           color: panelVisible ? accent : 'rgba(255,255,255,0.72)',
           background: panelVisible
             ? `linear-gradient(180deg, rgba(${accentRgb},0.18) 0%, rgba(0,0,0,0.78) 100%)`
@@ -1397,7 +1383,7 @@ export default function Panels(props: PanelProps) {
           backdropFilter: 'blur(14px)',
           WebkitBackdropFilter: 'blur(14px)',
           border: `1px solid rgba(${accentRgb},${panelVisible ? '0.26' : '0.14'})`,
-          borderRight: mobile ? `1px solid rgba(${accentRgb},0.16)` : 'none',
+          borderRight: 'none',
           zIndex: 31,
           transition: 'transform 0.28s ease, background 0.2s ease, color 0.2s ease, border-color 0.2s ease',
         }}

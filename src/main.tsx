@@ -13,3 +13,18 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 )
+
+if (import.meta.env.VITE_CAPACITOR === 'true') {
+  void import('@capacitor/status-bar')
+    .then(({ StatusBar, Style }) => {
+      void StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
+      void StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
+    })
+    .catch(() => {});
+
+  window.setTimeout(() => {
+    void import('@capacitor/splash-screen')
+      .then(({ SplashScreen }) => SplashScreen.hide({ fadeOutDuration: 250 }))
+      .catch(() => {});
+  }, 250);
+}

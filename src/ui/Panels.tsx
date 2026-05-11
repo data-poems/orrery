@@ -765,7 +765,7 @@ function SideDrawer({
           { title: 'Close', items: ['Sun', 'Inner', 'Belt'].map(l => ({ label: l, idx: camIndex(l) })).filter(x => x.idx >= 0) },
           { title: 'System', items: ['System', 'Top', 'Ecliptic'].map(l => ({ label: l, idx: camIndex(l) })).filter(x => x.idx >= 0) },
           { title: 'Deep', items: (observatoryMode ? ['Outer', 'Kuiper'] : ['Outer', 'Kuiper', 'Oort', 'Stellar']).map(l => ({ label: l, idx: camIndex(l) })).filter(x => x.idx >= 0) },
-          { title: 'Views', items: ['Screensaver', 'Stargazer'].map(l => ({ label: l, idx: camIndex(l) })).filter(x => x.idx >= 0) },
+          { title: 'Views', items: ['Screensaver'].map(l => ({ label: l, idx: camIndex(l) })).filter(x => x.idx >= 0) },
         ];
         const btnStyle = {
           background: 'rgba(255,255,255,0.04)',
@@ -1114,9 +1114,9 @@ function SideDrawer({
 
         <MiniAccordion title="Keyboard Shortcuts" defaultOpen={false}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <div style={kbdRow}><span style={kbd}>1-0</span> Camera presets {'\u00b7'} <span style={kbd}>-</span> Stargazer</div>
+            <div style={kbdRow}><span style={kbd}>1-0</span> Camera presets {'\u00b7'} <span style={kbd}>=</span> Stellar</div>
             <div style={kbdRow}><span style={kbd}>S</span> Stars {'\u00b7'} <span style={kbd}>L</span> Constellations</div>
-            <div style={kbdRow}><span style={kbd}>G</span> Stargazer {'\u00b7'} <span style={kbd}>D</span> Dwarf planets</div>
+            <div style={kbdRow}><span style={kbd}>G</span> Sky mode {'\u00b7'} <span style={kbd}>D</span> Dwarf planets</div>
             <div style={kbdRow}><span style={kbd}>K</span> Deep Sky {'\u00b7'} <span style={kbd}>N</span> NEO</div>
             <div style={kbdRow}><span style={kbd}>C</span> Comets {'\u00b7'} <span style={kbd}>R</span> Radiants</div>
             <div style={kbdRow}><span style={kbd}>I</span> Satellites {'\u00b7'} <span style={kbd}>O</span> Deep Space</div>
@@ -1232,6 +1232,17 @@ export default function Panels(props: PanelProps) {
   const mobilePanelOffset = '12px';
   const panelVisible = panelOpen || (!mobile && panelPeek);
   const showPanelNudge = panelNudge && !mobile && !panelVisible;
+  const toggleStargazer = useCallback(() => {
+    setConstellationFocus((prev) => {
+      const next = !prev;
+      if (next) {
+        setShowStars(() => true);
+        setShowConstellations(() => true);
+        setShowDeepSky(() => true);
+      }
+      return next;
+    });
+  }, [setConstellationFocus, setShowStars, setShowConstellations, setShowDeepSky]);
 
   useEffect(() => {
     if (mobile || panelOpen || panelPeek) return;
@@ -1564,28 +1575,6 @@ export default function Panels(props: PanelProps) {
                   </span>
                 ))}
               </div>
-              {/* Stargazer toggle in card */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setConstellationFocus(p => !p);
-                    if (!constellationFocus) {
-                      setShowStars(() => true);
-                      setShowConstellations(() => true);
-                      setShowDeepSky(() => true);
-                    }
-                  }}
-                  style={{
-                    background: constellationFocus ? `rgba(${accentRgb},0.15)` : 'transparent',
-                    border: `1px solid ${constellationFocus ? `rgba(${accentRgb},0.3)` : 'rgba(255,255,255,0.1)'}`,
-                    borderRadius: 4, padding: '4px 10px',
-                    color: constellationFocus ? accent : 'rgba(255,255,255,0.5)',
-                    fontSize: 11, fontFamily: 'inherit', fontWeight: 300,
-                    cursor: 'pointer',
-                  }}
-                >{'\u2726'} Stargazer</button>
-              </div>
             </>
           )}
         </div>
@@ -1653,31 +1642,44 @@ export default function Panels(props: PanelProps) {
         {observatoryMode ? 'Observatory' : 'Orrery'}
       </div>
 
-      {/* ── Zoom controls + stargazer toggle (desktop only) ── */}
+      {/* ── Zoom controls (desktop only) ── */}
       {!mobile && !observatoryMode && <ZoomControls />}
-      {!mobile && !observatoryMode && !cinematic && (
+      {!observatoryMode && !cinematic && (
         <button
-          onClick={() => {
-            setConstellationFocus(p => !p);
-            if (!constellationFocus) {
-              setShowStars(() => true);
-              setShowConstellations(() => true);
-              setShowDeepSky(() => true);
-            }
-          }}
-          aria-label="Stargazer mode"
+          onClick={toggleStargazer}
+          aria-label="Sky mode"
           aria-pressed={constellationFocus}
+          aria-keyshortcuts="g"
+          title="Sky mode (G)"
           style={{
-            position: 'absolute', bottom: 108, right: 14,
+            position: mobile ? 'fixed' : 'absolute',
+            top: mobile ? 78 : 14,
+            right: 14,
             background: constellationFocus ? `rgba(${accentRgb},0.15)` : 'rgba(255,255,255,0.06)',
-            border: `1px solid ${constellationFocus ? `rgba(${accentRgb},0.3)` : 'rgba(255,255,255,0.08)'}`,
-            borderRadius: 6, width: 44, height: 44,
-            color: constellationFocus ? accent : 'rgba(255,255,255,0.6)',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: 'inherit', fontSize: 18, zIndex: 5,
-            backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+            border: `1px solid ${constellationFocus ? `rgba(${accentRgb},0.3)` : 'rgba(255,255,255,0.1)'}`,
+            borderRadius: 6,
+            padding: mobile ? '0 12px' : '0 10px',
+            minWidth: 44,
+            height: 44,
+            color: constellationFocus ? accent : 'rgba(255,255,255,0.65)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            fontFamily: 'inherit',
+            fontSize: 12,
+            fontWeight: 400,
+            letterSpacing: 1.2,
+            textTransform: 'uppercase',
+            zIndex: 20,
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
           }}
-        >{'\u2726'}</button>
+        >
+          <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>{'\u2726'}</span>
+          Sky
+        </button>
       )}
 
       {/* ── Mobile floating top controls (hidden in observatory — no solar-system presets to surface) ── */}
@@ -1704,27 +1706,6 @@ export default function Panels(props: PanelProps) {
               }}>{label}</button>
             );
           })}
-          <button
-            onClick={() => {
-              setConstellationFocus(p => !p);
-              if (!constellationFocus) {
-                setShowStars(() => true);
-                setShowConstellations(() => true);
-                setShowDeepSky(() => true);
-              }
-            }}
-            aria-label="Stargazer mode"
-            aria-pressed={constellationFocus}
-            style={{
-              padding: '6px 10px',
-              fontSize: 12, fontFamily: 'inherit', fontWeight: constellationFocus ? 600 : 400,
-              color: constellationFocus ? accent : 'rgba(255,255,255,0.7)',
-              background: constellationFocus ? `rgba(${accentRgb},0.15)` : 'rgba(0,0,0,0.4)',
-              border: `1px solid ${constellationFocus ? `rgba(${accentRgb},0.3)` : 'rgba(255,255,255,0.1)'}`,
-              borderRadius: 3, cursor: 'pointer',
-              backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-            }}
-          >{'\u2726'}</button>
         </div>
       )}
 

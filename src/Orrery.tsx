@@ -208,7 +208,7 @@ function OrreryInner() {
 
   // ─── Cinematic: tight highlight reel through scale levels ────────────────────
   const cinematicSteps = useMemo((): CinematicStep[] => [
-    { ...CINEMATIC_DEFAULTS, camPreset: 9, duration: 5000, label: 'Deep Space', deepSky: true, deepSpace: true, dwarf: true, autoRotateSpeed: 0.06 },
+    { ...CINEMATIC_DEFAULTS, camPreset: 9, duration: 3400, label: 'Deep Space', deepSky: true, deepSpace: true, dwarf: true, autoRotateSpeed: 0.1 },
     { ...CINEMATIC_DEFAULTS, camPreset: 1, duration: 5000, label: 'Solar System', asteroidBelt: true, dwarf: true, autoRotateSpeed: 0.2 },
     { ...CINEMATIC_DEFAULTS, camPreset: 0, duration: 4000, label: 'Inner Planets', asteroidBelt: true, autoRotateSpeed: 0.3 },
     { ...CINEMATIC_DEFAULTS, focusPlanet: 2, duration: 5000, label: 'Earth', autoRotateSpeed: 0.5 },
@@ -648,7 +648,17 @@ function OrreryInner() {
       if (k === 's') setShowStars(p => !p);
       if (k === 'l') setShowConstellations(p => !p);
       if (k === 'a') setShowAsterisms(p => !p);
-      if (k === 'g') setConstellationFocus(p => !p);
+      if (k === 'g') {
+        setConstellationFocus((prev) => {
+          const next = !prev;
+          if (next) {
+            setShowStars(true);
+            setShowConstellations(true);
+            setShowDeepSky(true);
+          }
+          return next;
+        });
+      }
       if (k === 'k') setShowDeepSky(p => !p);
       if (k === 'c') setShowComets(p => !p);
       if (k === 'r') setShowMeteors(p => !p);

@@ -3,6 +3,8 @@
  *
  * Main component: state management, effects, Canvas composition.
  * 3D scene in scene/, UI overlays in ui/.
+ * After cinematic tour lands on Earth: enables Sky mode (constellation focus) and may show
+ * a one-time intro modal (localStorage key orrery-sky-tour-seen-v1).
  */
 
 import { useEffect, useState, useRef, useMemo, useCallback, Suspense } from 'react';
@@ -21,6 +23,9 @@ import Scene from './scene/Scene';
 import Panels from './ui/Panels';
 import LoadingScreen from './ui/LoadingScreen';
 import { OBSERVATORY_MODE } from './lib/mode';
+
+/** Once per browser/app install: do not auto-show the post-tour Sky intro modal again. */
+const SKY_TOUR_SEEN_KEY = 'orrery-sky-tour-seen-v1';
 
 type CinematicStep = {
   camPreset?: number; focusPlanet?: number; focusMoon?: number;
@@ -198,6 +203,7 @@ function OrreryInner() {
   const [camIdx, setCamIdx] = useState(0);
   const [panelOpen, setPanelOpen] = useState(false);
   const [cinematicRotateSpeed, setCinematicRotateSpeed] = useState(0.5);
+  const [showSkyTourModal, setShowSkyTourModal] = useState(false);
   const positionsRef = useRef(new Map<number, [number, number, number]>());
 
   const jd = useMemo(() => julianDate(simTime), [simTime]);
@@ -233,8 +239,23 @@ function OrreryInner() {
     | { kind: 'planet'; idx: number; label: string }
     | { kind: 'preset'; label: string };
 
+  const dismissSkyTourModal = useCallback(() => {
+    setShowSkyTourModal(false);
+    try {
+      localStorage.setItem(SKY_TOUR_SEEN_KEY, '1');
+    } catch {
+      /* ignore quota / private mode */
+    }
+  }, []);
+
   // Leave cinematic and clear all selection state; default lands on Earth focus.
   const exitCinematic = useCallback((target: ExitTarget = { kind: 'planet', idx: 2, label: 'Earth' }) => {
+    const earthPlanetExit = target.kind === 'planet' && target.idx === 2;
+    if (earthPlanetExit) {
+      setConstellationFocus(true);
+      setShowConstellations(true);
+    }
+
     setCinematic(false);
     setShowStars(true);
     setShowDeepSky(true);
@@ -257,6 +278,14 @@ function OrreryInner() {
       setCamIdx(Math.max(0, camIndex(target.label)));
       setFocusTarget(null);
       setNavStack(['Solar System']);
+    }
+
+    if (earthPlanetExit) {
+      try {
+        if (!localStorage.getItem(SKY_TOUR_SEEN_KEY)) setShowSkyTourModal(true);
+      } catch {
+        setShowSkyTourModal(true);
+      }
     }
   }, []);
 
@@ -609,6 +638,12 @@ function OrreryInner() {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
       const k = e.key.toLowerCase();
+
+      if (showSkyTourModal) {
+        if (k === 'escape') dismissSkyTourModal();
+        return;
+      }
+
       const isPresetKey = (e.key >= '1' && e.key <= '9') || e.key === '0' || e.key === '-' || e.key === '=';
       const isInteractiveShortcut = isPresetKey || ['m', 'n', 'd', 's', 'l', 'a', 'g', 'k', 'c', 'r', 'i', 'o', 'escape', ' '].includes(k);
 
@@ -682,12 +717,14 @@ function OrreryInner() {
     };
     window.addEventListener('keydown', fn);
     return () => window.removeEventListener('keydown', fn);
-  }, [cinematic, panelOpen, navigateBack, handlePresetSelect, exitCinematic, startCinematicTour]);
+  }, [cinematic, panelOpen, navigateBack, handlePresetSelect, exitCinematic, startCinematicTour, showSkyTourModal, dismissSkyTourModal]);
 
   // Exit cinematic mode on click
   const handleCinematicClick = useCallback(() => {
     if (cinematic) exitCinematic();
   }, [cinematic, exitCinematic]);
+
+  const accentRgb = theme.uiAccentRgb;
 
   return (
     <div
@@ -804,6 +841,75 @@ function OrreryInner() {
         selSatellite={selSatellite} setSelSatellite={setSelSatellite}
         selSpacecraft={selSpacecraft} setSelSpacecraft={setSelSpacecraft}
       />
+
+      {showSkyTourModal && !OBSERVATORY_MODE && (
+        <div
+          role="presentation"
+          onClick={dismissSkyTourModal}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 45,
+            background: 'rgba(0,0,0,0.82)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 'max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left))',
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="orrery-sky-tour-title"
+            aria-describedby="orrery-sky-tour-desc"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: 380, width: '100%',
+              background: 'rgba(0,0,0,0.55)',
+              border: `1px solid rgba(${accentRgb},0.22)`,
+              borderRadius: 12,
+              padding: '22px 24px 20px',
+              boxShadow: '0 12px 48px rgba(0,0,0,0.45)',
+            }}
+          >
+            <h2
+              id="orrery-sky-tour-title"
+              style={{
+                color: theme.uiAccent, fontSize: 13, fontWeight: 500, letterSpacing: 3,
+                textTransform: 'uppercase', marginBottom: 10,
+              }}
+            >
+              Sky mode
+            </h2>
+            <p
+              id="orrery-sky-tour-desc"
+              style={{ color: 'rgba(255,255,255,0.78)', fontSize: 15, fontWeight: 300, lineHeight: 1.55, marginBottom: 14 }}
+            >
+              Constellations, star names, and bright deep-sky objects are highlighted for stargazing from Earth.
+            </p>
+            <ul style={{ margin: '0 0 16px 18px', padding: 0, color: 'rgba(255,255,255,0.65)', fontSize: 14, fontWeight: 300, lineHeight: 1.65 }}>
+              <li>Drag to look around; pinch to zoom.</li>
+              <li>Open the side panel (edge tab) for layers and Go To views.</li>
+              <li>Time and speed controls sit along the bottom edge.</li>
+            </ul>
+            <p style={{ color: 'rgba(255,255,255,0.72)', fontSize: 14, fontWeight: 400, lineHeight: 1.5, marginBottom: 18 }}>
+              To turn this off: tap <strong style={{ color: theme.uiAccent }}>Sky</strong> at the top-right (below the status bar), or press <kbd style={{ padding: '2px 6px', borderRadius: 4, border: '1px solid rgba(255,255,255,0.2)', fontSize: 12 }}>G</kbd> on a hardware keyboard.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button
+                type="button"
+                onClick={dismissSkyTourModal}
+                style={{
+                  background: `rgba(${accentRgb},0.15)`,
+                  border: `1px solid rgba(${accentRgb},0.35)`,
+                  color: theme.uiAccent, fontFamily: 'inherit', fontSize: 14, fontWeight: 500,
+                  padding: '10px 22px', borderRadius: 6, cursor: 'pointer',
+                }}
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -21,6 +21,16 @@ import { MYTHOLOGY, CONSTELLATION_NAMES, seasonForMonth, type SeasonName } from 
 import { OBSERVATORY_MODE } from '../lib/mode';
 import { ASTERISMS } from '../data/asterisms';
 
+/** Distance from top of viewport below notch / status bar (iOS safe area). */
+function safeAreaTop(extraPx: number): string {
+  return `calc(env(safe-area-inset-top, 0px) + ${extraPx}px)`;
+}
+
+/** Distance from bottom of viewport above home indicator (iOS safe area). */
+function safeAreaBottom(extraPx: number): string {
+  return `calc(env(safe-area-inset-bottom, 0px) + ${extraPx}px)`;
+}
+
 // Group MYTHOLOGY entries into Northern-hemisphere season buckets. Constellations
 // whose season string is "Spring (S)" etc. fall back to their literal first word.
 const SEASON_ORDER: SeasonName[] = ['Spring', 'Summer', 'Autumn', 'Winter'];
@@ -119,7 +129,7 @@ function ZoomControls() {
 
   return (
     <div style={{
-      position: 'absolute', bottom: 20, right: 14,
+      position: 'absolute', bottom: safeAreaBottom(20), right: 14,
       display: 'flex', flexDirection: 'column', gap: 4,
       zIndex: 5,
     }}>
@@ -1296,7 +1306,7 @@ export default function Panels(props: PanelProps) {
       >
         {/* Top cluster: time, date, celestial data */}
         <div style={{
-          marginTop: mobile ? 20 : 32,
+          marginTop: mobile ? safeAreaTop(20) : safeAreaTop(32),
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
         }}>
           <span style={{
@@ -1337,7 +1347,7 @@ export default function Panels(props: PanelProps) {
 
         {/* Exit hint */}
         <div style={{
-          position: 'absolute', bottom: mobile ? 48 : 56,
+          position: 'absolute', bottom: mobile ? safeAreaBottom(48) : safeAreaBottom(56),
           color: 'rgba(255,255,255,0.72)', fontSize: mobile ? 16 : 18,
           letterSpacing: 3, fontWeight: 300, fontStyle: 'italic',
         }}>
@@ -1345,7 +1355,7 @@ export default function Panels(props: PanelProps) {
         </div>
         {/* Watermark */}
         <div style={{
-          position: 'absolute', bottom: mobile ? 20 : 28,
+          position: 'absolute', bottom: mobile ? safeAreaBottom(20) : safeAreaBottom(28),
           color: 'rgba(255,255,255,0.12)', fontSize: mobile ? 14 : 16,
           letterSpacing: 8, textTransform: 'uppercase', fontWeight: 300,
         }}>
@@ -1637,7 +1647,7 @@ export default function Panels(props: PanelProps) {
         tabIndex={0}
         onClick={() => setShowInfo(p => !p)}
         onKeyDown={e => { if (e.key === 'Enter') setShowInfo(p => !p); }}
-        style={{ position: 'absolute', top: 14, left: 14, color: 'rgba(255,255,255,0.7)', fontSize: mobile ? 14 : 15, letterSpacing: 5, textTransform: 'uppercase', zIndex: 5, fontWeight: 300, cursor: 'pointer' }}
+        style={{ position: 'absolute', top: safeAreaTop(14), left: 14, color: 'rgba(255,255,255,0.7)', fontSize: mobile ? 14 : 15, letterSpacing: 5, textTransform: 'uppercase', zIndex: 5, fontWeight: 300, cursor: 'pointer' }}
       >
         {observatoryMode ? 'Observatory' : 'Orrery'}
       </div>
@@ -1653,7 +1663,7 @@ export default function Panels(props: PanelProps) {
           title="Sky mode (G)"
           style={{
             position: mobile ? 'fixed' : 'absolute',
-            top: mobile ? 78 : 14,
+            top: mobile ? safeAreaTop(84) : safeAreaTop(14),
             right: 14,
             background: constellationFocus ? `rgba(${accentRgb},0.15)` : 'rgba(255,255,255,0.06)',
             border: `1px solid ${constellationFocus ? `rgba(${accentRgb},0.3)` : 'rgba(255,255,255,0.1)'}`,
@@ -1685,7 +1695,7 @@ export default function Panels(props: PanelProps) {
       {/* ── Mobile floating top controls (hidden in observatory — no solar-system presets to surface) ── */}
       {mobile && !cinematic && !observatoryMode && (
         <div style={{
-          position: 'fixed', top: 32, left: 10, right: 10,
+          position: 'fixed', top: safeAreaTop(32), left: 10, right: 10,
           display: 'flex', alignItems: 'center', gap: 4,
           zIndex: 15,
         }}>

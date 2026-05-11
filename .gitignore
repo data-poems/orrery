@@ -26,7 +26,13 @@ dist-ssr
 # Screenshots and images (keep public/ assets)
 *.png
 *.PNG
+*.jpg
+*.jpeg
+*.JPG
+*.JPEG
 !public/*.png
+!public/*.jpg
+!public/*.jpeg
 screenshots/
 
 # Playwright

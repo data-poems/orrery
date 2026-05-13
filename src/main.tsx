@@ -4,6 +4,18 @@ import './index.css'
 import App from './App.tsx'
 import { OBSERVATORY_MODE } from './lib/mode'
 
+declare global {
+  interface Window {
+    /** Set at startup — type this in Safari Web Inspector to verify the bundle age. */
+    __ORRERY_BUILD_STAMP__?: string;
+  }
+}
+
+window.__ORRERY_BUILD_STAMP__ = __ORRERY_BUILD_STAMP__;
+if (import.meta.env.DEV) {
+  console.info('[Orrery] bundle stamp', __ORRERY_BUILD_STAMP__);
+}
+
 if (OBSERVATORY_MODE) {
   document.title = 'Observatory';
 }

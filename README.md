@@ -34,6 +34,7 @@ From Earth to the Oort Cloud. Interactive, 41,000 stars, 88 constellations, real
 
 - Cinematic opening tour: deep space down to Earth
 - Stargazer mode with zodiac glyphs and constellation labels
+- Deep Sky and Deep Space layers can be toggled independently
 - Click any planet to zoom in, click its moons to drill down
 - Time controls from real-time to 100 years per second
 - 4 colorblind-accessible themes
@@ -64,6 +65,8 @@ React 19, TypeScript 5.9, Three.js (r183) via @react-three/fiber + @react-three/
 
 - iOS sync pipeline: `pnpm ios:sync`
 - Optional compile gate: `pnpm ios:compile`
+- iPad panel updates: safe-area aligned right drawer with explicit close button
+- Launch stability note: Milky Way backdrop is disabled in deep space to avoid iPad streak artifacts
 - App Store submission kit:
   - `app-store/APP_STORE_PACK.md`
   - `app-store/APP_STORE_CONNECT_PASTE_SHEET.md`

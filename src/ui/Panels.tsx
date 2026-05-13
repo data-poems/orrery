@@ -36,6 +36,11 @@ function safeAreaRight(extraPx: number): string {
   return `calc(env(safe-area-inset-right, 0px) + ${extraPx}px)`;
 }
 
+function deviceCanHover(): boolean {
+  if (typeof window === 'undefined' || !window.matchMedia) return false;
+  return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+}
+
 // Group MYTHOLOGY entries into Northern-hemisphere season buckets. Constellations
 // whose season string is "Spring (S)" etc. fall back to their literal first word.
 const SEASON_ORDER: SeasonName[] = ['Spring', 'Summer', 'Autumn', 'Winter'];
@@ -553,6 +558,7 @@ function TonightsSky({
 
 function SideDrawer({
   open,
+  onClose,
   accent, accentRgb, mobile,
   simTime, moon, solarWind, speed, setSpeed, playing, setPlaying,
   cams, camIdx, onPresetSelect,
@@ -573,6 +579,7 @@ function SideDrawer({
   panelFontScale,
 }: {
   open: boolean;
+  onClose: () => void;
   accent: string;
   accentRgb: string;
   mobile: boolean;
@@ -726,6 +733,33 @@ function SideDrawer({
           </div>
         </div>
       </AccordionSection>}
+      {!mobile && (
+        <button
+          onClick={onClose}
+          aria-label="Close panel"
+          style={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            width: 28,
+            height: 28,
+            borderRadius: 6,
+            border: `1px solid rgba(${accentRgb},0.24)`,
+            background: `rgba(${accentRgb},0.12)`,
+            color: accent,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            fontSize: 16,
+            lineHeight: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1,
+          }}
+        >
+          {'\u00d7'}
+        </button>
+      )}
 
       <AccordionSection title="Speed" accent={accent} defaultOpen={openCore}>
         <div style={{ padding: '0 16px 8px' }}>
@@ -1241,7 +1275,8 @@ export default function Panels(props: PanelProps) {
   const sp = selPlanet !== null ? ALL_BODIES[selPlanet] : null;
   const mobilePanelHeight = '38vh';
   const mobilePanelOffset = '12px';
-  const panelVisible = panelOpen || (!mobile && panelPeek);
+  const [canHover, setCanHover] = useState(deviceCanHover);
+  const panelVisible = panelOpen || (!mobile && canHover && panelPeek);
   const showPanelNudge = panelNudge && !mobile && !panelVisible && !cinematic;
   const toggleStargazer = useCallback(() => {
     setConstellationFocus((prev) => {
@@ -1254,6 +1289,17 @@ export default function Panels(props: PanelProps) {
       return next;
     });
   }, [setConstellationFocus, setShowStars, setShowConstellations, setShowDeepSky]);
+
+  useEffect(() => {
+    const updateHover = () => setCanHover(deviceCanHover());
+    updateHover();
+    window.addEventListener('resize', updateHover);
+    return () => window.removeEventListener('resize', updateHover);
+  }, []);
+
+  useEffect(() => {
+    if (!canHover && panelPeek) setPanelPeek(false);
+  }, [canHover, panelPeek]);
 
   useEffect(() => {
     if (cinematic || mobile || panelOpen || panelPeek) return;
@@ -1359,14 +1405,14 @@ export default function Panels(props: PanelProps) {
       {/* Panel drawer tab (desktop only — mobile uses bottom toolbar gear; hidden in observatory / cinematic) */}
       {!mobile && !observatoryMode && !cinematic && <button
         onClick={() => setPanelOpen((p: boolean) => !p)}
-        onMouseEnter={() => { if (!mobile) startPeek(); }}
-        onMouseLeave={() => { if (!mobile && !panelOpen) endPeek(); }}
+        onMouseEnter={() => { if (!mobile && canHover) startPeek(); }}
+        onMouseLeave={() => { if (!mobile && canHover && !panelOpen) endPeek(); }}
         aria-label={panelOpen ? 'Collapse panel' : 'Open panel'}
         aria-expanded={panelOpen}
         style={{
           ...drawerTab,
           top: '50%',
-          right: safeAreaRight(0),
+          right: safeAreaRight(10),
           transform: `translateY(-50%) translateX(${showPanelNudge ? -8 : 0}px)`,
           width: 36,
           height: 76,
@@ -1438,8 +1484,9 @@ export default function Panels(props: PanelProps) {
         selAsterism={selAsterism} setSelAsterism={setSelAsterism}
         selDeepSky={selDeepSky} setSelDeepSky={setSelDeepSky}
         selSpacecraft={selSpacecraft} setSelSpacecraft={setSelSpacecraft}
-        onHoverStart={() => { if (!mobile) startPeek(); }}
-        onHoverEnd={() => { if (!mobile && !panelOpen) endPeek(); }}
+        onHoverStart={() => { if (!mobile && canHover) startPeek(); }}
+        onHoverEnd={() => { if (!mobile && canHover && !panelOpen) endPeek(); }}
+        onClose={() => { setPanelOpen(false); setPanelPeek(false); }}
         panelFontScale={panelFontScale}
       />}
 

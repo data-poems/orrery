@@ -58,6 +58,8 @@ Questions or feedback: luke@lukesteuber.com
 - Let the cinematic intro complete and verify interactive HUD appears.
 - Select Earth and other planets, then drill into moon-level views.
 - Toggle Sky overlays and constellation labels.
+- Toggle Deep Sky and Deep Space independently and verify no streak artifacts.
+- Verify iPad sidebar opens and closes reliably with the in-panel close button.
 - Use time controls and verify fast-forward updates without stalling.
 - Verify orientation behavior in portrait and landscape.
 
@@ -95,6 +97,10 @@ Confirm all URLs are public and render before each submission cycle.
 - Launch storyboard uses:
   - `ios/App/App/Base.lproj/LaunchScreen.storyboard`
   - `ios/App/App/Assets.xcassets/Splash.imageset/`
+
+### Launch Stability Overrides
+
+- Milky Way backdrop in deep-space rendering is disabled for the current launch branch to avoid iPad startup streak artifacts.
 
 ### Screenshot Checklist
 

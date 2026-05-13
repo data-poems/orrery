@@ -30,6 +30,14 @@
 - Capture final iPhone/iPad screenshots from current shipping build.
 - Confirm final category/keyword strategy prior to first production submit.
 - Paste finalized copy into App Store Connect and complete privacy questionnaire.
+- Validate iPad panel behavior in portrait, landscape, and split view after safe-area/close-button patch.
+- Revisit Milky Way backdrop rendering after launch with seam-safe triangulation or texture-based replacement.
+
+## Recent Launch Stabilization Work
+
+- Separated `Deep Sky` and `Deep Space` UI toggles to prevent accidental deep-space side effects.
+- Added explicit right-panel close control and disabled hover-peek behavior on touch-only devices.
+- Removed Milky Way backdrop runtime path and prefetch from launch build to eliminate startup streak artifacts.
 
 ## Update Rule
 

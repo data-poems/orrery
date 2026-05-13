@@ -5,7 +5,7 @@
  * that doesn't fit a sky-and-inner-planets framing).
  */
 
-import { useMemo, useRef, useState, useEffect } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
@@ -14,7 +14,6 @@ import {
   PC_TO_AU, STAR_DISPLAY_CAP_AU,
   heliocentricXYZ, raDecToSphere,
 } from '../data/deepspace';
-import { ECLIPTIC_TILT } from '../lib/kepler';
 import { OBSERVATORY_MODE } from '../lib/mode';
 import type { Spacecraft } from '../data/deepspace';
 
@@ -38,120 +37,6 @@ function GlowSphere({ color, opacity, position, scale }: {
 }
 
 const DEEP_SPACE_SPHERE_RADIUS = 920;
-const MW_DATA_PATH = import.meta.env.BASE_URL + 'data/mw.json';
-const ENABLE_MW_BACKDROP = false;
-
-interface MwGeoJson {
-  features: {
-    geometry: {
-      type: 'MultiPolygon';
-      coordinates: [number, number][][][];
-    };
-  }[];
-}
-
-function MilkyWayBackdrop() {
-  const [geometry, setGeometry] = useState<THREE.BufferGeometry | null>(null);
-  const materialRef = useRef<THREE.ShaderMaterial | null>(null);
-
-  useEffect(() => {
-    // Observatory mode opens with deep-space layer on, but the 187KB MW backdrop
-    // shouldn't compete with critical-path catalogs for first-paint bandwidth.
-    // Delay the fetch so stars/constellations/DSO finish first.
-    const delay = OBSERVATORY_MODE ? 1200 : 0;
-    let cancelled = false;
-    const timer = setTimeout(() => {
-      if (cancelled) return;
-      fetch(MW_DATA_PATH)
-        .then(r => r.json())
-        .then((data: MwGeoJson) => {
-        const positions: number[] = [];
-        const opacities: number[] = [];
-
-        data.features.forEach((feature) => {
-          feature.geometry.coordinates.forEach((polygon) => {
-            polygon.forEach((ring) => {
-              if (ring.length < 3) return;
-              const centerRa = ring.reduce((sum, p) => sum + p[0], 0) / ring.length;
-              const centerDec = ring.reduce((sum, p) => sum + p[1], 0) / ring.length;
-              const centerPos = raDecToSphere(centerRa, centerDec, DEEP_SPACE_SPHERE_RADIUS);
-
-              for (let i = 0; i < ring.length - 1; i++) {
-                const p1 = raDecToSphere(ring[i][0], ring[i][1], DEEP_SPACE_SPHERE_RADIUS);
-                const p2 = raDecToSphere(ring[i + 1][0], ring[i + 1][1], DEEP_SPACE_SPHERE_RADIUS);
-
-                positions.push(...centerPos, ...p1, ...p2);
-                // Uniform opacity across all vertices — no gradient = no seam lines
-                opacities.push(0.3, 0.3, 0.3);
-              }
-            });
-          });
-        });
-
-        const geo = new THREE.BufferGeometry();
-        geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
-        geo.setAttribute('opacity', new THREE.BufferAttribute(new Float32Array(opacities), 1));
-        if (!cancelled) setGeometry(geo);
-      });
-    }, delay);
-    return () => { cancelled = true; clearTimeout(timer); };
-  }, []);
-
-  const uniforms = useMemo(() => ({
-    time: { value: 0 },
-    globalOpacity: { value: 0.32 },
-  }), []);
-
-  useFrame((state) => {
-    if (materialRef.current) {
-      materialRef.current.uniforms.time.value = state.clock.elapsedTime;
-    }
-  });
-
-  if (!geometry) return null;
-
-  return (
-    <group rotation={[ECLIPTIC_TILT, 0, 0]}>
-      <mesh geometry={geometry}>
-        <shaderMaterial
-          ref={materialRef}
-          transparent
-          depthWrite={false}
-          blending={THREE.NormalBlending}
-          side={THREE.FrontSide}
-          uniforms={uniforms}
-          vertexShader={`
-            attribute float opacity;
-            varying float vOpacity;
-            varying vec3 vNormal;
-            void main() {
-              vOpacity = opacity;
-              vNormal = normalize(position);
-              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }
-          `}
-          fragmentShader={`
-            varying float vOpacity;
-            varying vec3 vNormal;
-            uniform float time;
-            uniform float globalOpacity;
-
-            float noise(vec3 p) {
-              return fract(sin(dot(p, vec3(12.9898, 78.233, 45.164))) * 43758.5453);
-            }
-
-            void main() {
-              float n = noise(vNormal * 100.0 + time * 0.05);
-              float finalAlpha = vOpacity * globalOpacity * (0.8 + 0.2 * n);
-              vec3 color = mix(vec3(0.05, 0.08, 0.15), vec3(0.85, 0.9, 1.0), vOpacity * 1.5);
-              gl_FragColor = vec4(color, finalAlpha);
-            }
-          `}
-        />
-      </mesh>
-    </group>
-  );
-}
 
 // ─── Oort Cloud (instanced particle shell) ──────────────────────────────────
 
@@ -385,8 +270,7 @@ export function DeepSpaceField({ visible, selSpacecraft, setSelSpacecraft }: Dee
   if (!visible) return null;
   return (
     <group>
-      {/* Temporarily disabled: backdrop triangulation can produce streak artifacts on iPad. */}
-      {ENABLE_MW_BACKDROP && <MilkyWayBackdrop />}
+      {/* Disabled for launch: spherical fan triangulation in mw.json can produce streak artifacts. */}
       {!OBSERVATORY_MODE && <OortCloud />}
       {!OBSERVATORY_MODE && <SpacecraftMarkers selSpacecraft={selSpacecraft} setSelSpacecraft={setSelSpacecraft} />}
       <NearStarMarkers />

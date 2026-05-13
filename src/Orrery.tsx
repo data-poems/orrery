@@ -407,7 +407,6 @@ function OrreryInner() {
     if (!cinematic) return;
     const urls = [
       import.meta.env.BASE_URL + 'data/main-belt.json',
-      import.meta.env.BASE_URL + 'data/mw.json',
       import.meta.env.BASE_URL + 'data/deepsky.json',
     ];
     urls.forEach(url => fetch(url).catch(() => {}));

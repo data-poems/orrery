@@ -60,6 +60,15 @@ pnpm preview  # Serve production build
 
 React 19, TypeScript 5.9, Three.js (r183) via @react-three/fiber + @react-three/drei, Vite 8. No backend. All data from public APIs and bundled catalogs.
 
+## iOS and App Store
+
+- iOS sync pipeline: `pnpm ios:sync`
+- Optional compile gate: `pnpm ios:compile`
+- App Store submission kit:
+  - `app-store/APP_STORE_PACK.md`
+  - `app-store/APP_STORE_CONNECT_PASTE_SHEET.md`
+  - `app-store/app-store-listing.md`
+
 ## Data sources
 
 | Source | What |

@@ -31,6 +31,11 @@ function safeAreaBottom(extraPx: number): string {
   return `calc(env(safe-area-inset-bottom, 0px) + ${extraPx}px)`;
 }
 
+/** Distance from right viewport edge inside notch / rounded-corner inset. */
+function safeAreaRight(extraPx: number): string {
+  return `calc(env(safe-area-inset-right, 0px) + ${extraPx}px)`;
+}
+
 // Group MYTHOLOGY entries into Northern-hemisphere season buckets. Constellations
 // whose season string is "Spring (S)" etc. fall back to their literal first word.
 const SEASON_ORDER: SeasonName[] = ['Spring', 'Summer', 'Autumn', 'Winter'];
@@ -129,7 +134,7 @@ function ZoomControls() {
 
   return (
     <div style={{
-      position: 'absolute', bottom: safeAreaBottom(20), right: 14,
+      position: 'absolute', bottom: safeAreaBottom(20), right: safeAreaRight(14),
       display: 'flex', flexDirection: 'column', gap: 4,
       zIndex: 5,
     }}>
@@ -621,7 +626,8 @@ function SideDrawer({
   const skyLayers = [
     { label: 'Stars', key: 'S', on: showStars, fn: () => setShowStars(p => !p) },
     { label: 'Constellations', key: 'L', on: showConstellations, fn: () => setShowConstellations(p => !p) },
-    { label: 'Deep Sky', key: 'K', on: showDeepSky || showDeepSpace, fn: () => { setShowDeepSky(p => !p); setShowDeepSpace(p => !p); } },
+    { label: 'Deep Sky', key: 'K', on: showDeepSky, fn: () => setShowDeepSky(p => !p) },
+    { label: 'Deep Space', key: 'O', on: showDeepSpace, fn: () => setShowDeepSpace(p => !p) },
   ];
   const solarSystemLayers = [
     { label: 'Dwarf Planets', key: 'D', on: showDwarf, fn: () => setShowDwarf(p => !p) },
@@ -694,7 +700,9 @@ function SideDrawer({
         ...drawerPanel,
         background: `linear-gradient(180deg, rgba(${accentRgb},0.12) 0%, rgba(10,12,18,0.82) 14%, rgba(6,8,14,0.9) 100%)`,
         position: 'fixed',
-        top: 12, right: 12, bottom: 12,
+        top: safeAreaTop(10),
+        right: safeAreaRight(10),
+        bottom: safeAreaBottom(10),
         width: 320,
         overflowY: 'auto',
         zIndex: 30,
@@ -1358,7 +1366,7 @@ export default function Panels(props: PanelProps) {
         style={{
           ...drawerTab,
           top: '50%',
-          right: 0,
+          right: safeAreaRight(0),
           transform: `translateY(-50%) translateX(${showPanelNudge ? -8 : 0}px)`,
           width: 36,
           height: 76,
@@ -1655,7 +1663,7 @@ export default function Panels(props: PanelProps) {
           style={{
             position: mobile ? 'fixed' : 'absolute',
             top: mobile ? safeAreaTop(84) : safeAreaTop(14),
-            right: 14,
+            right: safeAreaRight(14),
             background: constellationFocus ? `rgba(${accentRgb},0.15)` : 'rgba(255,255,255,0.06)',
             border: `1px solid ${constellationFocus ? `rgba(${accentRgb},0.3)` : 'rgba(255,255,255,0.1)'}`,
             borderRadius: 6,

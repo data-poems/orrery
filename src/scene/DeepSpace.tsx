@@ -39,6 +39,7 @@ function GlowSphere({ color, opacity, position, scale }: {
 
 const DEEP_SPACE_SPHERE_RADIUS = 920;
 const MW_DATA_PATH = import.meta.env.BASE_URL + 'data/mw.json';
+const ENABLE_MW_BACKDROP = false;
 
 interface MwGeoJson {
   features: {
@@ -384,7 +385,8 @@ export function DeepSpaceField({ visible, selSpacecraft, setSelSpacecraft }: Dee
   if (!visible) return null;
   return (
     <group>
-      <MilkyWayBackdrop />
+      {/* Temporarily disabled: backdrop triangulation can produce streak artifacts on iPad. */}
+      {ENABLE_MW_BACKDROP && <MilkyWayBackdrop />}
       {!OBSERVATORY_MODE && <OortCloud />}
       {!OBSERVATORY_MODE && <SpacecraftMarkers selSpacecraft={selSpacecraft} setSelSpacecraft={setSelSpacecraft} />}
       <NearStarMarkers />

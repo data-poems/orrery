@@ -9,6 +9,7 @@
     "build:web": "tsc -b && vite build && node scripts/postbuild-observatory-html.mjs && node scripts/postgzip.mjs",
     "build:ios": "tsc -b && VITE_CAPACITOR=true vite build --base=./ && node scripts/postbuild-ios-html.mjs",
     "ios:sync": "pnpm build:ios && cap sync ios",
+    "ios:compile": "pnpm ios:sync && xcodebuild -project ios/App/App.xcodeproj -scheme Orrery -destination 'generic/platform=iOS' -configuration Debug build CODE_SIGNING_ALLOWED=NO",
     "ios:open": "cap open ios",
     "lint": "eslint .",
     "preview": "vite preview",

@@ -3,8 +3,8 @@
  *
  * Main component: state management, effects, Canvas composition.
  * 3D scene in scene/, UI overlays in ui/.
- * After cinematic tour lands on Earth: enables Sky mode (constellation focus) and may show
- * a one-time intro modal (localStorage key orrery-sky-tour-seen-v1).
+ * Cinematic tour: time-bounded constellation pulse on Inner Planets; after Earth exit,
+ * enables Sky mode with a short hint and a delayed Sky-toggle pulse (after pulse window).
  */
 
 import { useEffect, useState, useRef, useMemo, useCallback, Suspense } from 'react';
@@ -23,9 +23,6 @@ import Scene from './scene/Scene';
 import Panels from './ui/Panels';
 import LoadingScreen from './ui/LoadingScreen';
 import { OBSERVATORY_MODE } from './lib/mode';
-
-/** Once per browser/app install: do not auto-show the post-tour Sky intro modal again. */
-const SKY_TOUR_SEEN_KEY = 'orrery-sky-tour-seen-v1';
 
 type CinematicStep = {
   camPreset?: number; focusPlanet?: number; focusMoon?: number;
@@ -203,8 +200,25 @@ function OrreryInner() {
   const [camIdx, setCamIdx] = useState(0);
   const [panelOpen, setPanelOpen] = useState(false);
   const [cinematicRotateSpeed, setCinematicRotateSpeed] = useState(0.5);
-  const [showSkyTourModal, setShowSkyTourModal] = useState(false);
+  const [showSkyModeHint, setShowSkyModeHint] = useState(false);
+  const [pulseSkyToggle, setPulseSkyToggle] = useState(false);
+  const [constellationTourPulse, setConstellationTourPulse] = useState(false);
+  const [constellationRevealTick, setConstellationRevealTick] = useState(0);
   const positionsRef = useRef(new Map<number, [number, number, number]>());
+  /** Cleared after Inner Planets cue so Sky-toggle pulse can wait for constellation emphasis. */
+  const constellationPulseUntilRef = useRef(0);
+  const skyCueTimeoutsRef = useRef<number[]>([]);
+  const innerPlanetsPulseTimerRef = useRef(0);
+
+  const clearSkyCueTimeouts = useCallback(() => {
+    skyCueTimeoutsRef.current.forEach((id) => window.clearTimeout(id));
+    skyCueTimeoutsRef.current = [];
+  }, []);
+
+  useEffect(() => () => {
+    clearSkyCueTimeouts();
+    if (innerPlanetsPulseTimerRef.current) window.clearTimeout(innerPlanetsPulseTimerRef.current);
+  }, [clearSkyCueTimeouts]);
 
   const jd = useMemo(() => julianDate(simTime), [simTime]);
   const T = useMemo(() => (jd - 2451545.0) / 36525, [jd]);
@@ -214,9 +228,10 @@ function OrreryInner() {
 
   // ─── Cinematic: tight highlight reel through scale levels ────────────────────
   const cinematicSteps = useMemo((): CinematicStep[] => [
-    { ...CINEMATIC_DEFAULTS, camPreset: 9, duration: 3400, label: 'Deep Space', deepSky: true, deepSpace: true, dwarf: true, autoRotateSpeed: 0.1 },
+    { ...CINEMATIC_DEFAULTS, camPreset: 9, duration: 2000, label: 'Deep Space', deepSky: true, deepSpace: true, dwarf: true, constellations: true, constellationFocus: true, autoRotateSpeed: 0.14 },
     { ...CINEMATIC_DEFAULTS, camPreset: 1, duration: 5000, label: 'Solar System', asteroidBelt: true, dwarf: true, autoRotateSpeed: 0.2 },
-    { ...CINEMATIC_DEFAULTS, camPreset: 0, duration: 4000, label: 'Inner Planets', asteroidBelt: true, autoRotateSpeed: 0.3 },
+    // Briefly reveal stargazing overlays as we transition into the inner system.
+    { ...CINEMATIC_DEFAULTS, camPreset: 0, duration: 4000, label: 'Inner Planets', asteroidBelt: true, constellations: true, deepSky: true, constellationFocus: true, autoRotateSpeed: 0.3 },
     { ...CINEMATIC_DEFAULTS, focusPlanet: 2, duration: 5000, label: 'Earth', autoRotateSpeed: 0.5 },
   ], []);
 
@@ -239,21 +254,32 @@ function OrreryInner() {
     | { kind: 'planet'; idx: number; label: string }
     | { kind: 'preset'; label: string };
 
-  const dismissSkyTourModal = useCallback(() => {
-    setShowSkyTourModal(false);
-    try {
-      localStorage.setItem(SKY_TOUR_SEEN_KEY, '1');
-    } catch {
-      /* ignore quota / private mode */
-    }
-  }, []);
-
   // Leave cinematic and clear all selection state; default lands on Earth focus.
   const exitCinematic = useCallback((target: ExitTarget = { kind: 'planet', idx: 2, label: 'Earth' }) => {
+    if (innerPlanetsPulseTimerRef.current) {
+      window.clearTimeout(innerPlanetsPulseTimerRef.current);
+      innerPlanetsPulseTimerRef.current = 0;
+    }
+    setConstellationTourPulse(false);
+    setPanelOpen(false);
+
     const earthPlanetExit = target.kind === 'planet' && target.idx === 2;
     if (earthPlanetExit) {
+      setConstellationRevealTick((prev) => prev + 1);
       setConstellationFocus(true);
       setShowConstellations(true);
+      clearSkyCueTimeouts();
+      setShowSkyModeHint(true);
+      const hintId = window.setTimeout(() => setShowSkyModeHint(false), 2200);
+      skyCueTimeoutsRef.current.push(hintId);
+      // Pulse Sky toggle only after Inner Planets constellation cue window ends (or a short grace if skipped).
+      const waitMs = Math.max(0, constellationPulseUntilRef.current - Date.now()) + 200;
+      const pulseOnId = window.setTimeout(() => {
+        setPulseSkyToggle(true);
+        const pulseOffId = window.setTimeout(() => setPulseSkyToggle(false), 5200);
+        skyCueTimeoutsRef.current.push(pulseOffId);
+      }, waitMs);
+      skyCueTimeoutsRef.current.push(pulseOnId);
     }
 
     setCinematic(false);
@@ -280,14 +306,7 @@ function OrreryInner() {
       setNavStack(['Solar System']);
     }
 
-    if (earthPlanetExit) {
-      try {
-        if (!localStorage.getItem(SKY_TOUR_SEEN_KEY)) setShowSkyTourModal(true);
-      } catch {
-        setShowSkyTourModal(true);
-      }
-    }
-  }, []);
+  }, [clearSkyCueTimeouts, setPanelOpen]);
 
   // Apply a cinematic step (camera preset + layers)
   const applyCinematicStep = useCallback((idx: number) => {
@@ -324,14 +343,30 @@ function OrreryInner() {
     if (step.satellites !== undefined) setShowSatellites(() => step.satellites!);
     if (step.meteors !== undefined) setShowMeteors(() => step.meteors!);
     setCinematicRotateSpeed(step.autoRotateSpeed ?? 0.5);
+
+    if (innerPlanetsPulseTimerRef.current) {
+      window.clearTimeout(innerPlanetsPulseTimerRef.current);
+      innerPlanetsPulseTimerRef.current = 0;
+    }
+    if (step.label === 'Inner Planets') {
+      constellationPulseUntilRef.current = Date.now() + 3200;
+      setConstellationTourPulse(true);
+      innerPlanetsPulseTimerRef.current = window.setTimeout(() => {
+        setConstellationTourPulse(false);
+        innerPlanetsPulseTimerRef.current = 0;
+      }, 3200);
+    } else {
+      setConstellationTourPulse(false);
+    }
   }, [cinematicSteps]);
 
   const startCinematicTour = useCallback(() => {
     cinematicIdx.current = 0;
     cinematicStart.current = Date.now();
+    setPanelOpen(false);
     applyCinematicStep(0);
     setCinematic(true);
-  }, [applyCinematicStep]);
+  }, [applyCinematicStep, setPanelOpen]);
 
   // Cinematic timer — poll-based to avoid fragile setTimeout chains
   useEffect(() => {
@@ -639,11 +674,6 @@ function OrreryInner() {
 
       const k = e.key.toLowerCase();
 
-      if (showSkyTourModal) {
-        if (k === 'escape') dismissSkyTourModal();
-        return;
-      }
-
       const isPresetKey = (e.key >= '1' && e.key <= '9') || e.key === '0' || e.key === '-' || e.key === '=';
       const isInteractiveShortcut = isPresetKey || ['m', 'n', 'd', 's', 'l', 'a', 'g', 'k', 'c', 'r', 'i', 'o', 'escape', ' '].includes(k);
 
@@ -677,7 +707,10 @@ function OrreryInner() {
         return;
       }
 
-      if (k === 'm') { setPanelOpen(p => !p); return; }
+      if (k === 'm') {
+        if (!cinematic) setPanelOpen(p => !p);
+        return;
+      }
       if (k === 'n') setShowNeo(p => !p);
       if (k === 'd') setShowDwarf(p => !p);
       if (k === 's') setShowStars(p => !p);
@@ -717,7 +750,7 @@ function OrreryInner() {
     };
     window.addEventListener('keydown', fn);
     return () => window.removeEventListener('keydown', fn);
-  }, [cinematic, panelOpen, navigateBack, handlePresetSelect, exitCinematic, startCinematicTour, showSkyTourModal, dismissSkyTourModal]);
+  }, [cinematic, panelOpen, navigateBack, handlePresetSelect, exitCinematic, startCinematicTour]);
 
   // Exit cinematic mode on click
   const handleCinematicClick = useCallback(() => {
@@ -772,6 +805,7 @@ function OrreryInner() {
             showDwarf={showDwarf}
             showStars={showStars}
             showConstellations={showConstellations}
+            constellationRevealTick={constellationRevealTick}
             showAsterisms={showAsterisms}
             showAsteroidBelt={showAsteroidBelt}
             showComets={showComets}
@@ -785,6 +819,7 @@ function OrreryInner() {
             selConstellationId={selConstellation}
             accentColor={theme.uiAccent}
             constellationFocus={constellationFocus}
+            constellationTourPulse={constellationTourPulse}
             cinematic={cinematic}
             cinematicRotateSpeed={cinematicRotateSpeed}
             onMoonSelect={handleMoonSelect}
@@ -827,6 +862,7 @@ function OrreryInner() {
         panelOpen={panelOpen}
         setPanelOpen={setPanelOpen}
         cinematic={cinematic}
+        pulseSkyToggle={pulseSkyToggle}
         navStack={navStack}
         navigateBack={navigateBack}
         navigateToLevel={navigateToLevel}
@@ -842,72 +878,29 @@ function OrreryInner() {
         selSpacecraft={selSpacecraft} setSelSpacecraft={setSelSpacecraft}
       />
 
-      {showSkyTourModal && !OBSERVATORY_MODE && (
+      {showSkyModeHint && !OBSERVATORY_MODE && (
         <div
-          role="presentation"
-          onClick={dismissSkyTourModal}
+          aria-live="polite"
           style={{
-            position: 'fixed', inset: 0, zIndex: 45,
-            background: 'rgba(0,0,0,0.82)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: 'max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left))',
+            position: 'fixed',
+            top: 'calc(env(safe-area-inset-top, 0px) + 52px)',
+            right: 14,
+            zIndex: 25,
+            pointerEvents: 'none',
+            background: `rgba(${accentRgb},0.14)`,
+            border: `1px solid rgba(${accentRgb},0.34)`,
+            borderRadius: 6,
+            padding: '6px 10px',
+            color: theme.uiAccent,
+            fontFamily: 'inherit',
+            fontSize: 11,
+            letterSpacing: 1.2,
+            textTransform: 'uppercase',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
           }}
         >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="orrery-sky-tour-title"
-            aria-describedby="orrery-sky-tour-desc"
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              maxWidth: 380, width: '100%',
-              background: 'rgba(0,0,0,0.55)',
-              border: `1px solid rgba(${accentRgb},0.22)`,
-              borderRadius: 12,
-              padding: '22px 24px 20px',
-              boxShadow: '0 12px 48px rgba(0,0,0,0.45)',
-            }}
-          >
-            <h2
-              id="orrery-sky-tour-title"
-              style={{
-                color: theme.uiAccent, fontSize: 13, fontWeight: 500, letterSpacing: 3,
-                textTransform: 'uppercase', marginBottom: 10,
-              }}
-            >
-              Sky mode
-            </h2>
-            <p
-              id="orrery-sky-tour-desc"
-              style={{ color: 'rgba(255,255,255,0.78)', fontSize: 15, fontWeight: 300, lineHeight: 1.55, marginBottom: 14 }}
-            >
-              Constellations, star names, and bright deep-sky objects are highlighted for stargazing from Earth.
-            </p>
-            <ul style={{ margin: '0 0 16px 18px', padding: 0, color: 'rgba(255,255,255,0.65)', fontSize: 14, fontWeight: 300, lineHeight: 1.65 }}>
-              <li>Drag to look around; pinch to zoom.</li>
-              <li>Open the side panel (edge tab) for layers and Go To views.</li>
-              <li>Time and speed controls sit along the bottom edge.</li>
-            </ul>
-            <p style={{ color: 'rgba(255,255,255,0.72)', fontSize: 14, fontWeight: 400, lineHeight: 1.5, marginBottom: 18 }}>
-              To turn this off: tap <strong style={{ color: theme.uiAccent }}>Sky</strong> at the top-right (below the status bar), or press <kbd style={{ padding: '2px 6px', borderRadius: 4, border: '1px solid rgba(255,255,255,0.2)', fontSize: 12 }}>G</kbd> on a hardware keyboard.
-            </p>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-              <button
-                type="button"
-                onClick={dismissSkyTourModal}
-                style={{
-                  background: `rgba(${accentRgb},0.15)`,
-                  border: `1px solid rgba(${accentRgb},0.35)`,
-                  color: theme.uiAccent, fontFamily: 'inherit', fontSize: 14, fontWeight: 500,
-                  padding: '10px 22px', borderRadius: 6, cursor: 'pointer',
-                }}
-              >
-                Continue
-              </button>
-            </div>
-          </div>
+          Sky mode enabled
         </div>
       )}
     </div>

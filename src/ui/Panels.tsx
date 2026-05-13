@@ -152,11 +152,6 @@ function ZoomControls() {
   );
 }
 
-// ─── Date formatter ─────────────────────────────────────────────────────────────
-
-function fmtDate(d: Date) { return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }); }
-function fmtTime(d: Date) { return d.toLocaleTimeString('en-US', { hour12: false }); }
-
 // ─── Scale indicator labels ─────────────────────────────────────────────────────
 
 const SCALE_LANDMARKS = [
@@ -688,6 +683,7 @@ function SideDrawer({
         maxHeight: '38vh',
         overflowY: 'auto',
         zIndex: 30,
+        pointerEvents: open ? 'auto' : 'none',
         padding: '8px 0 0',
         borderRadius: '14px 14px 0 0',
         borderLeft: 'none',
@@ -702,6 +698,7 @@ function SideDrawer({
         width: 320,
         overflowY: 'auto',
         zIndex: 30,
+        pointerEvents: open ? 'auto' : 'none',
         padding: '8px 0 0',
         borderRadius: 12,
         borderRight: `1px solid rgba(${accentRgb},0.24)`,
@@ -713,13 +710,7 @@ function SideDrawer({
     >
       {!mobile && <AccordionSection title="Status" accent={accent} defaultOpen>
         <div style={{ padding: '0 16px 10px' }}>
-          <div style={{ color: '#fff', fontSize: mobile ? 22 : 26, fontWeight: 300, letterSpacing: 2, fontFamily: "'Cormorant', serif" }}>
-            {fmtTime(simTime)}
-          </div>
-          <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, fontStyle: 'italic', fontWeight: 300 }}>
-            {fmtDate(simTime)}
-          </div>
-          <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 14px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 14px' }}>
             <Stat label="Moon" val={`${moon.name}, ${moon.ill}%`} c={accent} />
             <Stat label="View" val={camIdx >= 0 && camIdx < cams.length ? cams[camIdx].label : 'Focused'} />
             <Stat label="Rate" val={speedLabel(speed)} />
@@ -1178,6 +1169,7 @@ export interface PanelProps {
   selDeepSky: string | null; setSelDeepSky: (id: string | null) => void;
   panelOpen: boolean; setPanelOpen: (fn: boolean | ((p: boolean) => boolean)) => void;
   cinematic: boolean;
+  pulseSkyToggle?: boolean;
   navStack: string[];
   navigateBack: () => void;
   navigateToLevel: (level: number) => void;
@@ -1215,6 +1207,7 @@ export default function Panels(props: PanelProps) {
     selDeepSky, setSelDeepSky,
     panelOpen, setPanelOpen,
     cinematic,
+    pulseSkyToggle = false,
     navStack,
     selMoonIdx, cameraDistance,
     cams, camIdx, onPresetSelect,
@@ -1241,7 +1234,7 @@ export default function Panels(props: PanelProps) {
   const mobilePanelHeight = '38vh';
   const mobilePanelOffset = '12px';
   const panelVisible = panelOpen || (!mobile && panelPeek);
-  const showPanelNudge = panelNudge && !mobile && !panelVisible;
+  const showPanelNudge = panelNudge && !mobile && !panelVisible && !cinematic;
   const toggleStargazer = useCallback(() => {
     setConstellationFocus((prev) => {
       const next = !prev;
@@ -1255,14 +1248,14 @@ export default function Panels(props: PanelProps) {
   }, [setConstellationFocus, setShowStars, setShowConstellations, setShowDeepSky]);
 
   useEffect(() => {
-    if (mobile || panelOpen || panelPeek) return;
+    if (cinematic || mobile || panelOpen || panelPeek) return;
     const start = window.setTimeout(() => setPanelNudge(true), 1600);
     const stop = window.setTimeout(() => setPanelNudge(false), 2600);
     return () => {
       window.clearTimeout(start);
       window.clearTimeout(stop);
     };
-  }, [mobile, panelOpen, panelPeek]);
+  }, [cinematic, mobile, panelOpen, panelPeek]);
 
   useEffect(() => {
     const handleScale = (event: Event) => {
@@ -1282,10 +1275,6 @@ export default function Panels(props: PanelProps) {
   // Current body label from nav stack
   const cinematicLabel = navStack[navStack.length - 1] || '';
 
-  useEffect(() => {
-    if (!cinematic) return;
-  }, [cinematic]);
-
   // ─── Cinematic overlay (rendered above main UI when active) ──────────────────
   const cinematicOverlay = cinematic ? (() => {
     const dim: React.CSSProperties = {
@@ -1304,27 +1293,13 @@ export default function Panels(props: PanelProps) {
           pointerEvents: 'none',
         }}
       >
-        {/* Top cluster: time, date, celestial data */}
         <div style={{
           marginTop: mobile ? safeAreaTop(20) : safeAreaTop(32),
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
         }}>
-          <span style={{
-            fontSize: mobile ? 42 : 56, fontWeight: 300, letterSpacing: 8,
-            color: 'rgba(255,255,255,0.85)',
-            fontFamily: "'Cormorant Garamond','Garamond','Baskerville','Georgia',serif",
-          }}>
-            {fmtTime(simTime)}
-          </span>
-          <span style={{
-            fontSize: mobile ? 18 : 22, fontWeight: 300, letterSpacing: 3,
-            color: 'rgba(255,255,255,0.72)', fontStyle: 'italic',
-          }}>
-            {fmtDate(simTime)}
-          </span>
           <div style={{
             display: 'flex', alignItems: 'center', gap: mobile ? 8 : 12,
-            marginTop: 4, opacity: 0.4,
+            opacity: 0.45,
           }}>
             <span style={{ ...dim, fontSize: mobile ? 11 : 12 }}>{moon.name}, {moon.ill}%</span>
             {solarWind && (
@@ -1334,7 +1309,6 @@ export default function Panels(props: PanelProps) {
               </>
             )}
           </div>
-          {/* Current zoom label -- below time cluster */}
           <div style={{
             marginTop: mobile ? 10 : 14,
             fontSize: mobile ? 18 : 22, fontWeight: 300, letterSpacing: 5,
@@ -1350,16 +1324,8 @@ export default function Panels(props: PanelProps) {
           position: 'absolute', bottom: mobile ? safeAreaBottom(48) : safeAreaBottom(56),
           color: 'rgba(255,255,255,0.72)', fontSize: mobile ? 16 : 18,
           letterSpacing: 3, fontWeight: 300, fontStyle: 'italic',
-        }}>
+        }}        >
           {mobile ? 'tap' : 'click'} to explore
-        </div>
-        {/* Watermark */}
-        <div style={{
-          position: 'absolute', bottom: mobile ? safeAreaBottom(20) : safeAreaBottom(28),
-          color: 'rgba(255,255,255,0.12)', fontSize: mobile ? 14 : 16,
-          letterSpacing: 8, textTransform: 'uppercase', fontWeight: 300,
-        }}>
-          {observatoryMode ? 'Observatory' : 'Orrery'}
         </div>
       </div>
     );
@@ -1382,8 +1348,8 @@ export default function Panels(props: PanelProps) {
           }}
         />
       )}
-      {/* Panel drawer tab (desktop only — mobile uses bottom toolbar gear; hidden in observatory) */}
-      {!mobile && !observatoryMode && <button
+      {/* Panel drawer tab (desktop only — mobile uses bottom toolbar gear; hidden in observatory / cinematic) */}
+      {!mobile && !observatoryMode && !cinematic && <button
         onClick={() => setPanelOpen((p: boolean) => !p)}
         onMouseEnter={() => { if (!mobile) startPeek(); }}
         onMouseLeave={() => { if (!mobile && !panelOpen) endPeek(); }}
@@ -1426,7 +1392,7 @@ export default function Panels(props: PanelProps) {
           </g>
         </svg>
       </button>}
-      {!observatoryMode && <SideDrawer
+      {!observatoryMode && !cinematic && <SideDrawer
         open={panelVisible && !mobile}
         accent={accent}
         accentRgb={accentRgb}
@@ -1469,8 +1435,8 @@ export default function Panels(props: PanelProps) {
         panelFontScale={panelFontScale}
       />}
 
-      {/* ── Background blur overlay when body selected (hidden in observatory mode) ── */}
-      {sp && !observatoryMode && (
+      {/* ── Background blur overlay when body selected (hidden in observatory / cinematic) ── */}
+      {sp && !observatoryMode && !cinematic && (
         <div
           aria-hidden="true"
           style={{
@@ -1487,11 +1453,13 @@ export default function Panels(props: PanelProps) {
         />
       )}
 
-      {/* ── Planet/Moon info card (hidden in observatory mode for a clean sky view) ── */}
-      {!observatoryMode && (sp || selectedMoon) && (
+      {/* ── Planet/Moon info card (hidden in observatory / cinematic — tour sets selPlanet for camera) ── */}
+      {!cinematic && !observatoryMode && (sp || selectedMoon) && (
         <div
           role="dialog"
           aria-label={selectedMoon ? `${selectedMoon.name} details` : `${sp!.name} details`}
+          onPointerDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
           style={mobile ? {
             position: 'fixed',
             left: 8, right: 8, bottom: mobilePanelOffset, top: 'auto',
@@ -1501,14 +1469,17 @@ export default function Panels(props: PanelProps) {
             ...bokehCard,
             padding: '16px 20px',
             paddingBottom: '20px',
-            zIndex: 20,
+            zIndex: 35,
+            pointerEvents: 'auto',
+            touchAction: 'manipulation',
           } : {
             position: 'absolute',
             bottom: 16, left: 16,
             maxWidth: 340, width: '30vw', minWidth: 260,
             ...bokehCard,
             padding: '14px 20px',
-            zIndex: 20,
+            zIndex: 35,
+            pointerEvents: 'auto',
           }}
         >
           {/* Header with back button */}
@@ -1535,7 +1506,9 @@ export default function Panels(props: PanelProps) {
               </div>
             </div>
             <button
-              onClick={(e) => { e.stopPropagation(); props.navigateBack(); }}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); props.navigateBack(); }}
+              onPointerUp={(e) => { e.preventDefault(); e.stopPropagation(); props.navigateBack(); }}
+              onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); props.navigateBack(); }}
               style={{
                 background: `rgba(${accentRgb},0.12)`,
                 border: `1px solid rgba(${accentRgb},0.25)`,
@@ -1591,10 +1564,10 @@ export default function Panels(props: PanelProps) {
       )}
 
       {/* ── Scale indicator ── */}
-      {!mobile && !observatoryMode && <ScaleIndicator cameraDistance={cameraDistance} />}
+      {!mobile && !observatoryMode && !cinematic && <ScaleIndicator cameraDistance={cameraDistance} />}
 
-      {/* ── Selected NEO detail ── */}
-      {selNeo && (
+      {/* ── Selected NEO detail (hidden during cinematic tour) ── */}
+      {selNeo && !cinematic && (
         <div
           role="dialog"
           aria-label={`${selNeo.name} details`}
@@ -1640,22 +1613,40 @@ export default function Panels(props: PanelProps) {
         </div>
       )}
 
-
-      {/* ── Title watermark (clickable → info overlay) ── */}
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={() => setShowInfo(p => !p)}
-        onKeyDown={e => { if (e.key === 'Enter') setShowInfo(p => !p); }}
-        style={{ position: 'absolute', top: safeAreaTop(14), left: 14, color: 'rgba(255,255,255,0.7)', fontSize: mobile ? 14 : 15, letterSpacing: 5, textTransform: 'uppercase', zIndex: 5, fontWeight: 300, cursor: 'pointer' }}
-      >
-        {observatoryMode ? 'Observatory' : 'Orrery'}
-      </div>
+      {/* ── About / info (subtle; replaces duplicate top title watermark) ── */}
+      {!cinematic && (
+        <button
+          type="button"
+          aria-label="About and data sources"
+          onClick={() => setShowInfo(true)}
+          style={{
+            position: 'absolute',
+            top: safeAreaTop(12),
+            left: 12,
+            zIndex: 6,
+            width: 36,
+            height: 36,
+            borderRadius: 6,
+            border: '1px solid rgba(255,255,255,0.12)',
+            background: 'rgba(0,0,0,0.35)',
+            color: 'rgba(255,255,255,0.55)',
+            fontFamily: 'inherit',
+            fontSize: 16,
+            fontWeight: 300,
+            cursor: 'pointer',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+          }}
+        >
+          i
+        </button>
+      )}
 
       {/* ── Zoom controls (desktop only) ── */}
-      {!mobile && !observatoryMode && <ZoomControls />}
+      {!mobile && !observatoryMode && !cinematic && <ZoomControls />}
       {!observatoryMode && !cinematic && (
         <button
+          className={pulseSkyToggle ? 'sky-toggle-blink' : undefined}
           onClick={toggleStargazer}
           aria-label="Sky mode"
           aria-pressed={constellationFocus}
@@ -1685,6 +1676,7 @@ export default function Panels(props: PanelProps) {
             zIndex: 20,
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
+            transition: 'border-color 0.18s ease, color 0.18s ease, background 0.18s ease',
           }}
         >
           <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>{'\u2726'}</span>
@@ -1734,7 +1726,7 @@ export default function Panels(props: PanelProps) {
           }}
         >
           <div onClick={e => e.stopPropagation()} style={{ maxWidth: 360, width: '100%' }}>
-            <div style={{ color: '#fff', fontSize: 22, fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', textAlign: 'center', marginBottom: 16 }}>Orrery</div>
+            <div style={{ color: '#fff', fontSize: 22, fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', textAlign: 'center', marginBottom: 16 }}>About</div>
             <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontStyle: 'italic', textAlign: 'center', marginBottom: 20 }}>Real data. Real time.</div>
 
             <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>Catalog Data</div>

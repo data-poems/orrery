@@ -273,7 +273,7 @@ const starVertexShader = `
     float boost = hasSelection * highlight;
     vColor = mix(color, accentColor, boost * 0.55);
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-    gl_PointSize = size * (1.0 + boost * 0.7);
+    gl_PointSize = size * 1.2 * (1.0 + boost * 0.8);
     gl_Position = projectionMatrix * mvPosition;
   }
 `;
@@ -282,7 +282,7 @@ const starFragmentShader = `
   void main() {
     float d = length(gl_PointCoord - vec2(0.5));
     if (d > 0.5) discard;
-    float alpha = 0.85 * smoothstep(0.5, 0.2, d);
+    float alpha = 1.0 * smoothstep(0.5, 0.18, d);
     gl_FragColor = vec4(vColor, alpha);
   }
 `;
@@ -624,7 +624,7 @@ const glowLineFragmentShader = `
   }
 `;
 
-export function ConstellationLines({ visible, focus, onLoad, selectedId }: { visible: boolean; focus?: boolean; onLoad?: () => void; selectedId: string | null }) {
+export function ConstellationLines({ visible, focus, tourPulse = false, revealTick, onLoad, selectedId }: { visible: boolean; focus?: boolean; tourPulse?: boolean; revealTick?: number; onLoad?: () => void; selectedId: string | null }) {
   const lineData = useConstellationLineData();
   const { camera } = useThree();
 
@@ -632,6 +632,9 @@ export function ConstellationLines({ visible, focus, onLoad, selectedId }: { vis
     if (lineData) onLoad?.();
   }, [lineData, onLoad]);
   const lineMatRef = useRef<THREE.ShaderMaterial | null>(null);
+  const revealAlphaRef = useRef(visible ? 1 : 0);
+  const revealStartRef = useRef<number | null>(null);
+  const lastRevealTickRef = useRef(revealTick ?? 0);
   const lineUniforms = useMemo(() => ({
     opacity: { value: 0.72 },
     hasSelection: { value: 0 },
@@ -671,16 +674,45 @@ export function ConstellationLines({ visible, focus, onLoad, selectedId }: { vis
     if (lineMat) lineMat.uniforms.hasSelection.value = selectedId ? 1 : 0;
   }, [selectedId]);
 
+  useEffect(() => {
+    if (!visible) {
+      revealAlphaRef.current = 0;
+      revealStartRef.current = null;
+      return;
+    }
+    const tick = revealTick ?? 0;
+    if (tick !== lastRevealTickRef.current) {
+      lastRevealTickRef.current = tick;
+      revealAlphaRef.current = 0;
+      revealStartRef.current = performance.now();
+      return;
+    }
+    if (revealAlphaRef.current < 1) {
+      revealStartRef.current = performance.now();
+    } else {
+      revealAlphaRef.current = 1;
+      revealStartRef.current = null;
+    }
+  }, [visible, revealTick]);
+
   // Distance-based fade (boosted in focus mode)
   useFrame((state) => {
     if (!visible) return;
     const lineMat = lineMatRef.current;
     // sin(time * 2) is PI-periodic; bound time to avoid float precision drift in long sessions.
     if (lineMat) lineMat.uniforms.time.value = state.clock.elapsedTime % Math.PI;
+    if (revealStartRef.current !== null) {
+      const elapsed = performance.now() - revealStartRef.current;
+      revealAlphaRef.current = Math.min(1, elapsed / 1200);
+      if (revealAlphaRef.current >= 1) revealStartRef.current = null;
+    }
+
     // Observatory anchors camera at Earth's heliocentric position (~1 AU); the fade
     // thresholds below are heliocentric and would misfire as Earth orbits. Pin bright.
     if (OBSERVATORY_MODE) {
-      if (lineMat) lineMat.uniforms.opacity.value = focus ? 0.92 : 0.34;
+      let op = (focus ? 0.92 : 0.34) * revealAlphaRef.current;
+      if (tourPulse) op *= 1 + 0.34 * Math.sin(state.clock.elapsedTime * 4.2);
+      if (lineMat) lineMat.uniforms.opacity.value = op;
       return;
     }
     const dist = camera.position.length();
@@ -700,7 +732,9 @@ export function ConstellationLines({ visible, focus, onLoad, selectedId }: { vis
       else if (dist > 200) opacity = base - (dist - 200) / 300 * (base - 0.55);
     }
     if (!lineMat) return;
-    lineMat.uniforms.opacity.value = opacity;
+    let finalOp = opacity * revealAlphaRef.current;
+    if (tourPulse) finalOp *= 1 + 0.34 * Math.sin(state.clock.elapsedTime * 4.2);
+    lineMat.uniforms.opacity.value = finalOp;
   });
 
   if (!geometry) return null;
@@ -770,7 +804,7 @@ function useConstellationCentroids(): ConstellationCentroid[] {
   return centroids;
 }
 
-export function ConstellationLabels({ visible, focus, onSelect, onLoad, selectedId, accent }: { visible: boolean; focus?: boolean; onSelect?: (id: string) => void; onLoad?: () => void; selectedId: string | null; accent: string }) {
+export function ConstellationLabels({ visible, focus, tourPulse = false, revealTick, onSelect, onLoad, selectedId, accent }: { visible: boolean; focus?: boolean; tourPulse?: boolean; revealTick?: number; onSelect?: (id: string) => void; onLoad?: () => void; selectedId: string | null; accent: string }) {
   const centroids = useConstellationCentroids();
   const isMobile = useIsMobile();
   const glyphSize = isMobile ? 32 : 48;
@@ -782,6 +816,9 @@ export function ConstellationLabels({ visible, focus, onSelect, onLoad, selected
   const groupRef = useRef<THREE.Group>(null);
   const [visibleLabels, setVisibleLabels] = useState<Set<string>>(new Set());
   const [labelOpacity, setLabelOpacity] = useState(0.4);
+  const revealAlphaRef = useRef(visible ? 1 : 0);
+  const revealStartRef = useRef<number | null>(null);
+  const lastRevealTickRef = useRef(revealTick ?? 0);
   const visibleLabelsRef = useRef(new Set<string>());
   const labelOpacityRef = useRef(0.4);
   const lastLabelUpdateRef = useRef(0);
@@ -791,8 +828,29 @@ export function ConstellationLabels({ visible, focus, onSelect, onLoad, selected
   const dirRef = useRef(new THREE.Vector3());
   const tiltAxisRef = useRef(new THREE.Vector3(1, 0, 0));
 
+  useEffect(() => {
+    if (!visible) {
+      revealAlphaRef.current = 0;
+      revealStartRef.current = null;
+      return;
+    }
+    const tick = revealTick ?? 0;
+    if (tick !== lastRevealTickRef.current) {
+      lastRevealTickRef.current = tick;
+      revealAlphaRef.current = 0;
+      revealStartRef.current = performance.now();
+      return;
+    }
+    if (revealAlphaRef.current < 1) {
+      revealStartRef.current = performance.now();
+    } else {
+      revealAlphaRef.current = 1;
+      revealStartRef.current = null;
+    }
+  }, [visible, revealTick]);
+
   // Cull labels outside ~60° of camera look direction + distance-based fade
-  useFrame(() => {
+  useFrame((state) => {
     if (!visible) return;
     if (groupRef.current) {
       groupRef.current.position.copy(camera.position);
@@ -801,6 +859,12 @@ export function ConstellationLabels({ visible, focus, onSelect, onLoad, selected
     const now = performance.now();
     if (now - lastLabelUpdateRef.current < LABEL_UPDATE_INTERVAL_MS) return;
     lastLabelUpdateRef.current = now;
+
+    if (revealStartRef.current !== null) {
+      const elapsed = performance.now() - revealStartRef.current;
+      revealAlphaRef.current = Math.min(1, elapsed / 1200);
+      if (revealAlphaRef.current >= 1) revealStartRef.current = null;
+    }
 
     const base = focus ? 0.85 : 0.4;
     let opacity = base;
@@ -817,9 +881,11 @@ export function ConstellationLabels({ visible, focus, onSelect, onLoad, selected
         else if (dist > 200) opacity = base - (dist - 200) / 300 * (base - 0.4);
       }
     }
-    if (Math.abs(labelOpacityRef.current - opacity) > 0.02) {
-      labelOpacityRef.current = opacity;
-      setLabelOpacity(opacity);
+    let nextOpacity = opacity * revealAlphaRef.current;
+    if (tourPulse) nextOpacity *= 1 + 0.28 * Math.sin(state.clock.elapsedTime * 4.2);
+    if (Math.abs(labelOpacityRef.current - nextOpacity) > 0.02) {
+      labelOpacityRef.current = nextOpacity;
+      setLabelOpacity(nextOpacity);
     }
 
     camera.getWorldDirection(camDirRef.current);

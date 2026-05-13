@@ -81,7 +81,7 @@ function MilkyWayBackdrop() {
 
                 positions.push(...centerPos, ...p1, ...p2);
                 // Uniform opacity across all vertices — no gradient = no seam lines
-                opacities.push(0.15, 0.15, 0.15);
+                opacities.push(0.3, 0.3, 0.3);
               }
             });
           });
@@ -98,7 +98,7 @@ function MilkyWayBackdrop() {
 
   const uniforms = useMemo(() => ({
     time: { value: 0 },
-    globalOpacity: { value: 0.18 },
+    globalOpacity: { value: 0.32 },
   }), []);
 
   useFrame((state) => {
@@ -301,7 +301,7 @@ function NearStarMarkers() {
               <meshBasicMaterial color={color} toneMapped={false} />
             </mesh>
             {/* Glow sprite */}
-            <GlowSphere color={color} opacity={0.25} position={pos} scale={[size * 6, size * 6, 1]} />
+            <GlowSphere color={color} opacity={0.45} position={pos} scale={[size * 9, size * 9, 1]} />
             <Html position={[pos[0], pos[1] + 4, pos[2]]} center distanceFactor={200} style={{ pointerEvents: 'none' }} zIndexRange={[1, 0]}>
               <div style={{
                 color: 'rgba(255,255,255,0.7)',
@@ -347,7 +347,7 @@ function GalaxyMarkers() {
               <meshBasicMaterial color={color} toneMapped={false} />
             </mesh>
             {/* Diffuse glow */}
-            <GlowSphere color={color} opacity={0.15} position={pos} scale={[size * 8, size * 5, 1]} />
+            <GlowSphere color={color} opacity={0.3} position={pos} scale={[size * 12, size * 8, 1]} />
             <Html position={[pos[0], pos[1] + 5, pos[2]]} center distanceFactor={200} style={{ pointerEvents: 'none' }} zIndexRange={[1, 0]}>
               <div style={{
                 color: 'rgba(200,180,255,0.7)',

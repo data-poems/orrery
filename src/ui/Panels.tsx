@@ -162,6 +162,127 @@ function ZoomControls() {
   );
 }
 
+// ─── About dialog (accessible modal) ────────────────────────────────────────────
+
+function AboutDialog({ open, onClose, accent, accentRgb }: {
+  open: boolean;
+  onClose: () => void;
+  accent: string;
+  accentRgb: string;
+}) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const prevFocus = document.activeElement as HTMLElement | null;
+    closeBtnRef.current?.focus();
+
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.preventDefault(); onClose(); return; }
+      if (e.key !== 'Tab') return;
+      const root = dialogRef.current;
+      if (!root) return;
+      const focusables = root.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault(); last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault(); first.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('keydown', handleKey);
+      prevFocus?.focus?.();
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 40,
+        background: 'rgba(0,0,0,0.85)',
+        backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        padding: 24, overflow: 'auto',
+        fontFamily: "'Cormorant Garamond','Garamond','Baskerville','Georgia',serif",
+      }}
+    >
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="about-dialog-title"
+        onClick={e => e.stopPropagation()}
+        style={{ maxWidth: 360, width: '100%' }}
+      >
+        <h2 id="about-dialog-title" style={{ color: '#fff', fontSize: 22, fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', textAlign: 'center', marginBottom: 16, margin: 0 }}>About</h2>
+        <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontStyle: 'italic', textAlign: 'center', marginTop: 16, marginBottom: 20 }}>Real data. Real time.</div>
+
+        <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>Catalog Data</div>
+        {[
+          '41,119 stars · HYG Database',
+          '88 constellations · IAU / d3-celestial',
+          '8 planets + 3 dwarf planets · JPL Horizons',
+          '32 moons · JPL Horizons',
+          '3,000 main-belt asteroids · Minor Planet Center',
+          '110+ deep sky objects · OpenNGC',
+          '20+ comets · Minor Planet Center',
+          '14 meteor showers · IAU Meteor Data Center',
+          '5 spacecraft · NASA/JPL',
+          '2K/4K textures · Solar System Scope (CC BY 4.0)',
+        ].map(s => (
+          <div key={s} style={{ color: 'rgba(255,255,255,0.72)', fontSize: 14, fontWeight: 300, lineHeight: 1.8 }}>{s}</div>
+        ))}
+
+        <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginTop: 16, marginBottom: 8 }}>Live Data</div>
+        {[
+          'Near-Earth objects · NASA NeoWs API',
+          'Asteroid orbits · JPL Small-Body Database',
+          'Solar wind · NOAA SWPC',
+          'Satellite TLEs · CelesTrak',
+        ].map(s => (
+          <div key={s} style={{ color: `rgba(${accentRgb},0.7)`, fontSize: 14, fontWeight: 300, lineHeight: 1.8 }}>{s}</div>
+        ))}
+
+        <div style={{ marginTop: 24, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <a href="https://lukesteuber.com" target="_blank" rel="noopener noreferrer" style={{ color: accent, fontSize: 14, textDecoration: 'none', fontWeight: 400 }}>lukesteuber.com</a>
+          <a href="https://datapoems.io" target="_blank" rel="noopener noreferrer" style={{ color: accent, fontSize: 14, textDecoration: 'none', fontWeight: 400 }}>datapoems.io</a>
+        </div>
+
+        <div style={{ marginTop: 20, textAlign: 'center' }}>
+          <button
+            ref={closeBtnRef}
+            onClick={onClose}
+            style={{
+              background: 'none',
+              border: `1px solid rgba(${accentRgb},0.3)`,
+              color: 'rgba(255,255,255,0.7)',
+              fontSize: 13,
+              fontFamily: 'inherit',
+              padding: '10px 24px',
+              minHeight: 44,
+              borderRadius: 4,
+              cursor: 'pointer',
+            }}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Scale indicator labels ─────────────────────────────────────────────────────
 
 const SCALE_LANDMARKS = [
@@ -564,11 +685,11 @@ function SideDrawer({
   cams, camIdx, onPresetSelect,
   selPlanet, setSelPlanet, onMoonSelect,
   neos, neoStatus, selNeo, setSelNeo,
-  showNeo, showStars, showConstellations, showDwarf,
-  showAsteroidBelt, showComets, showMeteors, showDeepSky,
+  showNeo, showStars, showConstellations, showAsterisms, showDwarf,
+  showAsteroidBelt, showComets, showMeteors, showSatellites, showDeepSky,
   showDeepSpace,
-  setShowNeo, setShowStars, setShowConstellations,
-  setShowDwarf, setShowAsteroidBelt, setShowComets, setShowMeteors, setShowDeepSky,
+  setShowNeo, setShowStars, setShowConstellations, setShowAsterisms,
+  setShowDwarf, setShowAsteroidBelt, setShowComets, setShowMeteors, setShowSatellites, setShowDeepSky,
   setShowDeepSpace,
   selConstellation, setSelConstellation,
   selAsterism, setSelAsterism,
@@ -633,6 +754,7 @@ function SideDrawer({
   const skyLayers = [
     { label: 'Stars', key: 'S', on: showStars, fn: () => setShowStars(p => !p) },
     { label: 'Constellations', key: 'L', on: showConstellations, fn: () => setShowConstellations(p => !p) },
+    { label: 'Asterisms', key: 'A', on: showAsterisms, fn: () => setShowAsterisms(p => !p) },
     { label: 'Deep Sky', key: 'K', on: showDeepSky, fn: () => setShowDeepSky(p => !p) },
     { label: 'Deep Space', key: 'O', on: showDeepSpace, fn: () => setShowDeepSpace(p => !p) },
   ];
@@ -642,6 +764,7 @@ function SideDrawer({
     { label: 'Asteroid Belt', key: null, on: showAsteroidBelt, fn: () => setShowAsteroidBelt(p => !p) },
     { label: 'Comets', key: 'C', on: showComets, fn: () => setShowComets(p => !p) },
     { label: 'Meteor Showers', key: 'R', on: showMeteors, fn: () => setShowMeteors(p => !p) },
+    { label: 'Satellites', key: 'I', on: showSatellites, fn: () => setShowSatellites(p => !p) },
   ];
   const layers = observatoryMode ? skyLayers : [...skyLayers, ...solarSystemLayers];
 
@@ -723,7 +846,7 @@ function SideDrawer({
         ...({ zoom: panelFontScale } as React.CSSProperties),
       }}
     >
-      {!mobile && <AccordionSection title="Status" accent={accent} defaultOpen>
+      <AccordionSection title="Status" accent={accent} defaultOpen>
         <div style={{ padding: '0 16px 10px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 14px' }}>
             <Stat label="Moon" val={`${moon.name}, ${moon.ill}%`} c={accent} />
@@ -732,7 +855,7 @@ function SideDrawer({
             {solarWind ? <Stat label="Solar Wind" val={solarWind} /> : <Stat label="Solar Wind" val="Unavailable" />}
           </div>
         </div>
-      </AccordionSection>}
+      </AccordionSection>
       {!mobile && (
         <button
           onClick={onClose}
@@ -767,7 +890,7 @@ function SideDrawer({
             onClick={() => setPlaying(p => !p)}
             style={{
               background: playing ? `rgba(${accentRgb},0.16)` : 'rgba(255,255,255,0.04)',
-              border: `1px solid ${playing ? `rgba(${accentRgb},0.35)` : 'rgba(255,255,255,0.08)'}`,
+              border: `1px solid ${playing ? `rgba(${accentRgb},0.3)` : 'rgba(255,255,255,0.08)'}`,
               color: playing ? accent : 'rgba(255,255,255,0.65)',
               fontSize: 12, fontFamily: 'inherit', fontWeight: 400,
               padding: '6px 12px', borderRadius: 4, cursor: 'pointer', minHeight: mobile ? 38 : 30,
@@ -875,7 +998,7 @@ function SideDrawer({
 
       <AccordionSection title="Layers" accent={accent} defaultOpen={openCore}>
         <div role="group" aria-label="Display layers">
-        {layers.filter(l => !mobile || ['Stars', 'Constellations', 'Deep Sky'].includes(l.label) || l.label.startsWith('NEO')).map(l => (
+        {layers.map(l => (
           <button
             key={l.label}
             onClick={l.fn}
@@ -905,40 +1028,6 @@ function SideDrawer({
         </div>
       </AccordionSection>
 
-      {mobile ? (
-      <AccordionSection title="More" accent={accent} defaultOpen={false}>
-        <div style={{ padding: '0 16px 8px' }}>
-          <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>Status</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px', marginBottom: 12 }}>
-            <Stat label="Moon" val={`${moon.name}, ${moon.ill}%`} c={accent} />
-            <Stat label="Rate" val={speedLabel(speed)} />
-            {solarWind && <Stat label="Solar Wind" val={solarWind} />}
-          </div>
-          <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>Theme</div>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-            {THEMES.map(t => (
-              <button key={t.id} onClick={() => setTheme(t)} aria-label={t.name} style={{
-                width: 24, height: 24, borderRadius: '50%', background: t.uiAccent, border: theme.id === t.id ? '2px solid #fff' : '2px solid transparent',
-                cursor: 'pointer', padding: 0,
-              }} />
-            ))}
-          </div>
-          <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>All Layers</div>
-          {layers.filter(l => !['Stars', 'Constellations', 'Deep Sky'].includes(l.label) && !l.label.startsWith('NEO')).map(l => (
-            <button key={l.label} onClick={l.fn} style={{
-              display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-              padding: '8px 0', background: 'transparent', border: 'none', cursor: 'pointer',
-              fontFamily: 'inherit', fontSize: 13,
-              color: l.on ? accent : 'rgba(255,255,255,0.45)', fontWeight: l.on ? 400 : 300, textAlign: 'left',
-            }}>
-              <span style={{ width: 12, height: 12, borderRadius: 3, border: `1.5px solid ${l.on ? accent : 'rgba(255,255,255,0.2)'}`, background: l.on ? `rgba(${accentRgb},0.15)` : 'transparent' }} />
-              {l.label}
-            </button>
-          ))}
-        </div>
-      </AccordionSection>
-      ) : (
-      <>
       <AccordionSection title="Theme" accent={accent} defaultOpen={false}>
         <div role="radiogroup" aria-label="Color theme">
         {THEMES.map(t => (
@@ -949,16 +1038,16 @@ function SideDrawer({
             aria-checked={theme.id === t.id}
             style={{
               display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-              padding: mobile ? '10px 16px' : '6px 16px',
+              padding: '10px 16px',
               background: 'transparent', border: 'none', cursor: 'pointer',
               fontFamily: 'inherit', fontSize: mobile ? 15 : 14,
               color: theme.id === t.id ? t.uiAccent : 'rgba(255,255,255,0.5)',
               fontWeight: theme.id === t.id ? 400 : 300, textAlign: 'left',
-              minHeight: mobile ? 44 : 'auto',
+              minHeight: 44,
             }}
           >
             <span style={{
-              width: 12, height: 12, borderRadius: '50%',
+              width: 14, height: 14, borderRadius: '50%',
               background: t.uiAccent, flexShrink: 0,
               border: theme.id === t.id ? '2px solid #fff' : '2px solid transparent',
             }} />
@@ -1178,9 +1267,6 @@ function SideDrawer({
           <a href="https://datapoems.io" target="_blank" rel="noopener noreferrer" style={{ color: accent, fontSize: 11, textDecoration: 'none', fontWeight: 300 }}>datapoems.io</a>
         </div>
       </div>
-
-      </>
-      )}
     </div>
   );
 }
@@ -1566,7 +1652,7 @@ export default function Panels(props: PanelProps) {
               onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); props.navigateBack(); }}
               style={{
                 background: `rgba(${accentRgb},0.12)`,
-                border: `1px solid rgba(${accentRgb},0.25)`,
+                border: `1px solid rgba(${accentRgb},0.3)`,
                 borderRadius: 4, padding: mobile ? '8px 14px' : '6px 12px',
                 color: accent, fontSize: mobile ? 13 : 12,
                 fontFamily: 'inherit', fontWeight: 400, letterSpacing: 0.5,
@@ -1766,65 +1852,13 @@ export default function Panels(props: PanelProps) {
         </div>
       )}
 
-      {/* ── Info overlay (mobile ? button) ── */}
-      {showInfo && (
-        <div
-          onClick={() => setShowInfo(false)}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 40,
-            background: 'rgba(0,0,0,0.85)',
-            backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-            display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center',
-            padding: 24, overflow: 'auto',
-            fontFamily: "'Cormorant Garamond','Garamond','Baskerville','Georgia',serif",
-          }}
-        >
-          <div onClick={e => e.stopPropagation()} style={{ maxWidth: 360, width: '100%' }}>
-            <div style={{ color: '#fff', fontSize: 22, fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', textAlign: 'center', marginBottom: 16 }}>About</div>
-            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontStyle: 'italic', textAlign: 'center', marginBottom: 20 }}>Real data. Real time.</div>
-
-            <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>Catalog Data</div>
-            {[
-              '41,119 stars \u00b7 HYG Database',
-              '88 constellations \u00b7 IAU / d3-celestial',
-              '8 planets + 3 dwarf planets \u00b7 JPL Horizons',
-              '32 moons \u00b7 JPL Horizons',
-              '3,000 main-belt asteroids \u00b7 Minor Planet Center',
-              '110+ deep sky objects \u00b7 OpenNGC',
-              '20+ comets \u00b7 Minor Planet Center',
-              '14 meteor showers \u00b7 IAU Meteor Data Center',
-              '5 spacecraft \u00b7 NASA/JPL',
-              '2K/4K textures \u00b7 Solar System Scope (CC BY 4.0)',
-            ].map(s => (
-              <div key={s} style={{ color: 'rgba(255,255,255,0.72)', fontSize: 14, fontWeight: 300, lineHeight: 1.8 }}>{s}</div>
-            ))}
-
-            <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginTop: 16, marginBottom: 8 }}>Live Data</div>
-            {[
-              'Near-Earth objects \u00b7 NASA NeoWs API',
-              'Asteroid orbits \u00b7 JPL Small-Body Database',
-              'Solar wind \u00b7 NOAA SWPC',
-              'Satellite TLEs \u00b7 CelesTrak',
-            ].map(s => (
-              <div key={s} style={{ color: `rgba(${accentRgb},0.7)`, fontSize: 14, fontWeight: 300, lineHeight: 1.8 }}>{s}</div>
-            ))}
-
-            <div style={{ marginTop: 24, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <a href="https://lukesteuber.com" target="_blank" rel="noopener noreferrer" style={{ color: accent, fontSize: 14, textDecoration: 'none', fontWeight: 400 }}>lukesteuber.com</a>
-              <a href="https://datapoems.io" target="_blank" rel="noopener noreferrer" style={{ color: accent, fontSize: 14, textDecoration: 'none', fontWeight: 400 }}>datapoems.io</a>
-            </div>
-
-            <div style={{ marginTop: 20, textAlign: 'center' }}>
-              <button onClick={() => setShowInfo(false)} style={{
-                background: 'none', border: `1px solid rgba(${accentRgb},0.2)`, color: 'rgba(255,255,255,0.6)',
-                fontSize: 12, fontFamily: 'inherit', padding: '8px 20px', borderRadius: 4, cursor: 'pointer',
-              }}>Close</button>
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* ── About dialog ── */}
+      <AboutDialog
+        open={showInfo}
+        onClose={() => setShowInfo(false)}
+        accent={accent}
+        accentRgb={accentRgb}
+      />
       {/* ── Screen reader announcements ── */}
       <div aria-live="polite" className="sr-only" role="status">
         {sp ? `Selected ${sp.name}, ${sp.type}.` : ''}

@@ -62,6 +62,6 @@ a:focus-visible,
   }
 }
 
-/* Hide scrollbar on scrolling nav elements */
-nav[aria-label="Camera presets"]::-webkit-scrollbar { display: none; }
-[aria-label="Display toggles"]::-webkit-scrollbar { display: none; }
+/* Hide scrollbar on the drawer's scrolling sections */
+[aria-label="Display layers"]::-webkit-scrollbar,
+[aria-label="Celestial bodies"]::-webkit-scrollbar { display: none; }

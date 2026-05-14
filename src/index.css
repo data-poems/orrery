@@ -12,8 +12,8 @@ html, body, #root {
 /* Scrollbars — color adapts via --accent-rgb CSS variable set by theme */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
-::-webkit-scrollbar-thumb { background: rgba(var(--accent-rgb, 0,255,204),0.2); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(var(--accent-rgb, 0,255,204),0.4); }
+::-webkit-scrollbar-thumb { background: rgba(var(--accent-rgb),0.2); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(var(--accent-rgb),0.4); }
 
 button { font-family: inherit; }
 
@@ -39,7 +39,7 @@ button { font-family: inherit; }
 button:focus-visible,
 a:focus-visible,
 [role="button"]:focus-visible {
-  outline: 2px solid var(--accent, #00ffcc);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 

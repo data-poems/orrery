@@ -71,6 +71,58 @@ export const drawerTab: React.CSSProperties = {
   transition: 'opacity 0.15s',
 };
 
+// ─── Semantic tokens ────────────────────────────────────────────────────────────
+// Use these in place of inline magic numbers so theme/density tweaks stay coherent.
+
+/** Stacking order. Higher = nearer the viewer. Sky toggle sits at controls;
+ *  drawer covers controls; drawerTab peeks above the drawer. */
+export const Z = {
+  canvasOverlay: 5,
+  hud: 10,
+  mobileNav: 15,
+  controls: 20,
+  drawer: 30,
+  drawerTab: 31,
+  dialog: 35,
+  modal: 40,
+  loading: 100,
+} as const;
+
+/** Backdrop blur tiers. chip is small floating controls; card is info bubbles;
+ *  drawer is the side panel; modal/bokeh are heavy glass treatments. */
+export const BLUR = {
+  chip: 8,
+  card: 12,
+  drawer: 20,
+  modal: 24,
+  bokeh: 32,
+} as const;
+
+/** White-on-dark alpha tiers for foreground text and dividers. */
+export const ALPHA = {
+  textPrimary: 1,
+  textSecondary: 0.7,
+  textTertiary: 0.5,
+  textDisabled: 0.32,
+  borderStrong: 0.2,
+  borderSubtle: 0.08,
+  dividerFaint: 0.04,
+} as const;
+
+/** Accent overlay alphas for selected/active states. */
+export const ACTIVE_ALPHA = {
+  border: 0.3,
+  bg: 0.15,
+} as const;
+
+/** Transition timings: feedback for instant state, state for UI toggles,
+ *  transform for layout-affecting movement. */
+export const TIMING = {
+  feedback: '0.1s',
+  state: '0.18s',
+  transform: '0.25s',
+} as const;
+
 // ─── Responsive hook ────────────────────────────────────────────────────────────
 
 export function useIsMobile(): boolean {

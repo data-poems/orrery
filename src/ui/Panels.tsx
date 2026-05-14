@@ -13,7 +13,7 @@ import type { NEO, CamPreset } from '../lib/kepler';
 import { ALL_BODIES, camIndex } from '../data/planets';
 import { getMoonsForPlanet } from '../data/moons';
 import { useTheme, THEMES } from '../lib/themes';
-import { bokehCard, drawerPanel, drawerTab, bottomSheet, useIsMobile } from './styles';
+import { bokehCard, drawerPanel, drawerTab, bottomSheet, useIsMobile, Z, BLUR, ACTIVE_ALPHA } from './styles';
 import type { CometDef } from '../data/comets';
 import type { MeteorShower } from '../scene/Meteors';
 import type { SatellitePosition } from '../lib/satellites';
@@ -134,14 +134,15 @@ function ZoomControls() {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     padding: 0,
     fontFamily: 'inherit',
-    backdropFilter: 'blur(8px)',
+    backdropFilter: `blur(${BLUR.chip}px)`,
+    WebkitBackdropFilter: `blur(${BLUR.chip}px)`,
   };
 
   return (
     <div style={{
       position: 'absolute', bottom: safeAreaBottom(20), right: safeAreaRight(14),
       display: 'flex', flexDirection: 'column', gap: 4,
-      zIndex: 5,
+      zIndex: Z.canvasOverlay,
     }}>
       <button onClick={() => zoom(-1)} aria-label="Zoom in" style={btnStyle}>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -208,9 +209,9 @@ function AboutDialog({ open, onClose, accent, accentRgb }: {
     <div
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, zIndex: 40,
+        position: 'fixed', inset: 0, zIndex: Z.modal,
         background: 'rgba(0,0,0,0.85)',
-        backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+        backdropFilter: `blur(${BLUR.card}px)`, WebkitBackdropFilter: `blur(${BLUR.card}px)`,
         display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
         padding: 24, overflow: 'auto',
@@ -290,7 +291,7 @@ const SCALE_LANDMARKS = [
   { dist: 10, label: 'Outer' },
   { dist: 50, label: 'Kuiper' },
   { dist: 1500, label: 'Oort' },
-  { dist: 20000, label: 'Stellar' },
+  { dist: 200000, label: 'Stellar' },
 ];
 
 function ScaleIndicator({ cameraDistance }: { cameraDistance: number }) {
@@ -303,7 +304,7 @@ function ScaleIndicator({ cameraDistance }: { cameraDistance: number }) {
       aria-hidden="true"
       style={{
         position: 'absolute', left: 8, top: '20%', bottom: '20%',
-        width: 24, zIndex: 5, pointerEvents: 'none',
+        width: 24, zIndex: Z.canvasOverlay, pointerEvents: 'none',
         display: 'flex', flexDirection: 'column', alignItems: 'center',
       }}
     >
@@ -352,17 +353,7 @@ function InfoPanel({
     <AccordionSection title={sectionTitle} accent={accent} defaultOpen>
       <div style={{ padding: '0 16px 12px' }}>
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <button
-            onClick={onClose}
-            aria-label={closeLabel}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              color: 'rgba(255,255,255,0.7)', fontSize: 14, fontFamily: 'inherit',
-              padding: '0 0 4px', lineHeight: 1,
-            }}
-          >
-            {'\u00d7'}
-          </button>
+          <Btn onClick={onClose} label={closeLabel}>{'\u00d7'}</Btn>
         </div>
         <div style={{ color: accent, fontSize: 17, fontWeight: 500, letterSpacing: 1 }}>{title}</div>
         <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 300, marginTop: 2, letterSpacing: 1 }}>{subtitle}</div>
@@ -508,10 +499,12 @@ function AccordionSection({
 
 function MiniAccordion({
   title,
+  accent,
   children,
   defaultOpen = false,
 }: {
   title: React.ReactNode;
+  accent: string;
   children: React.ReactNode;
   defaultOpen?: boolean;
 }) {
@@ -534,7 +527,7 @@ function MiniAccordion({
           justifyContent: 'space-between',
           textAlign: 'left',
           fontFamily: 'inherit',
-          color: 'rgba(255,255,255,0.72)',
+          color: 'rgba(255,255,255,0.7)',
           fontSize: 12,
         }}
       >
@@ -542,9 +535,9 @@ function MiniAccordion({
         <span
           aria-hidden="true"
           style={{
-            color: 'rgba(255,255,255,0.72)',
+            color: open ? accent : 'rgba(255,255,255,0.32)',
             transform: open ? 'rotate(90deg)' : 'rotate(0deg)',
-            transition: 'transform 0.18s ease',
+            transition: 'transform 0.18s ease, color 0.18s ease',
           }}
         >
           {'\u203a'}
@@ -635,6 +628,7 @@ function TonightsSky({
         <MiniAccordion
           key={season}
           title={season === currentSeason ? `${season} · now` : season}
+          accent={accent}
           defaultOpen={season === currentSeason}
         >
           <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -818,7 +812,7 @@ function SideDrawer({
         background: `linear-gradient(180deg, rgba(${accentRgb},0.18) 0%, rgba(10,12,18,0.88) 22%, rgba(6,8,14,0.94) 100%)`,
         maxHeight: '38vh',
         overflowY: 'auto',
-        zIndex: 30,
+        zIndex: Z.drawer,
         pointerEvents: open ? 'auto' : 'none',
         padding: '8px 0 0',
         borderRadius: '14px 14px 0 0',
@@ -831,11 +825,11 @@ function SideDrawer({
         background: `linear-gradient(180deg, rgba(${accentRgb},0.12) 0%, rgba(10,12,18,0.82) 14%, rgba(6,8,14,0.9) 100%)`,
         position: 'fixed',
         top: safeAreaTop(10),
-        right: safeAreaRight(10),
+        right: safeAreaRight(14),
         bottom: safeAreaBottom(10),
         width: 320,
         overflowY: 'auto',
-        zIndex: 30,
+        zIndex: Z.drawer,
         pointerEvents: open ? 'auto' : 'none',
         padding: '8px 0 0',
         borderRadius: 12,
@@ -857,31 +851,28 @@ function SideDrawer({
         </div>
       </AccordionSection>
       {!mobile && (
-        <button
+        <Btn
           onClick={onClose}
-          aria-label="Close panel"
+          label="Close panel"
           style={{
             position: 'absolute',
-            top: 8,
-            right: 8,
-            width: 28,
-            height: 28,
+            top: 4,
+            right: 4,
+            minWidth: 36,
+            minHeight: 36,
+            width: 36,
+            height: 36,
             borderRadius: 6,
-            border: `1px solid rgba(${accentRgb},0.24)`,
+            border: `1px solid rgba(${accentRgb},0.3)`,
             background: `rgba(${accentRgb},0.12)`,
             color: accent,
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-            fontSize: 16,
+            fontSize: 18,
             lineHeight: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
             zIndex: 1,
           }}
         >
           {'\u00d7'}
-        </button>
+        </Btn>
       )}
 
       <AccordionSection title="Speed" accent={accent} defaultOpen={openCore}>
@@ -944,7 +935,7 @@ function SideDrawer({
         return (
           <div style={{ padding: '0 16px 6px' }}>
             {groups.map(g => (
-              <MiniAccordion key={g.title} title={g.title} defaultOpen={!mobile && (g.title === 'Close' || g.title === 'Views')}>
+              <MiniAccordion key={g.title} title={g.title} accent={accent} defaultOpen={!mobile && (g.title === 'Close' || g.title === 'Views')}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                   {g.items.map(item => (
                     <button key={item.label} onClick={() => onPresetSelect(item.idx)} style={btnStyle}>{item.label}</button>
@@ -1213,7 +1204,7 @@ function SideDrawer({
         <div style={{ color: '#fff', fontSize: 18, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase' }}>Orrery</div>
         <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 13, fontStyle: 'italic', fontWeight: 300, marginTop: 2 }}>Interactive Solar System</div>
 
-        <MiniAccordion title="Data Status" defaultOpen={!mobile}>
+        <MiniAccordion title="Data Status" accent={accent} defaultOpen={!mobile}>
           <div style={statusText}>This scene uses real astronomical datasets throughout.</div>
           <div style={{ ...statusText, marginTop: 8 }}>
             Live/current where available: solar wind, today’s NASA NEO feed, on-demand JPL asteroid orbit details, and current station TLEs.
@@ -1223,7 +1214,7 @@ function SideDrawer({
           </div>
         </MiniAccordion>
 
-        <MiniAccordion title="Live / Current Sources" defaultOpen={false}>
+        <MiniAccordion title="Live / Current Sources" accent={accent} defaultOpen={false}>
           {liveSources.map(source => (
             <div key={source.label} style={{ marginBottom: 10 }}>
               <a href={source.url} target="_blank" rel="noreferrer" style={sourceLink}>{source.label}</a>
@@ -1232,7 +1223,7 @@ function SideDrawer({
           ))}
         </MiniAccordion>
 
-        <MiniAccordion title="Catalog Sources" defaultOpen={false}>
+        <MiniAccordion title="Catalog Sources" accent={accent} defaultOpen={false}>
           {catalogSources.map(source => (
             <div key={source.label} style={{ ...sourceItem, marginBottom: 8 }}>
               <a href={source.url} target="_blank" rel="noreferrer" style={sourceLink}>{source.label}</a>
@@ -1240,11 +1231,11 @@ function SideDrawer({
           ))}
         </MiniAccordion>
 
-        <MiniAccordion title="Technology" defaultOpen={false}>
+        <MiniAccordion title="Technology" accent={accent} defaultOpen={false}>
           <div style={sourceItem}>React {'\u00b7'} Three.js {'\u00b7'} TypeScript</div>
         </MiniAccordion>
 
-        <MiniAccordion title="Keyboard Shortcuts" defaultOpen={false}>
+        <MiniAccordion title="Keyboard Shortcuts" accent={accent} defaultOpen={false}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <div style={kbdRow}><span style={kbd}>1-0</span> Camera presets {'\u00b7'} <span style={kbd}>=</span> Stellar</div>
             <div style={kbdRow}><span style={kbd}>S</span> Stars {'\u00b7'} <span style={kbd}>L</span> Constellations</div>
@@ -1424,7 +1415,7 @@ export default function Panels(props: PanelProps) {
     return (
       <div
         style={{
-          position: 'absolute', inset: 0, zIndex: 20,
+          position: 'absolute', inset: 0, zIndex: Z.controls,
           display: 'flex', flexDirection: 'column',
           alignItems: 'center',
           cursor: 'pointer',
@@ -1481,7 +1472,7 @@ export default function Panels(props: PanelProps) {
         <div
           aria-hidden="true"
           style={{
-            position: 'absolute', inset: 0, zIndex: 4, pointerEvents: 'none',
+            position: 'absolute', inset: 0, zIndex: Z.canvasOverlay - 1, pointerEvents: 'none',
             background: 'radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.32) 78%, rgba(0,0,0,0.55) 100%)',
             opacity: observatorySpotlightActive ? 1 : 0,
             transition: 'opacity 0.45s ease',
@@ -1498,7 +1489,7 @@ export default function Panels(props: PanelProps) {
         style={{
           ...drawerTab,
           top: '50%',
-          right: safeAreaRight(10),
+          right: safeAreaRight(14),
           transform: `translateY(-50%) translateX(${showPanelNudge ? -8 : 0}px)`,
           width: 36,
           height: 76,
@@ -1507,11 +1498,11 @@ export default function Panels(props: PanelProps) {
           background: panelVisible
             ? `linear-gradient(180deg, rgba(${accentRgb},0.18) 0%, rgba(0,0,0,0.78) 100%)`
             : `linear-gradient(180deg, rgba(${accentRgb},0.12) 0%, rgba(0,0,0,0.66) 100%)`,
-          backdropFilter: 'blur(14px)',
-          WebkitBackdropFilter: 'blur(14px)',
+          backdropFilter: `blur(${BLUR.chip}px)`,
+          WebkitBackdropFilter: `blur(${BLUR.chip}px)`,
           border: `1px solid rgba(${accentRgb},${panelVisible ? '0.26' : '0.14'})`,
           borderRight: 'none',
-          zIndex: 31,
+          zIndex: Z.drawerTab,
           transition: 'transform 0.28s ease, background 0.2s ease, color 0.2s ease, border-color 0.2s ease',
         }}
       >
@@ -1588,7 +1579,7 @@ export default function Panels(props: PanelProps) {
             backdropFilter: 'blur(0.5px)',
             WebkitBackdropFilter: 'blur(0.5px)',
             pointerEvents: 'none',
-            zIndex: 19,
+            zIndex: Z.hud,
             transition: 'opacity 0.3s',
           }}
         />
@@ -1610,7 +1601,7 @@ export default function Panels(props: PanelProps) {
             ...bokehCard,
             padding: '16px 20px',
             paddingBottom: '20px',
-            zIndex: 35,
+            zIndex: Z.dialog,
             pointerEvents: 'auto',
             touchAction: 'manipulation',
           } : {
@@ -1619,7 +1610,7 @@ export default function Panels(props: PanelProps) {
             maxWidth: 340, width: '30vw', minWidth: 260,
             ...bokehCard,
             padding: '14px 20px',
-            zIndex: 35,
+            zIndex: Z.dialog,
             pointerEvents: 'auto',
           }}
         >
@@ -1716,7 +1707,7 @@ export default function Panels(props: PanelProps) {
             position: 'absolute', bottom: mobile ? (panelOpen ? `calc(${mobilePanelHeight} + 16px)` : 64) : 56,
             left: '50%', transform: 'translateX(-50%)',
             ...bokehCard, padding: '12px 18px', maxWidth: 420,
-            width: mobile ? 'calc(100vw - 16px)' : '90%', zIndex: 20,
+            width: mobile ? 'calc(100vw - 16px)' : '90%', zIndex: Z.controls,
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1764,7 +1755,7 @@ export default function Panels(props: PanelProps) {
             position: 'absolute',
             top: safeAreaTop(12),
             left: 12,
-            zIndex: 6,
+            zIndex: Z.hud,
             width: 36,
             height: 36,
             borderRadius: 6,
@@ -1775,8 +1766,8 @@ export default function Panels(props: PanelProps) {
             fontSize: 16,
             fontWeight: 300,
             cursor: 'pointer',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
+            backdropFilter: `blur(${BLUR.chip}px)`,
+            WebkitBackdropFilter: `blur(${BLUR.chip}px)`,
           }}
         >
           i
@@ -1796,9 +1787,9 @@ export default function Panels(props: PanelProps) {
           style={{
             position: mobile ? 'fixed' : 'absolute',
             top: mobile ? safeAreaTop(84) : safeAreaTop(14),
-            right: safeAreaRight(14),
-            background: constellationFocus ? `rgba(${accentRgb},0.15)` : 'rgba(255,255,255,0.06)',
-            border: `1px solid ${constellationFocus ? `rgba(${accentRgb},0.3)` : 'rgba(255,255,255,0.1)'}`,
+            right: panelVisible && !mobile ? safeAreaRight(340) : safeAreaRight(14),
+            background: constellationFocus ? `rgba(${accentRgb},${ACTIVE_ALPHA.bg})` : 'rgba(255,255,255,0.06)',
+            border: `1px solid ${constellationFocus ? `rgba(${accentRgb},${ACTIVE_ALPHA.border})` : 'rgba(255,255,255,0.1)'}`,
             borderRadius: 6,
             padding: mobile ? '0 12px' : '0 10px',
             minWidth: 44,
@@ -1814,10 +1805,10 @@ export default function Panels(props: PanelProps) {
             fontWeight: 400,
             letterSpacing: 1.2,
             textTransform: 'uppercase',
-            zIndex: 20,
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
-            transition: 'border-color 0.18s ease, color 0.18s ease, background 0.18s ease',
+            zIndex: Z.controls,
+            backdropFilter: `blur(${BLUR.chip}px)`,
+            WebkitBackdropFilter: `blur(${BLUR.chip}px)`,
+            transition: 'right 0.25s ease, border-color 0.18s ease, color 0.18s ease, background 0.18s ease',
           }}
         >
           <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>{'\u2726'}</span>
@@ -1830,7 +1821,7 @@ export default function Panels(props: PanelProps) {
         <div style={{
           position: 'fixed', top: safeAreaTop(32), left: 10, right: 10,
           display: 'flex', alignItems: 'center', gap: 4,
-          zIndex: 15,
+          zIndex: Z.mobileNav,
         }}>
           {(observatoryMode ? ['Inner', 'System', 'Outer'] : ['Inner', 'System', 'Outer', 'Oort']).map(label => {
             const idx = camIndex(label);
@@ -1845,7 +1836,7 @@ export default function Panels(props: PanelProps) {
                 background: active ? `rgba(${accentRgb},0.15)` : 'rgba(0,0,0,0.4)',
                 border: `1px solid ${active ? `rgba(${accentRgb},0.3)` : 'rgba(255,255,255,0.1)'}`,
                 borderRadius: 3, cursor: 'pointer',
-                backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+                backdropFilter: `blur(${BLUR.chip}px)`, WebkitBackdropFilter: `blur(${BLUR.chip}px)`,
               }}>{label}</button>
             );
           })}

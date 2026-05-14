@@ -15,7 +15,6 @@ const OBSERVATORY_STATS = [
   '88 constellations',
   '110 deep sky objects',
   '19 asterisms',
-  'Milky Way',
 ];
 
 const ORRERY_STATS = [

@@ -29,6 +29,26 @@
     <link rel="preload" as="fetch" type="application/json" crossorigin href="%BASE_URL%data/constellations.json">
     <link rel="preload" as="fetch" type="application/json" crossorigin href="%BASE_URL%data/constellations.lines.json">
     <link rel="preload" as="fetch" type="application/json" crossorigin href="%BASE_URL%data/deepsky.json">
+
+    <!-- Theme bootstrap: set accent vars before React mounts to avoid first-paint flicker -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('orrery-theme');
+          var THEMES = {
+            brass: ['#00ffcc', '0,255,204', 'rgba(255,255,255,0.08)'],
+            silver: ['#66bbff', '102,187,255', 'rgba(255,255,255,0.08)'],
+            highcontrast: ['#ffff00', '255,255,0', 'rgba(255,255,255,0.15)'],
+            ember: ['#44ccaa', '68,204,170', 'rgba(255,255,255,0.08)']
+          };
+          var c = THEMES[t] || THEMES.brass;
+          var r = document.documentElement;
+          r.style.setProperty('--accent', c[0]);
+          r.style.setProperty('--accent-rgb', c[1]);
+          r.style.setProperty('--panel-border', c[2]);
+        } catch (e) { /* SSR or private browsing */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

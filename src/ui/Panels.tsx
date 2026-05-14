@@ -828,11 +828,15 @@ function SideDrawer({
         right: safeAreaRight(14),
         bottom: safeAreaBottom(10),
         width: 320,
+        minWidth: 320,
+        maxWidth: 'calc(100vw - 28px)',
+        boxSizing: 'border-box',
         overflowY: 'auto',
         zIndex: Z.drawer,
         pointerEvents: open ? 'auto' : 'none',
         padding: '8px 0 0',
         borderRadius: 12,
+        borderLeft: 'none',
         borderRight: `1px solid rgba(${accentRgb},0.24)`,
         boxShadow: `0 18px 48px rgba(0,0,0,0.38), 0 0 0 1px rgba(${accentRgb},0.08)`,
         transform: open ? 'translateX(0)' : 'translateX(calc(100% + 24px))',
@@ -1819,8 +1823,8 @@ export default function Panels(props: PanelProps) {
       {/* ── Mobile floating top controls (hidden in observatory — no solar-system presets to surface) ── */}
       {mobile && !cinematic && !observatoryMode && (
         <div style={{
-          position: 'fixed', top: safeAreaTop(32), left: 10, right: 10,
-          display: 'flex', alignItems: 'center', gap: 4,
+          position: 'fixed', top: safeAreaTop(14), left: 14, right: 14,
+          display: 'flex', alignItems: 'center', gap: 6,
           zIndex: Z.mobileNav,
         }}>
           {(observatoryMode ? ['Inner', 'System', 'Outer'] : ['Inner', 'System', 'Outer', 'Oort']).map(label => {
@@ -1829,14 +1833,16 @@ export default function Panels(props: PanelProps) {
             const active = camIdx === idx;
             return (
               <button key={label} onClick={() => onPresetSelect(idx)} style={{
-                padding: '6px 0', flex: 1,
-                fontSize: 10, fontFamily: 'inherit', fontWeight: active ? 600 : 400,
-                letterSpacing: 1, textTransform: 'uppercase',
+                padding: '0 10px', flex: 1, minHeight: 44, height: 44,
+                fontSize: 12, fontFamily: 'inherit', fontWeight: active ? 600 : 400,
+                letterSpacing: 1.2, textTransform: 'uppercase',
                 color: active ? accent : 'rgba(255,255,255,0.7)',
-                background: active ? `rgba(${accentRgb},0.15)` : 'rgba(0,0,0,0.4)',
-                border: `1px solid ${active ? `rgba(${accentRgb},0.3)` : 'rgba(255,255,255,0.1)'}`,
-                borderRadius: 3, cursor: 'pointer',
+                background: active ? `rgba(${accentRgb},${ACTIVE_ALPHA.bg})` : 'rgba(255,255,255,0.06)',
+                border: `1px solid ${active ? `rgba(${accentRgb},${ACTIVE_ALPHA.border})` : 'rgba(255,255,255,0.1)'}`,
+                borderRadius: 6, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
                 backdropFilter: `blur(${BLUR.chip}px)`, WebkitBackdropFilter: `blur(${BLUR.chip}px)`,
+                transition: 'border-color 0.18s ease, color 0.18s ease, background 0.18s ease',
               }}>{label}</button>
             );
           })}

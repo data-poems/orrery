@@ -127,7 +127,7 @@ function SpacecraftDot({ craft, selected, onSelect }: {
         <Billboard>
           <mesh onClick={(e) => { e.stopPropagation(); onSelect(); }}>
             <planeGeometry args={[12, 12]} />
-            <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+            <meshBasicMaterial visible={false} />
           </mesh>
         </Billboard>
       </group>
@@ -202,7 +202,7 @@ function NearStarMarkers({ selNearStar, setSelNearStar }: {
             <Billboard position={pos}>
               <mesh onClick={(e) => { e.stopPropagation(); setSelNearStar(selected ? null : star); }}>
                 <planeGeometry args={[18, 18]} />
-                <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+                <meshBasicMaterial visible={false} />
               </mesh>
             </Billboard>
             <Html position={[pos[0], pos[1] + 4, pos[2]]} center distanceFactor={200} style={{ pointerEvents: 'none' }} zIndexRange={[1, 0]}>
@@ -258,7 +258,7 @@ function GalaxyMarkers({ selGalaxy, setSelGalaxy }: {
             <Billboard position={pos}>
               <mesh onClick={(e) => { e.stopPropagation(); setSelGalaxy(selected ? null : gal); }}>
                 <planeGeometry args={[20, 20]} />
-                <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+                <meshBasicMaterial visible={false} />
               </mesh>
             </Billboard>
             <Html position={[pos[0], pos[1] + 5, pos[2]]} center distanceFactor={200} style={{ pointerEvents: 'none' }} zIndexRange={[1, 0]}>

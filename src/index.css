@@ -7,6 +7,14 @@ html, body, #root {
   background: #000;
   font-family: 'Cormorant Garamond', 'Garamond', 'Baskerville', 'Georgia', serif;
   -webkit-text-size-adjust: 100%;
+  /* Suppress the iOS WebKit gray rectangle that otherwise flashes on every
+     tap inside the canvas / overlay buttons. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The R3F canvas itself shouldn't show iOS tap highlight on object picks. */
+canvas {
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Scrollbars — color adapts via --accent-rgb CSS variable set by theme */

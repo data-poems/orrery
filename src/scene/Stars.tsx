@@ -960,13 +960,18 @@ export function ConstellationLabels({ visible, focus, tourPulse = false, revealT
                       : `0 0 10px ${c.color}, 0 0 24px ${c.color}, 0 0 36px rgba(0,0,0,0.9)`,
                     cursor: onSelect ? 'pointer' : 'default',
                     position: 'relative',
-                    minWidth: focus && ZODIAC_UNICODE[c.id] ? 200 : 210,
-                    minHeight: focus && ZODIAC_UNICODE[c.id] ? 120 : 180,
+                    // Only enforce a large box when the zodiac glyph is rendered
+                    // overhead. In non-focus mode the label is text-only, so we let
+                    // it auto-size — otherwise every constellation became a
+                    // 210x180 invisible tap target that ate planet/moon clicks
+                    // and triggered the iOS tap-highlight on every interaction.
+                    minWidth: focus && ZODIAC_UNICODE[c.id] ? 200 : undefined,
+                    minHeight: focus && ZODIAC_UNICODE[c.id] ? 120 : undefined,
                     padding: focus && ZODIAC_UNICODE[c.id] ? (isMobile ? '46px 12px 12px' : '64px 14px 14px') : 0,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    justifyContent: 'flex-end',
+                    justifyContent: focus && ZODIAC_UNICODE[c.id] ? 'flex-end' : 'center',
                   }}
                 >
                   {focus && ZODIAC_UNICODE[c.id] && (

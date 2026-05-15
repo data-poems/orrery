@@ -49,6 +49,21 @@ const FAMOUS_DSO: ReadonlyArray<{ id: string; name: string; ra: number; dec: num
 /** Sphere radius matching `Stars.tsx` and `constellationCentroids.ts`. */
 const CELESTIAL_SPHERE_RADIUS = 300;
 
+/** Curated iconic constellations used by the random-tour dice. The full IAU
+ *  list is 88 entries — picking uniformly across that bag drowned every other
+ *  category at ~60% of rolls. Kept short and recognizable so the dice still
+ *  surfaces variety from spacecraft / DSO / planets / presets / moons. */
+const FAMOUS_CONSTELLATIONS: ReadonlyArray<string> = [
+  'Ori', // Orion
+  'UMa', // Ursa Major
+  'Cas', // Cassiopeia
+  'Cyg', // Cygnus
+  'Leo', // Leo
+  'Sco', // Scorpius
+  'Tau', // Taurus
+  'Cru', // Crux (Southern Cross)
+];
+
 type CinematicStep = {
   camPreset?: number; focusPlanet?: number; focusMoon?: number;
   duration: number; label: string;
@@ -766,7 +781,7 @@ function OrreryInner() {
       if (moons.length === 0) return [];
       return [{ kind: 'moon' as const, planetIdx, moonIdx: Math.floor(Math.random() * moons.length) }];
     });
-    const constellationKeys = Object.keys(CONSTELLATION_NAMES);
+    const constellationKeys = FAMOUS_CONSTELLATIONS;
 
     // Dwarf planet indices: ALL_BODIES = [...PLANETS (0-7), ...DWARF_PLANETS (8-10)].
     const dwarfIndices: number[] = [];

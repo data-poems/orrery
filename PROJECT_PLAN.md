@@ -42,6 +42,9 @@
 - Added persistent zoom step controls across mobile and desktop with explicit +/− affordances.
 - Updated sky immersion behavior so enabling Sky mode clears object selections and restores full constellation/starfield emphasis; only off-mode or single-constellation selection now dims surrounding layers.
 - Condensed the planet detail card layout for smaller screens with denser stat tiles, tighter header actions, and horizontal breadcrumb overflow.
+- Synced Sky-mode entry behavior across chip click and keyboard `g` shortcut to prevent divergent dimming/selection states.
+- Raised HUD hit targets to touch-friendly sizing, added left safe-area anchoring for top controls, and prevented the zoom wrapper from intercepting canvas interactions.
+- Improved keyboard semantics for collapsed body details and breadcrumb navigation (`Enter` + `Space` activation).
 
 ## Update Rule
 

@@ -36,6 +36,11 @@ function safeAreaRight(extraPx: number): string {
   return `calc(env(safe-area-inset-right, 0px) + ${extraPx}px)`;
 }
 
+/** Distance from left viewport edge inside notch / rounded-corner inset. */
+function safeAreaLeft(extraPx: number): string {
+  return `calc(env(safe-area-inset-left, 0px) + ${extraPx}px)`;
+}
+
 // Group MYTHOLOGY entries into Northern-hemisphere season buckets. Constellations
 // whose season string is "Spring (S)" etc. fall back to their literal first word.
 // ─── Tiny UI primitives ─────────────────────────────────────────────────────────
@@ -102,27 +107,29 @@ function ZoomControls({ cams, cameraDistance, onPresetSelect, mobile }: {
     border: '1px solid rgba(255,255,255,0.12)',
     borderRadius: 6,
     color: disabled ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.7)',
-    width: 32,
-    height: 32,
+    width: 44,
+    height: 44,
     cursor: disabled ? 'not-allowed' : 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     padding: 0,
     fontFamily: 'inherit',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 400,
     backdropFilter: `blur(${BLUR.chip}px)`,
     WebkitBackdropFilter: `blur(${BLUR.chip}px)`,
     transition: 'color 0.18s ease, border-color 0.18s ease',
+    pointerEvents: 'auto',
   });
 
   return (
     <div style={{
       position: mobile ? 'fixed' : 'absolute',
-      top: mobile ? safeAreaTop(56) : safeAreaTop(56),
+      top: mobile ? safeAreaTop(104) : 'auto',
       bottom: mobile ? 'auto' : safeAreaBottom(20),
       right: safeAreaRight(12),
       display: 'flex', flexDirection: 'column', gap: 4,
       zIndex: Z.canvasOverlay,
+      pointerEvents: 'none',
     }}>
       <button onClick={() => zoom(-1)} disabled={atMin} aria-label="Zoom in to next scale level" style={btnStyle(atMin)}>
         <span aria-hidden="true">+</span>
@@ -445,9 +452,10 @@ export default function Panels(props: PanelProps) {
   const [showInfo, setShowInfo] = useState(false);
   const sp = selPlanet !== null ? ALL_BODIES[selPlanet] : null;
   const mobilePanelOffset = '12px';
+  const detailsBodyId = 'planet-details-card-body';
   const controlChipStyle: React.CSSProperties = {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     borderRadius: 6,
     border: '1px solid rgba(255,255,255,0.12)',
     background: 'rgba(0,0,0,0.35)',
@@ -562,7 +570,7 @@ export default function Panels(props: PanelProps) {
   return (
     <>
       {cinematicOverlay}
-      {/* Observatory spotlight vignette: dim the sky edges when a sky element is selected, focusing attention on the selection */}
+      {/* Observatory spotlight vignette: dim the sky edges when a constellation is selected, focusing attention on the selection */}
       {observatoryMode && (
         <div
           aria-hidden="true"
@@ -688,8 +696,12 @@ export default function Panels(props: PanelProps) {
         >
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-            <div
-              style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', flex: 1 }}
+            <button
+              type="button"
+              aria-label="Toggle details visibility"
+              aria-expanded={!cardMinimized}
+              aria-controls={detailsBodyId}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', flex: 1, background: 'none', border: 'none', padding: 0, textAlign: 'left' }}
               onClick={(e) => { e.stopPropagation(); setCardMinimized(m => !m); }}
             >
               <span style={{
@@ -706,7 +718,7 @@ export default function Panels(props: PanelProps) {
                   {selectedMoon ? `Moon of ${sp!.name}` : sp!.type}
                 </div>
               </div>
-            </div>
+            </button>
             <button
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); props.navigateBack(); }}
               onPointerUp={(e) => { e.preventDefault(); e.stopPropagation(); props.navigateBack(); }}
@@ -727,7 +739,7 @@ export default function Panels(props: PanelProps) {
 
           {/* Collapsible body */}
           {!cardMinimized && (
-            <>
+            <div id={detailsBodyId}>
               {/* Stats grid */}
               {!selectedMoon && planetStats.length > 0 && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginTop: 8 }}>
@@ -759,13 +771,19 @@ export default function Panels(props: PanelProps) {
                       role="button"
                       tabIndex={0}
                       onClick={(e) => { e.stopPropagation(); props.navigateToLevel(i); }}
-                      onKeyDown={e => { if (e.key === 'Enter') props.navigateToLevel(i); }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          props.navigateToLevel(i);
+                        }
+                      }}
                       style={{ cursor: i < navStack.length - 1 ? 'pointer' : 'default', color: i === navStack.length - 1 ? accent : 'rgba(255,255,255,0.25)' }}
                     >{crumb}</span>
                   </span>
                 ))}
               </div>
-            </>
+            </div>
           )}
         </div>
       )}
@@ -823,7 +841,7 @@ export default function Panels(props: PanelProps) {
           style={{
             position: 'absolute',
             top: safeAreaTop(12),
-            left: 12,
+            left: safeAreaLeft(12),
             zIndex: Z.hud,
             display: 'flex',
             gap: 8,

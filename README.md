@@ -38,6 +38,8 @@ From Earth to the Oort Cloud. Interactive, 41,000 stars, 88 constellations, real
 - Click any planet to zoom in, click its moons to drill down
 - Compact top-left sky/info controls with matched visual chrome
 - Persistent quick zoom controls (+/− step between scale presets) on desktop and mobile
+- Unified Sky-mode behavior across button and keyboard shortcut (`g`) for consistent immersive state transitions
+- Touch-friendly HUD targets and improved keyboard accessibility for details navigation
 - Time controls from real-time to 100 years per second
 - 4 colorblind-accessible themes
 - Mobile-first responsive design with touch controls

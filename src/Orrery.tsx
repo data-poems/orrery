@@ -722,6 +722,10 @@ function OrreryInner() {
             setShowStars(true);
             setShowConstellations(true);
             setShowDeepSky(true);
+            // Keep keyboard shortcut behavior aligned with Sky chip behavior.
+            setSelConstellation(null);
+            setSelAsterism(null);
+            setSelDeepSky(null);
           }
           return next;
         });

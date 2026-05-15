@@ -126,11 +126,10 @@ function ConstellationIcon({ size = 18 }: { size?: number }) {
   );
 }
 
-function ZoomControls({ cams, cameraDistance, onPresetSelect, mobile }: {
+function ZoomControls({ cams, cameraDistance, onPresetSelect }: {
   cams: CamPreset[];
   cameraDistance: number;
   onPresetSelect: (i: number) => void;
-  mobile: boolean;
 }) {
   const levels = ZOOM_LEVEL_LABELS
     .map(label => {
@@ -173,15 +172,16 @@ function ZoomControls({ cams, cameraDistance, onPresetSelect, mobile }: {
     pointerEvents: 'auto',
   });
 
-  // On mobile we sit directly under the dice/sky cluster (top-right) so phones
-  // get the same +/- buttons that desktop and tablet already had at bottom-right
-  // — earlier mobile placement was anchored too far down and could disappear
-  // behind the bottom-sheet detail card on smaller screens.
+  // Top-right placement on every form factor: bottom-right used to be the
+  // tablet/desktop home, but the InfoPanel detail card pins itself to
+  // [bottom: 16, right: 16] with full-height width on iPad and was occluding
+  // the +/- buttons whenever a constellation/planet card was open. Sitting
+  // directly under the dice/sky chip cluster keeps the controls reachable and
+  // avoids the cinematic Sky toggle hint that hugs the upper-left.
   return (
     <div style={{
-      position: mobile ? 'fixed' : 'absolute',
-      top: mobile ? safeAreaTop(64) : 'auto',
-      bottom: mobile ? 'auto' : safeAreaBottom(20),
+      position: 'fixed',
+      top: safeAreaTop(64),
       right: safeAreaRight(12),
       display: 'flex', flexDirection: 'column', gap: 4,
       zIndex: Z.hud,
@@ -1151,7 +1151,6 @@ export default function Panels(props: PanelProps) {
           cams={cams}
           cameraDistance={cameraDistance}
           onPresetSelect={onPresetSelect}
-          mobile={mobile}
         />
       )}
 

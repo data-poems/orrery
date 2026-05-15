@@ -3,7 +3,7 @@
  */
 
 import { useMemo, useRef } from 'react';
-import { useFrame, useLoader } from '@react-three/fiber';
+import { useFrame, useLoader, useThree } from '@react-three/fiber';
 import { Html, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { TEX } from '../data/planets';
@@ -224,6 +224,9 @@ export function Planet({ planet, T, selected, onSelect, hovered, onHover, moonFo
   showGlyphOverlay?: boolean;
 }) {
   const ref = useRef<THREE.Mesh>(null);
+  const hitRef = useRef<THREE.Mesh>(null);
+  const worldPosRef = useRef(new THREE.Vector3());
+  const { camera, size } = useThree();
   const pos = useMemo(() => planetXYZ(planet, T), [planet, T]);
   const tex = useLoader(THREE.TextureLoader, TEX[planet.tex]);
   const r = planet.radius;
@@ -234,22 +237,42 @@ export function Planet({ planet, T, selected, onSelect, hovered, onHover, moonFo
   const glyphDistanceFactor = Math.max(0.68, labelDistanceFactor * 0.72);
   const glyphSize = THREE.MathUtils.lerp(32, 96, labelScale / 1.5);
   // Invisible click target: larger sphere for easier selection
-  const hitRadius = Math.max(r * 5, 0.25);
+  const baseHitRadius = Math.max(r * 5, 0.25);
+  // Keep far-away planets clickable even when user is zoomed in on another body
+  // (e.g., from Ceres trying to pick Jupiter). This is a minimum on-screen
+  // radius converted into world units each frame.
+  const MIN_PLANET_HIT_SCREEN_PX = 18;
 
   useFrame((_, dt) => {
     if (ref.current) ref.current.rotation.y += dt * 0.12;
+    if (!hitRef.current) return;
+
+    const perspectiveCamera = camera as THREE.PerspectiveCamera;
+    if (!Number.isFinite(perspectiveCamera.fov) || size.height <= 0) {
+      hitRef.current.scale.setScalar(baseHitRadius);
+      return;
+    }
+
+    hitRef.current.getWorldPosition(worldPosRef.current);
+    const distanceToCamera = camera.position.distanceTo(worldPosRef.current);
+    const worldUnitsPerPixel =
+      (2 * distanceToCamera * Math.tan(THREE.MathUtils.degToRad(perspectiveCamera.fov / 2))) /
+      size.height;
+    const distanceAwareRadius = MIN_PLANET_HIT_SCREEN_PX * worldUnitsPerPixel;
+    hitRef.current.scale.setScalar(Math.max(baseHitRadius, distanceAwareRadius));
   });
 
   return (
     <group position={pos}>
       {/* Invisible larger click target */}
       <mesh
+        ref={hitRef}
         renderOrder={9}
         onClick={e => { e.stopPropagation(); onSelect(); }}
         onPointerEnter={() => onHover(true)}
         onPointerLeave={() => onHover(false)}
       >
-        <sphereGeometry args={[hitRadius, 16, 16]} />
+        <sphereGeometry args={[1, 16, 16]} />
         <meshBasicMaterial visible={false} />
       </mesh>
       <mesh

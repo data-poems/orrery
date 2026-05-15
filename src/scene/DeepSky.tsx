@@ -69,7 +69,19 @@ function useDeepSkyData(visible: boolean): DeepSkyObj[] | null {
   return data;
 }
 
-export function DeepSkyField({ visible, onLoad, onSelect }: { visible: boolean; onLoad?: () => void; onSelect?: (id: string) => void }) {
+export function DeepSkyField({
+  visible,
+  onLoad,
+  onSelect,
+  immersive = false,
+  dimmed = false,
+}: {
+  visible: boolean;
+  onLoad?: () => void;
+  onSelect?: (id: string) => void;
+  immersive?: boolean;
+  dimmed?: boolean;
+}) {
   const objects = useDeepSkyData(visible);
   const groupRef = useRef<THREE.Group>(null);
   const { camera } = useThree();
@@ -124,32 +136,39 @@ export function DeepSkyField({ visible, onLoad, onSelect }: { visible: boolean; 
     return colors;
   }, [objects]);
 
-  const pointsMat = useMemo(() => new THREE.ShaderMaterial({
-    vertexShader: `
-      attribute float size;
-      attribute vec3 color;
-      varying vec3 vColor;
-      void main() {
-        vColor = color;
-        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-        gl_PointSize = size * 2.5;
-        gl_Position = projectionMatrix * mvPosition;
-      }
-    `,
-    fragmentShader: `
-      varying vec3 vColor;
-      void main() {
-        float d = length(gl_PointCoord - vec2(0.5));
-        if (d > 0.5) discard;
-        float alpha = 0.35 * smoothstep(0.5, 0.05, d);
-        gl_FragColor = vec4(vColor, alpha);
-      }
-    `,
-    transparent: true,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-    depthTest: true,
-  }), []);
+  const pointsMat = useMemo(() => {
+    const alphaScale = immersive ? 1.08 : dimmed ? 0.38 : 0.55;
+    return new THREE.ShaderMaterial({
+      vertexShader: `
+        attribute float size;
+        attribute vec3 color;
+        varying vec3 vColor;
+        void main() {
+          vColor = color;
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          gl_PointSize = size * 2.5;
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vColor;
+        uniform float alphaScale;
+        void main() {
+          float d = length(gl_PointCoord - vec2(0.5));
+          if (d > 0.5) discard;
+          float alpha = 0.35 * alphaScale * smoothstep(0.5, 0.05, d);
+          gl_FragColor = vec4(vColor, alpha);
+        }
+      `,
+      uniforms: {
+        alphaScale: { value: alphaScale },
+      },
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      depthTest: true,
+    });
+  }, [immersive, dimmed]);
 
   // Cull labels to 60° cone
   useFrame(() => {
@@ -209,6 +228,7 @@ export function DeepSkyField({ visible, onLoad, onSelect }: { visible: boolean; 
                   onKeyDown={onSelect ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(obj.id); } } : undefined}
                   style={{
                   color: TYPE_COLORS[obj.type] || 'rgba(180,200,255,0.3)',
+                  opacity: immersive ? 1 : dimmed ? 0.55 : 0.75,
                   fontSize: obj.mag < 5 ? 9 : 8,
                   fontFamily: "'Cormorant Garamond', serif",
                   fontWeight: 300,

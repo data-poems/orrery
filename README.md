@@ -33,9 +33,11 @@ From Earth to the Oort Cloud. Interactive, 41,000 stars, 88 constellations, real
 ### Features
 
 - Cinematic opening tour: deep space down to Earth
-- Stargazer mode with zodiac glyphs and constellation labels
+- Stargazer mode with immersive constellation + starfield emphasis
 - Deep Sky and Deep Space layers can be toggled independently
 - Click any planet to zoom in, click its moons to drill down
+- Compact top-left sky/info controls with matched visual chrome
+- Persistent quick zoom controls (+/− step between scale presets) on desktop and mobile
 - Time controls from real-time to 100 years per second
 - 4 colorblind-accessible themes
 - Mobile-first responsive design with touch controls

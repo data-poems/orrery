@@ -366,6 +366,8 @@ export default function Scene({
   useEffect(() => { onPositionsUpdate(positions); }, [positions, onPositionsUpdate]);
 
   const visibleBodies = showDwarf ? ALL_BODIES : ALL_BODIES.filter(b => !b.isDwarf);
+  const immersiveSky = constellationFocus && selConstellationId === null;
+  const dimSkyLayers = !constellationFocus || selConstellationId !== null;
 
   const handleCameraDistance = onCameraDistance;
 
@@ -430,11 +432,24 @@ export default function Scene({
           {selNeo?.id === neo.id && <AsteroidOrbitLine neo={neo} />}
         </group>
       ))}
-      <StarField visible={showStars} showDesignations={showConstellations} onLoad={() => onLoadComplete?.('stars')} selectedConstellation={selConstellationId} accent={accentColor} />
+      <StarField
+        visible={showStars}
+        showDesignations={showConstellations}
+        onLoad={() => onLoadComplete?.('stars')}
+        selectedConstellation={selConstellationId}
+        accent={accentColor}
+        immersive={immersiveSky}
+      />
       <ConstellationLines visible={showConstellations && cameraDistance < 600} focus={constellationFocus} tourPulse={constellationTourPulse} revealTick={constellationRevealTick} onLoad={() => onLoadComplete?.('constellationLines')} selectedId={selConstellationId} />
       <ConstellationLabels visible={showConstellations && cameraDistance < 600} focus={constellationFocus} tourPulse={constellationTourPulse} revealTick={constellationRevealTick} onSelect={onConstellationSelect} onLoad={() => onLoadComplete?.('constellations')} selectedId={selConstellationId} accent={accentColor} />
       <AsterismField visible={showAsterisms && cameraDistance < 600} onSelect={onAsterismSelect} />
-      <DeepSkyField visible={showDeepSky} onLoad={() => onLoadComplete?.('deepsky')} onSelect={onDeepSkySelect} />
+      <DeepSkyField
+        visible={showDeepSky}
+        onLoad={() => onLoadComplete?.('deepsky')}
+        onSelect={onDeepSkySelect}
+        immersive={immersiveSky}
+        dimmed={dimSkyLayers}
+      />
       <CometField
         jd={jd}
         visible={showComets}

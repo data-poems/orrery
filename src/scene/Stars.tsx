@@ -268,32 +268,48 @@ const starVertexShader = `
   attribute float highlight;
   uniform vec3 accentColor;
   uniform float hasSelection;
+  uniform float immersive;
   varying vec3 vColor;
+  varying float vImmersive;
   void main() {
-    float boost = hasSelection * highlight;
-    vColor = mix(color, accentColor, boost * 0.55);
+    float selectionBoost = hasSelection * highlight;
+    float immersiveBoost = immersive * (1.0 - hasSelection);
+    float boost = max(selectionBoost, immersiveBoost * 0.82);
+    vColor = mix(color, accentColor, boost * 0.58);
+    vImmersive = immersiveBoost;
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-    gl_PointSize = size * 1.2 * (1.0 + boost * 0.8);
+    gl_PointSize = size * 1.2 * (1.0 + boost * 0.9);
     gl_Position = projectionMatrix * mvPosition;
   }
 `;
 const starFragmentShader = `
   varying vec3 vColor;
+  varying float vImmersive;
+  uniform float alphaScale;
   void main() {
     float d = length(gl_PointCoord - vec2(0.5));
     if (d > 0.5) discard;
-    float alpha = 1.0 * smoothstep(0.5, 0.18, d);
+    float alpha = alphaScale * (1.0 + vImmersive * 0.2) * smoothstep(0.5, 0.18, d);
     gl_FragColor = vec4(vColor, alpha);
   }
 `;
 
-export function StarField({ visible, showDesignations, onLoad, selectedConstellation, accent }: { visible: boolean; showDesignations?: boolean; onLoad?: () => void; selectedConstellation: string | null; accent: string }) {
+export function StarField({ visible, showDesignations, onLoad, selectedConstellation, accent, immersive = false }: {
+  visible: boolean;
+  showDesignations?: boolean;
+  onLoad?: () => void;
+  selectedConstellation: string | null;
+  accent: string;
+  immersive?: boolean;
+}) {
   const starData = useStarData(visible);
   const { camera } = useThree();
   const starMatRef = useRef<THREE.ShaderMaterial | null>(null);
   const starUniforms = useMemo(() => ({
     accentColor: { value: new THREE.Color('#ffffff') },
     hasSelection: { value: 0 },
+    immersive: { value: 0 },
+    alphaScale: { value: 0.62 },
   }), []);
 
   useEffect(() => {
@@ -346,7 +362,9 @@ export function StarField({ visible, showDesignations, onLoad, selectedConstella
     if (!mat) return;
     mat.uniforms.hasSelection.value = selectedConstellation ? 1 : 0;
     mat.uniforms.accentColor.value.set(accent);
-  }, [selectedConstellation, accent]);
+    mat.uniforms.immersive.value = immersive ? 1 : 0;
+    mat.uniforms.alphaScale.value = immersive ? 1.0 : 0.62;
+  }, [selectedConstellation, accent, immersive]);
 
   // Cull named star labels + bayer designations to ~60° cone around camera direction
   useFrame(() => {

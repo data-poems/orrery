@@ -69,10 +69,11 @@ function Stat({ label, val, c }: { label: string; val: string | number; c?: stri
 
 const ZOOM_LEVEL_LABELS = ['Sun', 'Inner', 'System', 'Outer', 'Kuiper', 'Oort', 'Stellar'] as const;
 
-function ZoomControls({ cams, cameraDistance, onPresetSelect }: {
+function ZoomControls({ cams, cameraDistance, onPresetSelect, mobile }: {
   cams: CamPreset[];
   cameraDistance: number;
   onPresetSelect: (i: number) => void;
+  mobile: boolean;
 }) {
   const levels = ZOOM_LEVEL_LABELS
     .map(label => {
@@ -97,40 +98,37 @@ function ZoomControls({ cams, cameraDistance, onPresetSelect }: {
   const atMax = currentLevel === levels.length - 1;
 
   const btnStyle = (disabled: boolean): React.CSSProperties => ({
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.08)',
+    background: 'rgba(0,0,0,0.35)',
+    border: '1px solid rgba(255,255,255,0.12)',
     borderRadius: 6,
-    color: disabled ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.7)',
-    width: 36, height: 36,
+    color: disabled ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.7)',
+    width: 32,
+    height: 32,
     cursor: disabled ? 'not-allowed' : 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     padding: 0,
     fontFamily: 'inherit',
+    fontSize: 16,
+    fontWeight: 400,
     backdropFilter: `blur(${BLUR.chip}px)`,
     WebkitBackdropFilter: `blur(${BLUR.chip}px)`,
-    transition: 'color 0.18s ease',
+    transition: 'color 0.18s ease, border-color 0.18s ease',
   });
 
   return (
     <div style={{
-      position: 'absolute', bottom: safeAreaBottom(20), right: safeAreaRight(14),
+      position: mobile ? 'fixed' : 'absolute',
+      top: mobile ? safeAreaTop(56) : safeAreaTop(56),
+      bottom: mobile ? 'auto' : safeAreaBottom(20),
+      right: safeAreaRight(12),
       display: 'flex', flexDirection: 'column', gap: 4,
       zIndex: Z.canvasOverlay,
     }}>
       <button onClick={() => zoom(-1)} disabled={atMin} aria-label="Zoom in to next scale level" style={btnStyle(atMin)}>
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-          <circle cx="7" cy="7" r="5" />
-          <line x1="7" y1="5" x2="7" y2="9" />
-          <line x1="5" y1="7" x2="9" y2="7" />
-          <line x1="10.5" y1="10.5" x2="14" y2="14" />
-        </svg>
+        <span aria-hidden="true">+</span>
       </button>
       <button onClick={() => zoom(1)} disabled={atMax} aria-label="Zoom out to next scale level" style={btnStyle(atMax)}>
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-          <circle cx="7" cy="7" r="5" />
-          <line x1="5" y1="7" x2="9" y2="7" />
-          <line x1="10.5" y1="10.5" x2="14" y2="14" />
-        </svg>
+        <span aria-hidden="true">−</span>
       </button>
     </div>
   );
@@ -447,6 +445,25 @@ export default function Panels(props: PanelProps) {
   const [showInfo, setShowInfo] = useState(false);
   const sp = selPlanet !== null ? ALL_BODIES[selPlanet] : null;
   const mobilePanelOffset = '12px';
+  const controlChipStyle: React.CSSProperties = {
+    width: 36,
+    height: 36,
+    borderRadius: 6,
+    border: '1px solid rgba(255,255,255,0.12)',
+    background: 'rgba(0,0,0,0.35)',
+    color: 'rgba(255,255,255,0.58)',
+    fontFamily: 'inherit',
+    fontSize: 16,
+    fontWeight: 300,
+    cursor: 'pointer',
+    backdropFilter: `blur(${BLUR.chip}px)`,
+    WebkitBackdropFilter: `blur(${BLUR.chip}px)`,
+    transition: 'border-color 0.18s ease, color 0.18s ease, background 0.18s ease',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 0,
+  };
 
   const toggleStargazer = useCallback(() => {
     setConstellationFocus((prev) => {
@@ -455,15 +472,30 @@ export default function Panels(props: PanelProps) {
         setShowStars(() => true);
         setShowConstellations(() => true);
         setShowDeepSky(() => true);
+        // Entering sky mode should reset single-object selection so the full sky can glow.
+        setSelConstellation(null);
+        setSelAsterism(null);
+        setSelDeepSky(null);
       }
       return next;
     });
-  }, [setConstellationFocus, setShowStars, setShowConstellations, setShowDeepSky]);
+  }, [setConstellationFocus, setShowStars, setShowConstellations, setShowDeepSky, setSelConstellation, setSelAsterism, setSelDeepSky]);
 
   // Selected moon info
   const selectedMoon = selPlanet !== null && selMoonIdx !== null
     ? getMoonsForPlanet(selPlanet)[selMoonIdx]
     : null;
+  const planetStats = !selectedMoon && sp ? [
+    { label: 'Distance', value: `${sp.distAU} AU` },
+    { label: 'Period', value: sp.period < 365 ? `${sp.period.toFixed(0)} days` : `${(sp.period / 365.25).toFixed(1)} years` },
+    sp.gravity ? { label: 'Gravity', value: sp.gravity } : null,
+    sp.surfaceTemp ? { label: 'Temp', value: sp.surfaceTemp } : null,
+    { label: 'Moons', value: String(sp.moons) },
+  ].filter((item): item is { label: string; value: string } => item !== null) : [];
+  const moonStats = selectedMoon ? [
+    { label: 'Orbital period', value: selectedMoon.period < 1 ? `${(selectedMoon.period * 24).toFixed(1)} hours` : `${selectedMoon.period.toFixed(1)} days` },
+    { label: 'Parent', value: sp!.name },
+  ] : [];
 
   // ─── Cinematic mode overlay ─────────────────────────────────────────────────
   // Current body label from nav stack
@@ -525,7 +557,7 @@ export default function Panels(props: PanelProps) {
     );
   })() : null;
 
-  const observatorySpotlightActive = observatoryMode && (selConstellation !== null || selAsterism !== null || selDeepSky !== null);
+  const observatorySpotlightActive = observatoryMode && selConstellation !== null;
 
   return (
     <>
@@ -636,27 +668,26 @@ export default function Panels(props: PanelProps) {
           style={mobile ? {
             position: 'fixed',
             left: 8, right: 8, bottom: mobilePanelOffset, top: 'auto',
-            maxHeight: '30vh',
+            maxHeight: '28vh',
             borderRadius: 12,
             overflowY: 'auto',
             ...bokehCard,
-            padding: '16px 20px',
-            paddingBottom: '20px',
+            padding: '12px 14px 14px',
             zIndex: Z.dialog,
             pointerEvents: 'auto',
             touchAction: 'manipulation',
           } : {
             position: 'absolute',
             bottom: 16, left: 16,
-            maxWidth: 340, width: '30vw', minWidth: 260,
+            maxWidth: 400, width: '36vw', minWidth: 300,
             ...bokehCard,
-            padding: '14px 20px',
+            padding: '12px 14px',
             zIndex: Z.dialog,
             pointerEvents: 'auto',
           }}
         >
-          {/* Header with back button */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
             <div
               style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', flex: 1 }}
               onClick={(e) => { e.stopPropagation(); setCardMinimized(m => !m); }}
@@ -671,11 +702,9 @@ export default function Panels(props: PanelProps) {
                 <div style={{ color: '#fff', fontSize: 16, fontWeight: 600, letterSpacing: 1 }}>
                   {selectedMoon ? selectedMoon.name : sp!.name}
                 </div>
-                {!cardMinimized && (
-                  <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 10, fontWeight: 300, fontStyle: 'italic', letterSpacing: 0.5 }}>
-                    {selectedMoon ? `Moon of ${sp!.name}` : sp!.type}
-                  </div>
-                )}
+                <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 10, fontWeight: 300, fontStyle: 'italic', letterSpacing: 0.5 }}>
+                  {selectedMoon ? `Moon of ${sp!.name}` : sp!.type}
+                </div>
               </div>
             </div>
             <button
@@ -685,11 +714,11 @@ export default function Panels(props: PanelProps) {
               style={{
                 background: `rgba(${accentRgb},0.12)`,
                 border: `1px solid rgba(${accentRgb},0.3)`,
-                borderRadius: 4, padding: mobile ? '8px 14px' : '6px 12px',
-                color: accent, fontSize: mobile ? 13 : 12,
+                borderRadius: 4, padding: mobile ? '7px 12px' : '6px 10px',
+                color: accent, fontSize: mobile ? 12 : 11,
                 fontFamily: 'inherit', fontWeight: 400, letterSpacing: 0.5,
                 cursor: 'pointer', whiteSpace: 'nowrap',
-                minHeight: mobile ? 40 : 32,
+                minHeight: mobile ? 36 : 30,
               }}
             >
               {'\u2190'} Back
@@ -700,24 +729,29 @@ export default function Panels(props: PanelProps) {
           {!cardMinimized && (
             <>
               {/* Stats grid */}
-              {!selectedMoon && sp && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px' }}>
-                  <Stat label="Distance" val={`${sp.distAU} AU`} />
-                  <Stat label="Period" val={sp.period < 365 ? `${sp.period.toFixed(0)} days` : `${(sp.period / 365.25).toFixed(1)} years`} />
-                  {sp.surfaceTemp && <Stat label="Surface temp" val={sp.surfaceTemp} />}
-                  {sp.gravity && <Stat label="Gravity" val={sp.gravity} />}
-                  <Stat label="Moons" val={sp.moons} />
+              {!selectedMoon && planetStats.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginTop: 8 }}>
+                  {planetStats.map((item) => (
+                    <div key={item.label} style={{ padding: '6px 7px', borderRadius: 6, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div style={{ color: 'rgba(255,255,255,0.68)', fontSize: 9, letterSpacing: 1.1, textTransform: 'uppercase' }}>{item.label}</div>
+                      <div style={{ color: '#fff', fontSize: 13, marginTop: 2, lineHeight: 1.1 }}>{item.value}</div>
+                    </div>
+                  ))}
                 </div>
               )}
               {selectedMoon && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px' }}>
-                  <Stat label="Orbital period" val={selectedMoon.period < 1 ? `${(selectedMoon.period * 24).toFixed(1)} hours` : `${selectedMoon.period.toFixed(1)} days`} />
-                  <Stat label="Parent" val={sp!.name} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 8 }}>
+                  {moonStats.map((item) => (
+                    <div key={item.label} style={{ padding: '6px 7px', borderRadius: 6, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div style={{ color: 'rgba(255,255,255,0.68)', fontSize: 9, letterSpacing: 1.1, textTransform: 'uppercase' }}>{item.label}</div>
+                      <div style={{ color: '#fff', fontSize: 13, marginTop: 2, lineHeight: 1.1 }}>{item.value}</div>
+                    </div>
+                  ))}
                 </div>
               )}
 
               {/* Breadcrumb nav */}
-              <div style={{ display: 'flex', gap: 4, marginTop: 10, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 4, marginTop: 8, overflowX: 'auto', paddingBottom: 2 }}>
                 {navStack.map((crumb, i) => (
                   <span key={i} style={{ fontSize: 9, color: 'rgba(255,255,255,0.65)', fontWeight: 300 }}>
                     {i > 0 && <span style={{ margin: '0 4px' }}>{'\u203a'}</span>}
@@ -785,75 +819,51 @@ export default function Panels(props: PanelProps) {
 
       {/* ── About / info (subtle; replaces duplicate top title watermark) ── */}
       {!cinematic && (
-        <button
-          type="button"
-          aria-label="About and data sources"
-          onClick={() => setShowInfo(true)}
+        <div
           style={{
             position: 'absolute',
             top: safeAreaTop(12),
             left: 12,
             zIndex: Z.hud,
-            width: 36,
-            height: 36,
-            borderRadius: 6,
-            border: '1px solid rgba(255,255,255,0.12)',
-            background: 'rgba(0,0,0,0.35)',
-            color: 'rgba(255,255,255,0.55)',
-            fontFamily: 'inherit',
-            fontSize: 16,
-            fontWeight: 300,
-            cursor: 'pointer',
-            backdropFilter: `blur(${BLUR.chip}px)`,
-            WebkitBackdropFilter: `blur(${BLUR.chip}px)`,
+            display: 'flex',
+            gap: 8,
+            alignItems: 'center',
           }}
         >
-          i
-        </button>
+          <button
+            type="button"
+            aria-label="About and data sources"
+            onClick={() => setShowInfo(true)}
+            style={controlChipStyle}
+          >
+            i
+          </button>
+          {!observatoryMode && (
+            <button
+              className={pulseSkyToggle ? 'sky-toggle-blink' : undefined}
+              onClick={toggleStargazer}
+              aria-label="Sky mode"
+              aria-pressed={constellationFocus}
+              aria-keyshortcuts="g"
+              title="Sky mode (G)"
+              style={{
+                ...controlChipStyle,
+                background: constellationFocus ? `rgba(${accentRgb},${ACTIVE_ALPHA.bg})` : controlChipStyle.background,
+                border: `1px solid ${constellationFocus ? `rgba(${accentRgb},${ACTIVE_ALPHA.border})` : 'rgba(255,255,255,0.12)'}`,
+                color: constellationFocus ? accent : 'rgba(255,255,255,0.58)',
+                fontSize: 15,
+                fontWeight: 400,
+              }}
+            >
+              <span aria-hidden="true" style={{ lineHeight: 1 }}>{'\u2726'}</span>
+            </button>
+          )}
+        </div>
       )}
 
-      {/* ── Zoom controls (desktop only) ── */}
-      {!mobile && !observatoryMode && !cinematic && (
-        <ZoomControls cams={cams} cameraDistance={cameraDistance} onPresetSelect={onPresetSelect} />
-      )}
-      {!observatoryMode && !cinematic && (
-        <button
-          className={pulseSkyToggle ? 'sky-toggle-blink' : undefined}
-          onClick={toggleStargazer}
-          aria-label="Sky mode"
-          aria-pressed={constellationFocus}
-          aria-keyshortcuts="g"
-          title="Sky mode (G)"
-          style={{
-            position: mobile ? 'fixed' : 'absolute',
-            top: mobile ? safeAreaTop(84) : safeAreaTop(14),
-            right: safeAreaRight(14),
-            background: constellationFocus ? `rgba(${accentRgb},${ACTIVE_ALPHA.bg})` : 'rgba(255,255,255,0.06)',
-            border: `1px solid ${constellationFocus ? `rgba(${accentRgb},${ACTIVE_ALPHA.border})` : 'rgba(255,255,255,0.1)'}`,
-            borderRadius: 6,
-            padding: mobile ? '0 12px' : '0 10px',
-            minWidth: 44,
-            height: 44,
-            color: constellationFocus ? accent : 'rgba(255,255,255,0.65)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-            fontFamily: 'inherit',
-            fontSize: 12,
-            fontWeight: 400,
-            letterSpacing: 1.2,
-            textTransform: 'uppercase',
-            zIndex: Z.controls,
-            backdropFilter: `blur(${BLUR.chip}px)`,
-            WebkitBackdropFilter: `blur(${BLUR.chip}px)`,
-            transition: 'right 0.25s ease, border-color 0.18s ease, color 0.18s ease, background 0.18s ease',
-          }}
-        >
-          <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>{'\u2726'}</span>
-          Sky
-        </button>
+      {/* ── Zoom controls ── */}
+      {!cinematic && (
+        <ZoomControls cams={cams} cameraDistance={cameraDistance} onPresetSelect={onPresetSelect} mobile={mobile} />
       )}
 
       {/* ── About dialog ── */}

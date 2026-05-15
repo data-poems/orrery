@@ -38,6 +38,10 @@
 - Separated `Deep Sky` and `Deep Space` UI toggles to prevent accidental deep-space side effects.
 - Added explicit right-panel close control and disabled hover-peek behavior on touch-only devices.
 - Removed Milky Way backdrop runtime path and prefetch from launch build to eliminate startup streak artifacts.
+- Reduced the Sky toggle footprint and colocated it with the top-left info control so both controls share the same compact chrome.
+- Added persistent zoom step controls across mobile and desktop with explicit +/− affordances.
+- Updated sky immersion behavior so enabling Sky mode clears object selections and restores full constellation/starfield emphasis; only off-mode or single-constellation selection now dims surrounding layers.
+- Condensed the planet detail card layout for smaller screens with denser stat tiles, tighter header actions, and horizontal breadcrumb overflow.
 
 ## Update Rule
 

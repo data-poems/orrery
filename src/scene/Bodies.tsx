@@ -72,7 +72,15 @@ function BodyGlyph({
   );
 }
 
-export function Sun({ cameraDistance = 0, showGlyphOverlay = false }: { cameraDistance?: number; showGlyphOverlay?: boolean }) {
+export function Sun({
+  cameraDistance = 0,
+  showGlyphOverlay = false,
+  onSelect,
+}: {
+  cameraDistance?: number;
+  showGlyphOverlay?: boolean;
+  onSelect?: () => void;
+}) {
   const ref = useRef<THREE.Mesh>(null);
   const tex = useLoader(THREE.TextureLoader, TEX.sun);
   useFrame((_, dt) => {
@@ -80,6 +88,13 @@ export function Sun({ cameraDistance = 0, showGlyphOverlay = false }: { cameraDi
   });
   return (
     <group>
+      {/* Larger invisible tap target so Sol is selectable like planets. */}
+      <mesh
+        onClick={onSelect ? (e) => { e.stopPropagation(); onSelect(); } : undefined}
+      >
+        <sphereGeometry args={[0.5, 16, 16]} />
+        <meshBasicMaterial visible={false} />
+      </mesh>
       {/* Main textured photosphere */}
       <mesh ref={ref}>
         <sphereGeometry args={[0.15, 48, 48]} />

@@ -23,7 +23,7 @@ import { DeepSpaceField } from './DeepSpace';
 import type { CometDef } from '../data/comets';
 import type { MeteorShower } from './Meteors';
 import type { SatellitePosition } from '../lib/satellites';
-import type { Spacecraft } from '../data/deepspace';
+import type { Spacecraft, NearStar, GalaxyMarker } from '../data/deepspace';
 
 // Default home camera position (replaces CAMS[1] "System" view)
 const HOME_POS: [number, number, number] = [0, 30, 40];
@@ -335,6 +335,9 @@ export interface SceneProps {
   selMeteor: MeteorShower | null; setSelMeteor: (m: MeteorShower | null) => void;
   selSatellite: SatellitePosition | null; setSelSatellite: (s: SatellitePosition | null) => void;
   selSpacecraft: Spacecraft | null; setSelSpacecraft: (s: Spacecraft | null) => void;
+  selNearStar: NearStar | null; setSelNearStar: (s: NearStar | null) => void;
+  selGalaxy: GalaxyMarker | null; setSelGalaxy: (g: GalaxyMarker | null) => void;
+  onSunSelect?: () => void;
   onConstellationSelect?: (id: string) => void;
   onAsterismSelect?: (name: string) => void;
   onDeepSkySelect?: (id: string) => void;
@@ -350,7 +353,7 @@ export default function Scene({
   constellationFocus, constellationTourPulse = false, cinematic, cinematicRotateSpeed, onMoonSelect, selMoonIdx, onCameraDistance, cameraDistance, camPreset,
   showBodyGlyphs = false,
   selComet, setSelComet, selMeteor, setSelMeteor, selSatellite, setSelSatellite,
-  selSpacecraft, setSelSpacecraft,
+  selSpacecraft, setSelSpacecraft, selNearStar, setSelNearStar, selGalaxy, setSelGalaxy, onSunSelect,
   onConstellationSelect, onAsterismSelect, onDeepSkySelect,
   selConstellationId, accentColor,
 }: SceneProps) {
@@ -375,7 +378,7 @@ export default function Scene({
     <>
       <color attach="background" args={['#000000']} />
       <ambientLight intensity={0.35} />
-      {!OBSERVATORY_MODE && <Sun cameraDistance={cameraDistance} showGlyphOverlay={showBodyGlyphs} />}
+      {!OBSERVATORY_MODE && <Sun cameraDistance={cameraDistance} showGlyphOverlay={showBodyGlyphs} onSelect={onSunSelect} />}
       {!OBSERVATORY_MODE && <AUGrid cameraDistance={cameraDistance} />}
       <RealAsteroidBelt jd={jd} visible={showAsteroidBelt} onLoad={() => onLoadComplete?.('asteroids')} />
       {!OBSERVATORY_MODE && visibleBodies.map((p) => {
@@ -415,9 +418,9 @@ export default function Scene({
               parentPos={parentPos}
               jd={jd}
               selected={isFocused && selMoonIdx === mIdx}
-              onSelect={isFocused && onMoonSelect ? () => onMoonSelect(bodyIdx, mIdx) : undefined}
+              onSelect={onMoonSelect ? () => onMoonSelect(bodyIdx, mIdx) : undefined}
               hovered={isFocused && hovMoon === mIdx}
-              onHover={isFocused ? (h => setHovMoon(h ? mIdx : null)) : undefined}
+              onHover={(h) => setHovMoon(h ? mIdx : null)}
             />
           </group>
         ));
@@ -477,6 +480,10 @@ export default function Scene({
         visible={showDeepSpace}
         selSpacecraft={selSpacecraft}
         setSelSpacecraft={setSelSpacecraft}
+        selNearStar={selNearStar}
+        setSelNearStar={setSelNearStar}
+        selGalaxy={selGalaxy}
+        setSelGalaxy={setSelGalaxy}
       />
       <CamCtrl
         focusTarget={focusTarget}

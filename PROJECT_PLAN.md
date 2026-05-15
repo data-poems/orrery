@@ -45,6 +45,12 @@
 - Synced Sky-mode entry behavior across chip click and keyboard `g` shortcut to prevent divergent dimming/selection states.
 - Raised HUD hit targets to touch-friendly sizing, added left safe-area anchoring for top controls, and prevented the zoom wrapper from intercepting canvas interactions.
 - Improved keyboard semantics for collapsed body details and breadcrumb navigation (`Enter` + `Space` activation).
+- Split HUD corner controls: info (`i`) upper-left, Sky toggle upper-right with inline constellation SVG icon.
+- Standardized About dialog close affordance to icon-style `×` with linked catalog and live data sources.
+- Added billboard pick proxies in deep space for spacecraft, nearby stars, and Local Group galaxies.
+- Threaded near-star and galaxy selection through Orrery/Scene/Panels with left-placed info cards and jump-to-view buttons.
+- Made Sol selectable with enlarged invisible tap target; moons remain clickable across all parent planets.
+- Replaced the random destination button with a dice-icon toggle that runs an ongoing random tour across presets, planets, moons, constellations, spacecraft, nearby stars, and Local Group galaxies (~7s cadence; double-click for one-shot jump; cinematic mode auto-stops the tour).
 
 ## Update Rule
 

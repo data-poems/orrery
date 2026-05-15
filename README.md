@@ -35,9 +35,12 @@ From Earth to the Oort Cloud. Interactive, 41,000 stars, 88 constellations, real
 - Cinematic opening tour: deep space down to Earth
 - Stargazer mode with immersive constellation + starfield emphasis
 - Deep Sky and Deep Space layers can be toggled independently
-- Click any planet to zoom in, click its moons to drill down
-- Compact top-left sky/info controls with matched visual chrome
-- Persistent quick zoom controls (+/− step between scale presets) on desktop and mobile
+- Click any planet to zoom in; click Sol or any moon to drill down
+- Split HUD corners: info (`i`) upper-left, Sky mode (constellation icon) upper-right
+- Subtle top-center area labels (Inner, Full System, Deep Space, etc.) stay visible above the canvas
+- Persistent quick zoom controls (+/− step between scale presets) and a dice-button random tour (planets, moons, constellations, spacecraft, nearby stars, galaxies) on desktop and mobile
+- Deep-space pick targets for spacecraft, nearby stars, and Local Group galaxies with jump-to-view actions
+- Non-overlapping info panels for deep-space selections (left) vs constellation/spacecraft (right)
 - Unified Sky-mode behavior across button and keyboard shortcut (`g`) for consistent immersive state transitions
 - Touch-friendly HUD targets and improved keyboard accessibility for details navigation
 - Time controls from real-time to 100 years per second

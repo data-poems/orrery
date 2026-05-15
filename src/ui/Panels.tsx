@@ -20,6 +20,7 @@ import type { SatellitePosition } from '../lib/satellites';
 import { MYTHOLOGY, CONSTELLATION_NAMES } from '../data/mythology';
 import { OBSERVATORY_MODE } from '../lib/mode';
 import { ASTERISMS } from '../data/asterisms';
+import type { NearStar, GalaxyMarker } from '../data/deepspace';
 
 /** Distance from top of viewport below notch / status bar (iOS safe area). */
 function safeAreaTop(extraPx: number): string {
@@ -74,11 +75,67 @@ function Stat({ label, val, c }: { label: string; val: string | number; c?: stri
 
 const ZOOM_LEVEL_LABELS = ['Sun', 'Inner', 'System', 'Outer', 'Kuiper', 'Oort', 'Stellar'] as const;
 
-function ZoomControls({ cams, cameraDistance, onPresetSelect, mobile }: {
+/** Dice icon used by the random-tour toggle. Shows the "five" face. */
+function DiceIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <rect
+        x="3.5" y="3.5" width="17" height="17" rx="3.6" ry="3.6"
+        stroke="currentColor" strokeWidth="1.4" fill="none"
+      />
+      <circle cx="8" cy="8" r="1.4" fill="currentColor" />
+      <circle cx="16" cy="8" r="1.4" fill="currentColor" />
+      <circle cx="12" cy="12" r="1.4" fill="currentColor" />
+      <circle cx="8" cy="16" r="1.4" fill="currentColor" />
+      <circle cx="16" cy="16" r="1.4" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** Compact constellation stick-figure icon for Sky mode toggle. */
+function ConstellationIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <circle cx="5" cy="6" r="1.4" fill="currentColor" />
+      <circle cx="12" cy="4" r="1.6" fill="currentColor" />
+      <circle cx="19" cy="8" r="1.4" fill="currentColor" />
+      <circle cx="8" cy="14" r="1.3" fill="currentColor" />
+      <circle cx="16" cy="17" r="1.5" fill="currentColor" />
+      <path
+        d="M5 6L12 4M12 4L19 8M5 6L8 14M19 8L16 17M8 14L16 17"
+        stroke="currentColor"
+        strokeWidth="1.1"
+        strokeLinecap="round"
+        opacity="0.85"
+      />
+    </svg>
+  );
+}
+
+function ZoomControls({ cams, cameraDistance, onPresetSelect, onRandomJump, onToggleRandomTour, tourActive, mobile, accent, accentRgb }: {
   cams: CamPreset[];
   cameraDistance: number;
   onPresetSelect: (i: number) => void;
+  onRandomJump: () => void;
+  onToggleRandomTour: () => void;
+  tourActive: boolean;
   mobile: boolean;
+  accent: string;
+  accentRgb: string;
 }) {
   const levels = ZOOM_LEVEL_LABELS
     .map(label => {
@@ -124,13 +181,28 @@ function ZoomControls({ cams, cameraDistance, onPresetSelect, mobile }: {
   return (
     <div style={{
       position: mobile ? 'fixed' : 'absolute',
-      top: mobile ? safeAreaTop(104) : 'auto',
+      top: mobile ? safeAreaTop(168) : 'auto',
       bottom: mobile ? 'auto' : safeAreaBottom(20),
       right: safeAreaRight(12),
       display: 'flex', flexDirection: 'column', gap: 4,
       zIndex: Z.canvasOverlay,
       pointerEvents: 'none',
     }}>
+      <button
+        onClick={onToggleRandomTour}
+        onDoubleClick={onRandomJump}
+        aria-pressed={tourActive}
+        aria-label={tourActive ? 'Stop random tour' : 'Start random tour'}
+        title={tourActive ? 'Stop tour (double-click for one jump)' : 'Random tour (double-click for single jump)'}
+        style={{
+          ...btnStyle(false),
+          color: tourActive ? accent : 'rgba(255,255,255,0.7)',
+          borderColor: tourActive ? `rgba(${accentRgb},0.55)` : 'rgba(255,255,255,0.12)',
+          background: tourActive ? `rgba(${accentRgb},0.16)` : 'rgba(0,0,0,0.35)',
+        }}
+      >
+        <DiceIcon size={20} />
+      </button>
       <button onClick={() => zoom(-1)} disabled={atMin} aria-label="Zoom in to next scale level" style={btnStyle(atMin)}>
         <span aria-hidden="true">+</span>
       </button>
@@ -183,6 +255,39 @@ function AboutDialog({ open, onClose, accent, accentRgb }: {
 
   if (!open) return null;
 
+  const sourceLinkStyle: React.CSSProperties = {
+    color: 'rgba(255,255,255,0.74)',
+    fontSize: 14,
+    fontWeight: 300,
+    lineHeight: 1.8,
+    textDecoration: 'none',
+    borderBottom: `1px solid rgba(${accentRgb},0.24)`,
+  };
+  const liveLinkStyle: React.CSSProperties = {
+    ...sourceLinkStyle,
+    color: `rgba(${accentRgb},0.78)`,
+  };
+
+  const catalogSources = [
+    { label: '41,119 stars · HYG Database', href: 'https://astronexus.com/projects/hyg' },
+    { label: '88 constellations · IAU / d3-celestial', href: 'https://github.com/ofrohn/d3-celestial' },
+    { label: '8 planets + 3 dwarf planets · JPL Horizons', href: 'https://ssd.jpl.nasa.gov/horizons/' },
+    { label: '32 moons · JPL Horizons', href: 'https://ssd.jpl.nasa.gov/horizons/' },
+    { label: '5,000 main-belt asteroids · synthetic Kirkwood model', href: 'https://en.wikipedia.org/wiki/Kirkwood_gap' },
+    { label: '2,000 distant objects · MPC Distant.txt', href: 'https://minorplanetcenter.net/iau/MPCORB.html' },
+    { label: '110+ deep sky objects · OpenNGC', href: 'https://github.com/mattiaverga/OpenNGC' },
+    { label: '20+ comets · MPC CometEls.txt', href: 'https://minorplanetcenter.net/iau/Ephemerides/Comets/Soft03Cmt.txt' },
+    { label: '14 meteor showers · IAU Meteor Data Center', href: 'https://www.ta3.sk/IAUC22DB/MDC2007/' },
+    { label: '5 spacecraft · NASA/JPL mission tracking', href: 'https://eyes.nasa.gov/apps/solar-system/#/home' },
+    { label: '2K/4K textures · Solar System Scope (CC BY 4.0)', href: 'https://www.solarsystemscope.com/textures/' },
+  ] as const;
+  const liveSources = [
+    { label: 'Near-Earth objects · NASA NeoWs API', href: 'https://api.nasa.gov/' },
+    { label: 'Asteroid orbits · JPL Small-Body Database', href: 'https://ssd-api.jpl.nasa.gov/doc/sbdb.html' },
+    { label: 'Solar wind · NOAA SWPC', href: 'https://services.swpc.noaa.gov/' },
+    { label: 'Satellite TLEs · CelesTrak', href: 'https://celestrak.org/NORAD/elements/' },
+  ] as const;
+
   return (
     <div
       onClick={onClose}
@@ -202,35 +307,52 @@ function AboutDialog({ open, onClose, accent, accentRgb }: {
         aria-modal="true"
         aria-labelledby="about-dialog-title"
         onClick={e => e.stopPropagation()}
-        style={{ maxWidth: 360, width: '100%' }}
+        style={{ maxWidth: 360, width: '100%', position: 'relative' }}
       >
+        <button
+          ref={closeBtnRef}
+          type="button"
+          onClick={onClose}
+          aria-label="Close about dialog"
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            background: 'none',
+            border: 'none',
+            color: 'rgba(255,255,255,0.7)',
+            fontSize: 22,
+            fontFamily: 'inherit',
+            padding: '4px 8px',
+            minWidth: 44,
+            minHeight: 44,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <span aria-hidden="true">{'\u00d7'}</span>
+        </button>
         <h2 id="about-dialog-title" style={{ color: '#fff', fontSize: 22, fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', textAlign: 'center', marginBottom: 16, margin: 0 }}>About</h2>
         <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontStyle: 'italic', textAlign: 'center', marginTop: 16, marginBottom: 20 }}>Real data. Real time.</div>
 
         <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>Catalog Data</div>
-        {[
-          '41,119 stars · HYG Database',
-          '88 constellations · IAU / d3-celestial',
-          '8 planets + 3 dwarf planets · JPL Horizons',
-          '32 moons · JPL Horizons',
-          '3,000 main-belt asteroids · Minor Planet Center',
-          '110+ deep sky objects · OpenNGC',
-          '20+ comets · Minor Planet Center',
-          '14 meteor showers · IAU Meteor Data Center',
-          '5 spacecraft · NASA/JPL',
-          '2K/4K textures · Solar System Scope (CC BY 4.0)',
-        ].map(s => (
-          <div key={s} style={{ color: 'rgba(255,255,255,0.72)', fontSize: 14, fontWeight: 300, lineHeight: 1.8 }}>{s}</div>
+        {catalogSources.map((source) => (
+          <div key={source.label}>
+            <a href={source.href} target="_blank" rel="noopener noreferrer" style={sourceLinkStyle}>
+              {source.label}
+            </a>
+          </div>
         ))}
 
         <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginTop: 16, marginBottom: 8 }}>Live Data</div>
-        {[
-          'Near-Earth objects · NASA NeoWs API',
-          'Asteroid orbits · JPL Small-Body Database',
-          'Solar wind · NOAA SWPC',
-          'Satellite TLEs · CelesTrak',
-        ].map(s => (
-          <div key={s} style={{ color: `rgba(${accentRgb},0.7)`, fontSize: 14, fontWeight: 300, lineHeight: 1.8 }}>{s}</div>
+        {liveSources.map((source) => (
+          <div key={source.label}>
+            <a href={source.href} target="_blank" rel="noopener noreferrer" style={liveLinkStyle}>
+              {source.label}
+            </a>
+          </div>
         ))}
 
         <div style={{ marginTop: 24, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -238,25 +360,6 @@ function AboutDialog({ open, onClose, accent, accentRgb }: {
           <a href="https://datapoems.io" target="_blank" rel="noopener noreferrer" style={{ color: accent, fontSize: 14, textDecoration: 'none', fontWeight: 400 }}>datapoems.io</a>
         </div>
 
-        <div style={{ marginTop: 20, textAlign: 'center' }}>
-          <button
-            ref={closeBtnRef}
-            onClick={onClose}
-            style={{
-              background: 'none',
-              border: `1px solid rgba(${accentRgb},0.3)`,
-              color: 'rgba(255,255,255,0.7)',
-              fontSize: 13,
-              fontFamily: 'inherit',
-              padding: '10px 24px',
-              minHeight: 44,
-              borderRadius: 4,
-              cursor: 'pointer',
-            }}
-          >
-            Close
-          </button>
-        </div>
       </div>
     </div>
   );
@@ -265,11 +368,12 @@ function AboutDialog({ open, onClose, accent, accentRgb }: {
 // ─── Info panel — floating bokehCard for clicked sky / spacecraft objects ──────
 
 function InfoPanel({
-  sectionTitle, title, subtitle, description, accent, accentRgb, mobile, onClose, closeLabel, children,
+  sectionTitle, title, subtitle, description, accent, accentRgb, mobile, onClose, closeLabel, placement = 'right', children,
 }: {
   sectionTitle: string; title: string; subtitle: string; description: string;
   accent: string; accentRgb: string; mobile: boolean;
   onClose: () => void; closeLabel: string;
+  placement?: 'left' | 'right';
   children?: React.ReactNode;
 }) {
   return (
@@ -282,7 +386,7 @@ function InfoPanel({
         ...bokehCard, padding: '14px 18px', zIndex: Z.dialog,
         pointerEvents: 'auto', touchAction: 'manipulation',
       } : {
-        position: 'absolute', bottom: 16, right: 16,
+        position: 'absolute', bottom: 16, [placement]: 16,
         maxWidth: 360, width: '30vw', minWidth: 280,
         maxHeight: 'calc(100vh - 32px)', overflowY: 'auto',
         ...bokehCard, padding: '14px 20px', zIndex: Z.dialog,
@@ -406,8 +510,20 @@ export interface PanelProps {
   selMeteor: MeteorShower | null; setSelMeteor: (m: MeteorShower | null) => void;
   selSatellite: SatellitePosition | null; setSelSatellite: (s: SatellitePosition | null) => void;
   showDeepSpace: boolean; setShowDeepSpace: (fn: (p: boolean) => boolean) => void;
+  selSun: boolean;
   selSpacecraft: import('../data/deepspace').Spacecraft | null;
   setSelSpacecraft: (s: import('../data/deepspace').Spacecraft | null) => void;
+  selNearStar: NearStar | null;
+  setSelNearStar: (s: NearStar | null) => void;
+  selGalaxy: GalaxyMarker | null;
+  setSelGalaxy: (g: GalaxyMarker | null) => void;
+  currentAreaLabel: string;
+  onJumpToSpacecraft: () => void;
+  onJumpToNearStar: () => void;
+  onJumpToGalaxy: () => void;
+  onRandomJump: () => void;
+  onToggleRandomTour: () => void;
+  tourActive: boolean;
 }
 
 export default function Panels(props: PanelProps) {
@@ -436,7 +552,17 @@ export default function Panels(props: PanelProps) {
     cams, onPresetSelect,
     selComet, selMeteor, selSatellite,
     setShowDeepSpace: _setShowDeepSpace,
+    selSun,
     selSpacecraft, setSelSpacecraft,
+    selNearStar, setSelNearStar,
+    selGalaxy, setSelGalaxy,
+    currentAreaLabel,
+    onJumpToSpacecraft,
+    onJumpToNearStar,
+    onJumpToGalaxy,
+    onRandomJump,
+    onToggleRandomTour,
+    tourActive,
   } = props;
   void _setShowNeo; void _simTime; void _speed; void _setSelPlanet; void _neos; void _neoStatus; void _setShowDwarf; void _showStars; void _showConstellations;
   void _setShowAsterisms; void _setShowAsteroidBelt; void _setShowComets;
@@ -635,6 +761,7 @@ export default function Panels(props: PanelProps) {
           subtitle={`${selSpacecraft.status === 'active' ? 'Active' : 'Inactive'} \u00b7 Launched ${selSpacecraft.launchYear}`}
           description="" accent={accent} accentRgb={accentRgb} mobile={mobile}
           onClose={() => setSelSpacecraft(null)} closeLabel="Close spacecraft info"
+          placement="left"
         >
           <div style={{
             display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px',
@@ -645,6 +772,100 @@ export default function Panels(props: PanelProps) {
             <div>Light-hours <span style={{ color: '#fff', fontWeight: 400 }}>{(selSpacecraft.distAU / 7.2).toFixed(1)}</span></div>
             <div>Light-years <span style={{ color: '#fff', fontWeight: 400 }}>{(selSpacecraft.distAU / 63241).toFixed(4)}</span></div>
           </div>
+          <button
+            type="button"
+            onClick={onJumpToSpacecraft}
+            style={{
+              marginTop: 12,
+              background: `rgba(${accentRgb},0.12)`,
+              border: `1px solid rgba(${accentRgb},0.34)`,
+              borderRadius: 6,
+              padding: '8px 10px',
+              color: accent,
+              fontFamily: 'inherit',
+              fontSize: 12,
+              letterSpacing: 0.6,
+              cursor: 'pointer',
+            }}
+          >
+            Jump to Oort view
+          </button>
+        </InfoPanel>
+      )}
+
+      {selNearStar && !cinematic && (
+        <InfoPanel
+          sectionTitle="Nearby Star"
+          title={selNearStar.name}
+          subtitle={`${(selNearStar.distPC * 3.262).toFixed(1)} ly \u00b7 ${selNearStar.spectral}`}
+          description=""
+          accent={accent}
+          accentRgb={accentRgb}
+          mobile={mobile}
+          onClose={() => setSelNearStar(null)}
+          closeLabel="Close nearby star info"
+          placement="left"
+        >
+          <div style={{ marginTop: 10, color: 'rgba(255,255,255,0.72)', fontSize: 13 }}>
+            Apparent magnitude <span style={{ color: '#fff' }}>{selNearStar.mag.toFixed(2)}</span>
+          </div>
+          <button
+            type="button"
+            onClick={onJumpToNearStar}
+            style={{
+              marginTop: 12,
+              background: `rgba(${accentRgb},0.12)`,
+              border: `1px solid rgba(${accentRgb},0.34)`,
+              borderRadius: 6,
+              padding: '8px 10px',
+              color: accent,
+              fontFamily: 'inherit',
+              fontSize: 12,
+              letterSpacing: 0.6,
+              cursor: 'pointer',
+            }}
+          >
+            Jump to stellar view
+          </button>
+        </InfoPanel>
+      )}
+
+      {selGalaxy && !cinematic && (
+        <InfoPanel
+          sectionTitle="Galaxy Marker"
+          title={selGalaxy.name}
+          subtitle={`${selGalaxy.type} \u00b7 ${selGalaxy.distKpc >= 100 ? `${(selGalaxy.distKpc / 1000).toFixed(1)} Mpc` : `${selGalaxy.distKpc} kpc`}`}
+          description=""
+          accent={accent}
+          accentRgb={accentRgb}
+          mobile={mobile}
+          onClose={() => setSelGalaxy(null)}
+          closeLabel="Close galaxy info"
+          placement="left"
+        >
+          {selGalaxy.mag !== null && (
+            <div style={{ marginTop: 10, color: 'rgba(255,255,255,0.72)', fontSize: 13 }}>
+              Apparent magnitude <span style={{ color: '#fff' }}>{selGalaxy.mag.toFixed(1)}</span>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={onJumpToGalaxy}
+            style={{
+              marginTop: 12,
+              background: `rgba(${accentRgb},0.12)`,
+              border: `1px solid rgba(${accentRgb},0.34)`,
+              borderRadius: 6,
+              padding: '8px 10px',
+              color: accent,
+              fontFamily: 'inherit',
+              fontSize: 12,
+              letterSpacing: 0.6,
+              cursor: 'pointer',
+            }}
+          >
+            Jump to deep-space view
+          </button>
         </InfoPanel>
       )}
 
@@ -667,10 +888,10 @@ export default function Panels(props: PanelProps) {
       )}
 
       {/* ── Planet/Moon info card (hidden in observatory / cinematic — tour sets selPlanet for camera) ── */}
-      {!cinematic && !observatoryMode && (sp || selectedMoon) && (
+      {!cinematic && !observatoryMode && (selSun || sp || selectedMoon) && (
         <div
           role="dialog"
-          aria-label={selectedMoon ? `${selectedMoon.name} details` : `${sp!.name} details`}
+          aria-label={selectedMoon ? `${selectedMoon.name} details` : selSun ? 'Sun details' : `${sp!.name} details`}
           onPointerDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
           style={mobile ? {
@@ -706,16 +927,16 @@ export default function Panels(props: PanelProps) {
             >
               <span style={{
                 width: 12, height: 12, borderRadius: '50%',
-                background: selectedMoon ? selectedMoon.color : sp!.color,
-                boxShadow: `0 0 8px ${selectedMoon ? selectedMoon.color : sp!.color}`,
+                background: selectedMoon ? selectedMoon.color : selSun ? '#ffca74' : sp!.color,
+                boxShadow: `0 0 8px ${selectedMoon ? selectedMoon.color : selSun ? '#ffca74' : sp!.color}`,
                 flexShrink: 0,
               }} />
               <div>
                 <div style={{ color: '#fff', fontSize: 16, fontWeight: 600, letterSpacing: 1 }}>
-                  {selectedMoon ? selectedMoon.name : sp!.name}
+                  {selectedMoon ? selectedMoon.name : selSun ? 'Sun' : sp!.name}
                 </div>
                 <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 10, fontWeight: 300, fontStyle: 'italic', letterSpacing: 0.5 }}>
-                  {selectedMoon ? `Moon of ${sp!.name}` : sp!.type}
+                  {selectedMoon ? `Moon of ${sp!.name}` : selSun ? 'G-type main-sequence star (Sol)' : sp!.type}
                 </div>
               </div>
             </button>
@@ -741,7 +962,7 @@ export default function Panels(props: PanelProps) {
           {!cardMinimized && (
             <div id={detailsBodyId}>
               {/* Stats grid */}
-              {!selectedMoon && planetStats.length > 0 && (
+              {!selectedMoon && !selSun && planetStats.length > 0 && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginTop: 8 }}>
                   {planetStats.map((item) => (
                     <div key={item.label} style={{ padding: '6px 7px', borderRadius: 6, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -757,6 +978,21 @@ export default function Panels(props: PanelProps) {
                     <div key={item.label} style={{ padding: '6px 7px', borderRadius: 6, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
                       <div style={{ color: 'rgba(255,255,255,0.68)', fontSize: 9, letterSpacing: 1.1, textTransform: 'uppercase' }}>{item.label}</div>
                       <div style={{ color: '#fff', fontSize: 13, marginTop: 2, lineHeight: 1.1 }}>{item.value}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {selSun && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 8 }}>
+                  {[
+                    ['Type', 'G2V'],
+                    ['Radius', '695,700 km'],
+                    ['Mass', '1.989e30 kg'],
+                    ['Surface', '5,778 K'],
+                  ].map(([label, value]) => (
+                    <div key={label} style={{ padding: '6px 7px', borderRadius: 6, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div style={{ color: 'rgba(255,255,255,0.68)', fontSize: 9, letterSpacing: 1.1, textTransform: 'uppercase' }}>{label}</div>
+                      <div style={{ color: '#fff', fontSize: 13, marginTop: 2, lineHeight: 1.1 }}>{value}</div>
                     </div>
                   ))}
                 </div>
@@ -835,6 +1071,29 @@ export default function Panels(props: PanelProps) {
         </div>
       )}
 
+      {!cinematic && currentAreaLabel && (
+        <div
+          aria-live="polite"
+          style={{
+            position: 'absolute',
+            top: safeAreaTop(18),
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: Z.hud,
+            pointerEvents: 'none',
+            color: 'rgba(255,255,255,0.66)',
+            fontSize: mobile ? 11 : 12,
+            letterSpacing: 2.6,
+            textTransform: 'uppercase',
+            fontStyle: 'italic',
+            whiteSpace: 'nowrap',
+            textShadow: '0 0 8px rgba(0,0,0,0.65)',
+          }}
+        >
+          {currentAreaLabel}
+        </div>
+      )}
+
       {/* ── About / info (subtle; replaces duplicate top title watermark) ── */}
       {!cinematic && (
         <div
@@ -856,32 +1115,52 @@ export default function Panels(props: PanelProps) {
           >
             i
           </button>
-          {!observatoryMode && (
-            <button
-              className={pulseSkyToggle ? 'sky-toggle-blink' : undefined}
-              onClick={toggleStargazer}
-              aria-label="Sky mode"
-              aria-pressed={constellationFocus}
-              aria-keyshortcuts="g"
-              title="Sky mode (G)"
-              style={{
-                ...controlChipStyle,
-                background: constellationFocus ? `rgba(${accentRgb},${ACTIVE_ALPHA.bg})` : controlChipStyle.background,
-                border: `1px solid ${constellationFocus ? `rgba(${accentRgb},${ACTIVE_ALPHA.border})` : 'rgba(255,255,255,0.12)'}`,
-                color: constellationFocus ? accent : 'rgba(255,255,255,0.58)',
-                fontSize: 15,
-                fontWeight: 400,
-              }}
-            >
-              <span aria-hidden="true" style={{ lineHeight: 1 }}>{'\u2726'}</span>
-            </button>
-          )}
+        </div>
+      )}
+
+      {!cinematic && !observatoryMode && (
+        <div
+          style={{
+            position: 'absolute',
+            top: safeAreaTop(12),
+            right: safeAreaRight(12),
+            zIndex: Z.hud,
+          }}
+        >
+          <button
+            className={pulseSkyToggle ? 'sky-toggle-blink' : undefined}
+            onClick={toggleStargazer}
+            aria-label="Sky mode"
+            aria-pressed={constellationFocus}
+            aria-keyshortcuts="g"
+            title="Sky mode (G)"
+            style={{
+              ...controlChipStyle,
+              background: constellationFocus ? `rgba(${accentRgb},${ACTIVE_ALPHA.bg})` : controlChipStyle.background,
+              border: `1px solid ${constellationFocus ? `rgba(${accentRgb},${ACTIVE_ALPHA.border})` : 'rgba(255,255,255,0.12)'}`,
+              color: constellationFocus ? accent : 'rgba(255,255,255,0.58)',
+              fontSize: 15,
+              fontWeight: 400,
+            }}
+          >
+            <ConstellationIcon size={18} />
+          </button>
         </div>
       )}
 
       {/* ── Zoom controls ── */}
       {!cinematic && (
-        <ZoomControls cams={cams} cameraDistance={cameraDistance} onPresetSelect={onPresetSelect} mobile={mobile} />
+        <ZoomControls
+          cams={cams}
+          cameraDistance={cameraDistance}
+          onPresetSelect={onPresetSelect}
+          onRandomJump={onRandomJump}
+          onToggleRandomTour={onToggleRandomTour}
+          tourActive={tourActive}
+          mobile={mobile}
+          accent={accent}
+          accentRgb={accentRgb}
+        />
       )}
 
       {/* ── About dialog ── */}
@@ -893,6 +1172,7 @@ export default function Panels(props: PanelProps) {
       />
       {/* ── Screen reader announcements ── */}
       <div aria-live="polite" className="sr-only" role="status">
+        {selSun ? 'Selected Sun.' : ''}
         {sp ? `Selected ${sp.name}, ${sp.type}.` : ''}
         {selectedMoon ? `Selected moon ${selectedMoon.name}.` : ''}
         {selNeo ? `Selected asteroid ${selNeo.name}. Miss distance: ${selNeo.missLunar.toFixed(1)} lunar distances.` : ''}
@@ -900,6 +1180,8 @@ export default function Panels(props: PanelProps) {
         {selMeteor ? `Selected meteor shower ${selMeteor.name}. Velocity: ${selMeteor.vg.toFixed(1)} km per second.` : ''}
         {selSatellite ? `Selected satellite ${selSatellite.name}. Altitude: ${selSatellite.alt.toFixed(0)} km.` : ''}
         {selSpacecraft ? `Selected spacecraft ${selSpacecraft.name}. Distance: ${selSpacecraft.distAU} AU.` : ''}
+        {selNearStar ? `Selected nearby star ${selNearStar.name}.` : ''}
+        {selGalaxy ? `Selected galaxy marker ${selGalaxy.name}.` : ''}
         {navStack.length > 1 ? `Navigated to ${navStack[navStack.length - 1]}` : ''}
       </div>
     </>

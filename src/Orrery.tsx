@@ -18,7 +18,9 @@ import { ThemeProvider, useTheme } from './lib/themes';
 import type { CometDef } from './data/comets';
 import type { MeteorShower } from './scene/Meteors';
 import type { SatellitePosition } from './lib/satellites';
-import type { Spacecraft } from './data/deepspace';
+import type { Spacecraft, NearStar, GalaxyMarker } from './data/deepspace';
+import { SPACECRAFT, NEARBY_STARS, LOCAL_GROUP } from './data/deepspace';
+import { CONSTELLATION_NAMES } from './data/mythology';
 import Scene from './scene/Scene';
 import Panels from './ui/Panels';
 import LoadingScreen from './ui/LoadingScreen';
@@ -153,7 +155,11 @@ function OrreryInner() {
   const [showSatellites, setShowSatellites] = useState(false);
   const [showDeepSky, setShowDeepSky] = useState(OBSERVATORY_MODE);
   const [showDeepSpace, setShowDeepSpace] = useState(OBSERVATORY_MODE);
+  const [selSun, setSelSun] = useState(false);
+  const [tourActive, setTourActive] = useState(false);
   const [selSpacecraft, setSelSpacecraft] = useState<Spacecraft | null>(null);
+  const [selNearStar, setSelNearStar] = useState<NearStar | null>(null);
+  const [selGalaxy, setSelGalaxy] = useState<GalaxyMarker | null>(null);
   const [selConstellation, setSelConstellation] = useState<string | null>(null);
   const [selAsterism, setSelAsterism] = useState<string | null>(null);
   const [selDeepSky, setSelDeepSky] = useState<string | null>(null);
@@ -291,7 +297,10 @@ function OrreryInner() {
     setSelMeteor(null);
     setSelSatellite(null);
     setSelConstellation(null);
+    setSelSun(false);
     setSelSpacecraft(null);
+    setSelNearStar(null);
+    setSelGalaxy(null);
 
     if (target.kind === 'planet') {
       const pos = positionsRef.current.get(target.idx);
@@ -364,6 +373,7 @@ function OrreryInner() {
     cinematicIdx.current = 0;
     cinematicStart.current = Date.now();
     setPanelOpen(false);
+    setTourActive(false);
     applyCinematicStep(0);
     setCinematic(true);
   }, [applyCinematicStep, setPanelOpen]);
@@ -539,6 +549,12 @@ function OrreryInner() {
       setSelMoonIdx(null);
       setFocusTarget(prev => prev ? { planetIdx: prev.planetIdx, pos: prev.pos } : null);
       setNavStack(prev => prev.slice(0, -1));
+    } else if (selSun) {
+      setSelSun(false);
+      setSelPlanet(null);
+      setFocusTarget(null);
+      setNavStack(['Solar System']);
+      setCamIdx(1);
     } else if (selPlanet !== null) {
       // Go back to the zoom level that contains this planet's orbit
       const planet = ALL_BODIES[selPlanet];
@@ -553,11 +569,12 @@ function OrreryInner() {
       setCamIdx(camTarget);
       setNavStack(['Solar System']);
     }
-  }, [cinematic, navStack, selMoonIdx, selPlanet, exitCinematic]);
+  }, [cinematic, navStack, selMoonIdx, selPlanet, selSun, exitCinematic]);
 
   // Navigate to a specific breadcrumb level
   const navigateToLevel = useCallback((level: number) => {
     if (level === 0) {
+      setSelSun(false);
       setSelPlanet(null);
       setSelMoonIdx(null);
       setFocusTarget(null);
@@ -574,6 +591,10 @@ function OrreryInner() {
     if (cinematic) return;
 
     if (idx !== null) {
+      setSelSun(false);
+      setSelSpacecraft(null);
+      setSelNearStar(null);
+      setSelGalaxy(null);
       setSelPlanet(idx);
       setSelMoonIdx(null);
       setCamIdx(-1);
@@ -591,6 +612,7 @@ function OrreryInner() {
         if (a > 40) camTarget = 5;
       }
       setSelPlanet(null);
+      setSelSun(false);
       setFocusTarget(null);
       setSelMoonIdx(null);
       setCamIdx(camTarget);
@@ -604,7 +626,13 @@ function OrreryInner() {
     const moons = getMoonsForPlanet(planetIdx);
     if (moonIdx >= moons.length) return;
 
+    setSelSun(false);
+    setSelSpacecraft(null);
+    setSelNearStar(null);
+    setSelGalaxy(null);
+    setSelPlanet(planetIdx);
     setSelMoonIdx(moonIdx);
+    setCamIdx(-1);
     const pos = positionsRef.current.get(planetIdx);
     if (pos) setFocusTarget({ planetIdx, pos, moonIdx });
     setNavStack(prev => {
@@ -618,6 +646,10 @@ function OrreryInner() {
     const preset = CAMS[idx];
     if (!preset) return;
     setCamIdx(idx);
+    setSelSun(preset.label === 'Sun');
+    setSelSpacecraft(null);
+    setSelNearStar(null);
+    setSelGalaxy(null);
     setSelMoonIdx(null);
     setCinematic(false);
     if (preset.follow !== undefined) {
@@ -665,6 +697,204 @@ function OrreryInner() {
       setShowStars(true);
     }
   }, []);
+
+  const jumpToPreset = useCallback((label: string) => {
+    const idx = camIndex(label);
+    if (idx >= 0) handlePresetSelect(idx);
+  }, [handlePresetSelect]);
+
+  const handleSunSelect = useCallback(() => {
+    if (cinematic) return;
+    setSelSun(true);
+    setSelMoonIdx(null);
+    setSelPlanet(null);
+    setFocusTarget(null);
+    setNavStack(['Solar System', 'Sun']);
+    jumpToPreset('Sun');
+  }, [cinematic, jumpToPreset]);
+
+  const jumpToSpacecraftView = useCallback(() => {
+    setShowDeepSpace(true);
+    setShowDeepSky(true);
+    setShowStars(true);
+    jumpToPreset('Oort');
+  }, [jumpToPreset]);
+
+  const jumpToNearStarView = useCallback(() => {
+    setShowDeepSpace(true);
+    setShowDeepSky(true);
+    setShowStars(true);
+    jumpToPreset('Stellar');
+  }, [jumpToPreset]);
+
+  const jumpToGalaxyView = useCallback(() => {
+    setShowDeepSpace(true);
+    setShowDeepSky(true);
+    setShowStars(true);
+    jumpToPreset('Stellar');
+  }, [jumpToPreset]);
+
+  const lastTourPickRef = useRef<string | null>(null);
+
+  const triggerRandomJump = useCallback(() => {
+    if (cinematic) return;
+
+    const planetIndices = [0, 1, 2, 3, 4, 5, 6, 7];
+    const moonTargets = planetIndices.flatMap((planetIdx) => {
+      const moons = getMoonsForPlanet(planetIdx);
+      if (moons.length === 0) return [];
+      return [{ kind: 'moon' as const, planetIdx, moonIdx: Math.floor(Math.random() * moons.length) }];
+    });
+    const constellationKeys = Object.keys(CONSTELLATION_NAMES);
+
+    type Target =
+      | { kind: 'preset'; label: string; key: string }
+      | { kind: 'planet'; planetIdx: number; key: string }
+      | { kind: 'moon'; planetIdx: number; moonIdx: number; key: string }
+      | { kind: 'constellation'; id: string; key: string }
+      | { kind: 'spacecraft'; idx: number; key: string }
+      | { kind: 'nearStar'; idx: number; key: string }
+      | { kind: 'galaxy'; idx: number; key: string };
+
+    const destinations: Target[] = [
+      { kind: 'preset', label: 'Sun', key: 'preset:Sun' },
+      { kind: 'preset', label: 'Inner', key: 'preset:Inner' },
+      { kind: 'preset', label: 'System', key: 'preset:System' },
+      { kind: 'preset', label: 'Outer', key: 'preset:Outer' },
+      { kind: 'preset', label: 'Kuiper', key: 'preset:Kuiper' },
+      { kind: 'preset', label: 'Oort', key: 'preset:Oort' },
+      { kind: 'preset', label: 'Stellar', key: 'preset:Stellar' },
+      ...planetIndices.map<Target>((planetIdx) => ({ kind: 'planet', planetIdx, key: `planet:${planetIdx}` })),
+      ...moonTargets.map<Target>((m) => ({ ...m, key: `moon:${m.planetIdx}:${m.moonIdx}` })),
+      ...constellationKeys.map<Target>((id) => ({ kind: 'constellation', id, key: `constellation:${id}` })),
+      ...SPACECRAFT.map<Target>((_, idx) => ({ kind: 'spacecraft', idx, key: `spacecraft:${idx}` })),
+      ...NEARBY_STARS.map<Target>((_, idx) => ({ kind: 'nearStar', idx, key: `nearStar:${idx}` })),
+      ...LOCAL_GROUP.map<Target>((_, idx) => ({ kind: 'galaxy', idx, key: `galaxy:${idx}` })),
+    ];
+
+    let target = destinations[Math.floor(Math.random() * destinations.length)];
+    for (let i = 0; i < 3 && target.key === lastTourPickRef.current; i++) {
+      target = destinations[Math.floor(Math.random() * destinations.length)];
+    }
+    if (!target) return;
+    lastTourPickRef.current = target.key;
+
+    const clearObjectSelections = () => {
+      setSelSpacecraft(null);
+      setSelNearStar(null);
+      setSelGalaxy(null);
+      setSelConstellation(null);
+    };
+
+    switch (target.kind) {
+      case 'preset':
+        clearObjectSelections();
+        if (target.label === 'Sun') {
+          handleSunSelect();
+        } else {
+          jumpToPreset(target.label);
+        }
+        return;
+      case 'planet':
+        clearObjectSelections();
+        handlePlanetSelect(target.planetIdx);
+        return;
+      case 'moon':
+        clearObjectSelections();
+        handleMoonSelect(target.planetIdx, target.moonIdx);
+        return;
+      case 'constellation': {
+        setSelSun(false);
+        setSelPlanet(null);
+        setSelMoonIdx(null);
+        setSelSpacecraft(null);
+        setSelNearStar(null);
+        setSelGalaxy(null);
+        setFocusTarget(null);
+        jumpToPreset('Stargazer');
+        setConstellationFocus(true);
+        setSelConstellation(target.id);
+        setNavStack(['Solar System', CONSTELLATION_NAMES[target.id] ?? target.id]);
+        return;
+      }
+      case 'spacecraft': {
+        setSelSun(false);
+        setSelPlanet(null);
+        setSelMoonIdx(null);
+        setSelConstellation(null);
+        setSelNearStar(null);
+        setSelGalaxy(null);
+        setFocusTarget(null);
+        jumpToPreset('Oort');
+        setSelSpacecraft(SPACECRAFT[target.idx]);
+        return;
+      }
+      case 'nearStar': {
+        setSelSun(false);
+        setSelPlanet(null);
+        setSelMoonIdx(null);
+        setSelConstellation(null);
+        setSelSpacecraft(null);
+        setSelGalaxy(null);
+        setFocusTarget(null);
+        jumpToPreset('Stellar');
+        setSelNearStar(NEARBY_STARS[target.idx]);
+        return;
+      }
+      case 'galaxy': {
+        setSelSun(false);
+        setSelPlanet(null);
+        setSelMoonIdx(null);
+        setSelConstellation(null);
+        setSelSpacecraft(null);
+        setSelNearStar(null);
+        setFocusTarget(null);
+        jumpToPreset('Stellar');
+        setSelGalaxy(LOCAL_GROUP[target.idx]);
+        return;
+      }
+    }
+  }, [cinematic, handleMoonSelect, handlePlanetSelect, handleSunSelect, jumpToPreset]);
+
+  // Ongoing random tour: cycles destinations every TOUR_INTERVAL_MS while active.
+  // Cinematic mode auto-stops the tour at the source: cinematic entry points clear it.
+  const TOUR_INTERVAL_MS = 7000;
+  useEffect(() => {
+    if (!tourActive || cinematic) return;
+    const id = window.setInterval(() => {
+      triggerRandomJump();
+    }, TOUR_INTERVAL_MS);
+    return () => window.clearInterval(id);
+  }, [tourActive, cinematic, triggerRandomJump]);
+
+  const toggleRandomTour = useCallback(() => {
+    if (cinematic) return;
+    setTourActive((prev) => {
+      const next = !prev;
+      if (next) {
+        triggerRandomJump();
+      }
+      return next;
+    });
+  }, [cinematic, triggerRandomJump]);
+
+  const currentAreaLabel = useMemo(() => {
+    if (cinematic) return '';
+    if (selNearStar) return 'Nearby Star';
+    if (selGalaxy) return 'Local Group';
+    if (selSpacecraft) return 'Deep Space';
+    if (selMoonIdx !== null && selPlanet !== null) return 'Moon Orbit';
+    if (selPlanet !== null) return ALL_BODIES[selPlanet].name;
+    if (selSun) return 'Sun';
+    if (camPreset?.label === 'Inner') return 'Inner System';
+    if (camPreset?.label === 'System') return 'Full System';
+    if (camPreset?.label === 'Outer') return 'Outer System';
+    if (camPreset?.label === 'Kuiper') return 'Kuiper Belt';
+    if (camPreset?.label === 'Oort') return 'Oort Cloud';
+    if (camPreset?.label === 'Stellar') return 'Deep Space';
+    if (camPreset?.label === 'Sun') return 'Inner';
+    return 'Full System';
+  }, [camPreset?.label, cinematic, selGalaxy, selMoonIdx, selNearStar, selPlanet, selSpacecraft, selSun]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -741,6 +971,8 @@ function OrreryInner() {
           setSelConstellation(null);
           setSelAsterism(null);
           setSelDeepSky(null);
+          setSelNearStar(null);
+          setSelGalaxy(null);
           return;
         }
         navigateBack();
@@ -748,6 +980,9 @@ function OrreryInner() {
         setSelComet(null);
         setSelMeteor(null);
         setSelSatellite(null);
+        setSelSpacecraft(null);
+        setSelNearStar(null);
+        setSelGalaxy(null);
       }
       if (k === ' ') { e.preventDefault(); setPlaying(p => !p); }
     };
@@ -795,7 +1030,13 @@ function OrreryInner() {
           setSelConstellation(null);
           setSelAsterism(null);
           setSelDeepSky(null);
-        } : undefined}
+          setSelNearStar(null);
+          setSelGalaxy(null);
+        } : () => {
+          setSelSpacecraft(null);
+          setSelNearStar(null);
+          setSelGalaxy(null);
+        }}
       >
         <Suspense fallback={null}>
           <Scene
@@ -835,6 +1076,9 @@ function OrreryInner() {
             selMeteor={selMeteor} setSelMeteor={setSelMeteor}
             selSatellite={selSatellite} setSelSatellite={setSelSatellite}
             selSpacecraft={selSpacecraft} setSelSpacecraft={setSelSpacecraft}
+            selNearStar={selNearStar} setSelNearStar={setSelNearStar}
+            selGalaxy={selGalaxy} setSelGalaxy={setSelGalaxy}
+            onSunSelect={handleSunSelect}
           />
         </Suspense>
       </Canvas>
@@ -879,6 +1123,16 @@ function OrreryInner() {
         selMeteor={selMeteor} setSelMeteor={setSelMeteor}
         selSatellite={selSatellite} setSelSatellite={setSelSatellite}
         selSpacecraft={selSpacecraft} setSelSpacecraft={setSelSpacecraft}
+        selNearStar={selNearStar} setSelNearStar={setSelNearStar}
+        selGalaxy={selGalaxy} setSelGalaxy={setSelGalaxy}
+        selSun={selSun}
+        currentAreaLabel={currentAreaLabel}
+        onJumpToSpacecraft={jumpToSpacecraftView}
+        onJumpToNearStar={jumpToNearStarView}
+        onJumpToGalaxy={jumpToGalaxyView}
+        onRandomJump={triggerRandomJump}
+        tourActive={tourActive}
+        onToggleRandomTour={toggleRandomTour}
       />
 
       {showSkyModeHint && !OBSERVATORY_MODE && (
@@ -887,7 +1141,7 @@ function OrreryInner() {
           style={{
             position: 'fixed',
             top: 'calc(env(safe-area-inset-top, 0px) + 52px)',
-            right: 14,
+            right: 62,
             zIndex: 25,
             pointerEvents: 'none',
             background: `rgba(${accentRgb},0.14)`,

@@ -112,31 +112,51 @@ const SPEED_PRESETS = [
   { label: '100 yr/s', value: 86400 * 365 * 100 },
 ];
 
-// ─── Zoom controls (dispatches wheel events on the canvas) ──────────────────────
+// ─── Zoom controls (jumps between camera scale-level presets) ───────────────────
 
-function ZoomControls() {
+const ZOOM_LEVEL_LABELS = ['Sun', 'Inner', 'System', 'Outer', 'Kuiper', 'Oort', 'Stellar'] as const;
+
+function ZoomControls({ cams, cameraDistance, onPresetSelect }: {
+  cams: CamPreset[];
+  cameraDistance: number;
+  onPresetSelect: (i: number) => void;
+}) {
+  const levels = ZOOM_LEVEL_LABELS
+    .map(label => {
+      const idx = cams.findIndex(c => c.label === label);
+      if (idx < 0) return null;
+      const [x, y, z] = cams[idx].pos;
+      return { idx, dist: Math.sqrt(x * x + y * y + z * z) };
+    })
+    .filter((v): v is { idx: number; dist: number } => v !== null);
+
+  const currentLevel = levels.reduce((best, cur, i) => {
+    const diff = Math.abs(Math.log10(cur.dist) - Math.log10(Math.max(0.01, cameraDistance)));
+    return diff < best.diff ? { i, diff } : best;
+  }, { i: 0, diff: Infinity }).i;
+
   const zoom = useCallback((direction: number) => {
-    const canvas = document.querySelector('canvas');
-    if (!canvas) return;
-    canvas.dispatchEvent(new WheelEvent('wheel', {
-      deltaY: direction * 120,
-      bubbles: true,
-    }));
-  }, []);
+    const next = Math.max(0, Math.min(levels.length - 1, currentLevel + direction));
+    if (next !== currentLevel) onPresetSelect(levels[next].idx);
+  }, [currentLevel, levels, onPresetSelect]);
 
-  const btnStyle: React.CSSProperties = {
+  const atMin = currentLevel === 0;
+  const atMax = currentLevel === levels.length - 1;
+
+  const btnStyle = (disabled: boolean): React.CSSProperties => ({
     background: 'rgba(255,255,255,0.06)',
     border: '1px solid rgba(255,255,255,0.08)',
     borderRadius: 6,
-    color: 'rgba(255,255,255,0.7)',
+    color: disabled ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.7)',
     width: 36, height: 36,
-    cursor: 'pointer',
+    cursor: disabled ? 'not-allowed' : 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     padding: 0,
     fontFamily: 'inherit',
     backdropFilter: `blur(${BLUR.chip}px)`,
     WebkitBackdropFilter: `blur(${BLUR.chip}px)`,
-  };
+    transition: 'color 0.18s ease',
+  });
 
   return (
     <div style={{
@@ -144,7 +164,7 @@ function ZoomControls() {
       display: 'flex', flexDirection: 'column', gap: 4,
       zIndex: Z.canvasOverlay,
     }}>
-      <button onClick={() => zoom(-1)} aria-label="Zoom in" style={btnStyle}>
+      <button onClick={() => zoom(-1)} disabled={atMin} aria-label="Zoom in to next scale level" style={btnStyle(atMin)}>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
           <circle cx="7" cy="7" r="5" />
           <line x1="7" y1="5" x2="7" y2="9" />
@@ -152,7 +172,7 @@ function ZoomControls() {
           <line x1="10.5" y1="10.5" x2="14" y2="14" />
         </svg>
       </button>
-      <button onClick={() => zoom(1)} aria-label="Zoom out" style={btnStyle}>
+      <button onClick={() => zoom(1)} disabled={atMax} aria-label="Zoom out to next scale level" style={btnStyle(atMax)}>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
           <circle cx="7" cy="7" r="5" />
           <line x1="5" y1="7" x2="9" y2="7" />
@@ -819,7 +839,7 @@ function SideDrawer({
         borderLeft: 'none',
         transform: open ? 'translateY(0)' : 'translateY(100%)',
         transition: 'transform 0.25s ease',
-        ...({ zoom: panelFontScale } as React.CSSProperties),
+        fontSize: `${13 * panelFontScale}px`,
       } : {
         ...drawerPanel,
         background: `linear-gradient(180deg, rgba(${accentRgb},0.12) 0%, rgba(10,12,18,0.82) 14%, rgba(6,8,14,0.9) 100%)`,
@@ -841,7 +861,7 @@ function SideDrawer({
         boxShadow: `0 18px 48px rgba(0,0,0,0.38), 0 0 0 1px rgba(${accentRgb},0.08)`,
         transform: open ? 'translateX(0)' : 'translateX(calc(100% + 24px))',
         transition: 'transform 0.25s ease',
-        ...({ zoom: panelFontScale } as React.CSSProperties),
+        fontSize: `${13 * panelFontScale}px`,
       }}
     >
       <AccordionSection title="Status" accent={accent} defaultOpen>
@@ -1483,8 +1503,8 @@ export default function Panels(props: PanelProps) {
           }}
         />
       )}
-      {/* Panel drawer tab (desktop only — mobile uses bottom toolbar gear; hidden in observatory / cinematic) */}
-      {!mobile && !observatoryMode && !cinematic && <button
+      {/* Panel drawer tab (desktop only — hidden while panel is open so it doesn't collide with the drawer chrome) */}
+      {!mobile && !observatoryMode && !cinematic && !panelVisible && <button
         onClick={() => setPanelOpen((p: boolean) => !p)}
         onMouseEnter={() => { if (!mobile && canHover) startPeek(); }}
         onMouseLeave={() => { if (!mobile && canHover && !panelOpen) endPeek(); }}
@@ -1779,7 +1799,9 @@ export default function Panels(props: PanelProps) {
       )}
 
       {/* ── Zoom controls (desktop only) ── */}
-      {!mobile && !observatoryMode && !cinematic && <ZoomControls />}
+      {!mobile && !observatoryMode && !cinematic && (
+        <ZoomControls cams={cams} cameraDistance={cameraDistance} onPresetSelect={onPresetSelect} />
+      )}
       {!observatoryMode && !cinematic && (
         <button
           className={pulseSkyToggle ? 'sky-toggle-blink' : undefined}

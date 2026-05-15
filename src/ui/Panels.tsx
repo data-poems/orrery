@@ -126,16 +126,11 @@ function ConstellationIcon({ size = 18 }: { size?: number }) {
   );
 }
 
-function ZoomControls({ cams, cameraDistance, onPresetSelect, onRandomJump, onToggleRandomTour, tourActive, mobile, accent, accentRgb }: {
+function ZoomControls({ cams, cameraDistance, onPresetSelect, mobile }: {
   cams: CamPreset[];
   cameraDistance: number;
   onPresetSelect: (i: number) => void;
-  onRandomJump: () => void;
-  onToggleRandomTour: () => void;
-  tourActive: boolean;
   mobile: boolean;
-  accent: string;
-  accentRgb: string;
 }) {
   const levels = ZOOM_LEVEL_LABELS
     .map(label => {
@@ -188,21 +183,6 @@ function ZoomControls({ cams, cameraDistance, onPresetSelect, onRandomJump, onTo
       zIndex: Z.canvasOverlay,
       pointerEvents: 'none',
     }}>
-      <button
-        onClick={onToggleRandomTour}
-        onDoubleClick={onRandomJump}
-        aria-pressed={tourActive}
-        aria-label={tourActive ? 'Stop random tour' : 'Start random tour'}
-        title={tourActive ? 'Stop tour (double-click for one jump)' : 'Random tour (double-click for single jump)'}
-        style={{
-          ...btnStyle(false),
-          color: tourActive ? accent : 'rgba(255,255,255,0.7)',
-          borderColor: tourActive ? `rgba(${accentRgb},0.55)` : 'rgba(255,255,255,0.12)',
-          background: tourActive ? `rgba(${accentRgb},0.16)` : 'rgba(0,0,0,0.35)',
-        }}
-      >
-        <DiceIcon size={20} />
-      </button>
       <button onClick={() => zoom(-1)} disabled={atMin} aria-label="Zoom in to next scale level" style={btnStyle(atMin)}>
         <span aria-hidden="true">+</span>
       </button>
@@ -522,8 +502,6 @@ export interface PanelProps {
   onJumpToNearStar: () => void;
   onJumpToGalaxy: () => void;
   onRandomJump: () => void;
-  onToggleRandomTour: () => void;
-  tourActive: boolean;
 }
 
 export default function Panels(props: PanelProps) {
@@ -561,8 +539,6 @@ export default function Panels(props: PanelProps) {
     onJumpToNearStar,
     onJumpToGalaxy,
     onRandomJump,
-    onToggleRandomTour,
-    tourActive,
   } = props;
   void _setShowNeo; void _simTime; void _speed; void _setSelPlanet; void _neos; void _neoStatus; void _setShowDwarf; void _showStars; void _showConstellations;
   void _setShowAsterisms; void _setShowAsteroidBelt; void _setShowComets;
@@ -1125,8 +1101,25 @@ export default function Panels(props: PanelProps) {
             top: safeAreaTop(12),
             right: safeAreaRight(12),
             zIndex: Z.hud,
+            display: 'flex',
+            gap: 8,
+            alignItems: 'center',
           }}
         >
+          <button
+            type="button"
+            onClick={onRandomJump}
+            aria-label="Roll for a random destination"
+            title="Roll the dice"
+            style={{
+              ...controlChipStyle,
+              color: 'rgba(255,255,255,0.58)',
+              fontSize: 15,
+              fontWeight: 400,
+            }}
+          >
+            <DiceIcon size={18} />
+          </button>
           <button
             className={pulseSkyToggle ? 'sky-toggle-blink' : undefined}
             onClick={toggleStargazer}
@@ -1154,12 +1147,7 @@ export default function Panels(props: PanelProps) {
           cams={cams}
           cameraDistance={cameraDistance}
           onPresetSelect={onPresetSelect}
-          onRandomJump={onRandomJump}
-          onToggleRandomTour={onToggleRandomTour}
-          tourActive={tourActive}
           mobile={mobile}
-          accent={accent}
-          accentRgb={accentRgb}
         />
       )}
 

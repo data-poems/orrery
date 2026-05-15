@@ -21,6 +21,7 @@ import type { SatellitePosition } from './lib/satellites';
 import type { Spacecraft, NearStar, GalaxyMarker } from './data/deepspace';
 import { SPACECRAFT, NEARBY_STARS, LOCAL_GROUP } from './data/deepspace';
 import { CONSTELLATION_NAMES } from './data/mythology';
+import { getConstellationCentroid, prefetchConstellationCentroids } from './lib/constellationCentroids';
 import Scene from './scene/Scene';
 import Panels from './ui/Panels';
 import LoadingScreen from './ui/LoadingScreen';
@@ -156,7 +157,12 @@ function OrreryInner() {
   const [showDeepSky, setShowDeepSky] = useState(OBSERVATORY_MODE);
   const [showDeepSpace, setShowDeepSpace] = useState(OBSERVATORY_MODE);
   const [selSun, setSelSun] = useState(false);
-  const [tourActive, setTourActive] = useState(false);
+  const [aimAtSphere, setAimAtSphere] = useState<[number, number, number] | null>(null);
+  // Tracks the most recent dice-roll target key. Used to gate async constellation
+  // centroid resolves so a stale Promise can't clobber a newer roll, and to invalidate
+  // pending aim resolves whenever the cinematic enters/exits or the user picks a
+  // non-constellation destination explicitly.
+  const lastTourPickRef = useRef<string | null>(null);
   const [selSpacecraft, setSelSpacecraft] = useState<Spacecraft | null>(null);
   const [selNearStar, setSelNearStar] = useState<NearStar | null>(null);
   const [selGalaxy, setSelGalaxy] = useState<GalaxyMarker | null>(null);
@@ -268,6 +274,10 @@ function OrreryInner() {
     }
     setConstellationTourPulse(false);
     setPanelOpen(false);
+    // Invalidate any pending dice-roll aim resolve so a Promise that resolves
+    // after cinematic exit can't pull the camera to a stale constellation.
+    lastTourPickRef.current = null;
+    setAimAtSphere(null);
 
     const earthPlanetExit = target.kind === 'planet' && target.idx === 2;
     if (earthPlanetExit) {
@@ -373,7 +383,10 @@ function OrreryInner() {
     cinematicIdx.current = 0;
     cinematicStart.current = Date.now();
     setPanelOpen(false);
-    setTourActive(false);
+    // Invalidate pending dice aim BEFORE clearing aimAtSphere so a slow Promise
+    // resolve gated by `lastTourPickRef.current === aimTicket` can't re-set it.
+    lastTourPickRef.current = null;
+    setAimAtSphere(null);
     applyCinematicStep(0);
     setCinematic(true);
   }, [applyCinematicStep, setPanelOpen]);
@@ -595,6 +608,8 @@ function OrreryInner() {
       setSelSpacecraft(null);
       setSelNearStar(null);
       setSelGalaxy(null);
+      setSelConstellation(null);
+      setAimAtSphere(null);
       setSelPlanet(idx);
       setSelMoonIdx(null);
       setCamIdx(-1);
@@ -630,6 +645,8 @@ function OrreryInner() {
     setSelSpacecraft(null);
     setSelNearStar(null);
     setSelGalaxy(null);
+    setSelConstellation(null);
+    setAimAtSphere(null);
     setSelPlanet(planetIdx);
     setSelMoonIdx(moonIdx);
     setCamIdx(-1);
@@ -651,6 +668,8 @@ function OrreryInner() {
     setSelNearStar(null);
     setSelGalaxy(null);
     setSelMoonIdx(null);
+    setSelConstellation(null);
+    setAimAtSphere(null);
     setCinematic(false);
     if (preset.follow !== undefined) {
       const pos = positionsRef.current.get(preset.follow);
@@ -734,7 +753,10 @@ function OrreryInner() {
     jumpToPreset('Stellar');
   }, [jumpToPreset]);
 
-  const lastTourPickRef = useRef<string | null>(null);
+  // Pre-load constellation centroids so the random-jump aiming has zero latency.
+  useEffect(() => {
+    prefetchConstellationCentroids();
+  }, []);
 
   const triggerRandomJump = useCallback(() => {
     if (cinematic) return;
@@ -789,6 +811,7 @@ function OrreryInner() {
     switch (target.kind) {
       case 'preset':
         clearObjectSelections();
+        setAimAtSphere(null);
         if (target.label === 'Sun') {
           handleSunSelect();
         } else {
@@ -797,10 +820,12 @@ function OrreryInner() {
         return;
       case 'planet':
         clearObjectSelections();
+        setAimAtSphere(null);
         handlePlanetSelect(target.planetIdx);
         return;
       case 'moon':
         clearObjectSelections();
+        setAimAtSphere(null);
         handleMoonSelect(target.planetIdx, target.moonIdx);
         return;
       case 'constellation': {
@@ -815,6 +840,18 @@ function OrreryInner() {
         setConstellationFocus(true);
         setSelConstellation(target.id);
         setNavStack(['Solar System', CONSTELLATION_NAMES[target.id] ?? target.id]);
+        // Aim the camera at the constellation centroid (async fetch is cached
+        // after first call). Stamp the pick id we tried to aim at so a fast
+        // re-roll between async resolves doesn't clobber a newer aim.
+        const aimTicket = target.key;
+        getConstellationCentroid(target.id).then((pos) => {
+          if (pos && lastTourPickRef.current === aimTicket) {
+            // Re-stamp by setting state with a fresh array reference so the
+            // useEffect in CamCtrl re-fires even if the centroid happens to
+            // equal the prior aim numerically.
+            setAimAtSphere([pos[0], pos[1], pos[2]]);
+          }
+        });
         return;
       }
       case 'spacecraft': {
@@ -825,6 +862,7 @@ function OrreryInner() {
         setSelNearStar(null);
         setSelGalaxy(null);
         setFocusTarget(null);
+        setAimAtSphere(null);
         jumpToPreset('Oort');
         setSelSpacecraft(SPACECRAFT[target.idx]);
         return;
@@ -837,6 +875,7 @@ function OrreryInner() {
         setSelSpacecraft(null);
         setSelGalaxy(null);
         setFocusTarget(null);
+        setAimAtSphere(null);
         jumpToPreset('Stellar');
         setSelNearStar(NEARBY_STARS[target.idx]);
         return;
@@ -849,34 +888,13 @@ function OrreryInner() {
         setSelSpacecraft(null);
         setSelNearStar(null);
         setFocusTarget(null);
+        setAimAtSphere(null);
         jumpToPreset('Stellar');
         setSelGalaxy(LOCAL_GROUP[target.idx]);
         return;
       }
     }
   }, [cinematic, handleMoonSelect, handlePlanetSelect, handleSunSelect, jumpToPreset]);
-
-  // Ongoing random tour: cycles destinations every TOUR_INTERVAL_MS while active.
-  // Cinematic mode auto-stops the tour at the source: cinematic entry points clear it.
-  const TOUR_INTERVAL_MS = 7000;
-  useEffect(() => {
-    if (!tourActive || cinematic) return;
-    const id = window.setInterval(() => {
-      triggerRandomJump();
-    }, TOUR_INTERVAL_MS);
-    return () => window.clearInterval(id);
-  }, [tourActive, cinematic, triggerRandomJump]);
-
-  const toggleRandomTour = useCallback(() => {
-    if (cinematic) return;
-    setTourActive((prev) => {
-      const next = !prev;
-      if (next) {
-        triggerRandomJump();
-      }
-      return next;
-    });
-  }, [cinematic, triggerRandomJump]);
 
   const currentAreaLabel = useMemo(() => {
     if (cinematic) return '';
@@ -955,6 +973,7 @@ function OrreryInner() {
             // Keep keyboard shortcut behavior aligned with Sky chip behavior.
             setSelConstellation(null);
             setSelAsterism(null);
+            setAimAtSphere(null);
             setSelDeepSky(null);
           }
           return next;
@@ -973,6 +992,7 @@ function OrreryInner() {
           setSelDeepSky(null);
           setSelNearStar(null);
           setSelGalaxy(null);
+          setAimAtSphere(null);
           return;
         }
         navigateBack();
@@ -1032,6 +1052,7 @@ function OrreryInner() {
           setSelDeepSky(null);
           setSelNearStar(null);
           setSelGalaxy(null);
+          setAimAtSphere(null);
         } : () => {
           setSelSpacecraft(null);
           setSelNearStar(null);
@@ -1062,6 +1083,7 @@ function OrreryInner() {
             onDeepSkySelect={(id) => { setSelDeepSky(prev => prev === id ? null : id); }}
             selConstellationId={selConstellation}
             accentColor={theme.uiAccent}
+            aimAtSphere={aimAtSphere}
             constellationFocus={constellationFocus}
             constellationTourPulse={constellationTourPulse}
             cinematic={cinematic}
@@ -1131,8 +1153,6 @@ function OrreryInner() {
         onJumpToNearStar={jumpToNearStarView}
         onJumpToGalaxy={jumpToGalaxyView}
         onRandomJump={triggerRandomJump}
-        tourActive={tourActive}
-        onToggleRandomTour={toggleRandomTour}
       />
 
       {showSkyModeHint && !OBSERVATORY_MODE && (

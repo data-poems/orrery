@@ -49,13 +49,14 @@ function AUGrid({ cameraDistance = 0 }: { cameraDistance?: number }) {
 
 // ─── Camera controller ──────────────────────────────────────────────────────────
 
-function CamCtrl({ focusTarget, positions, cinematic, camPreset, cinematicRotateSpeed, onCameraDistance }: {
+function CamCtrl({ focusTarget, positions, cinematic, camPreset, cinematicRotateSpeed, onCameraDistance, aimAtSphere }: {
   focusTarget: FocusTarget | null;
   positions: Map<number, [number, number, number]>;
   cinematic: boolean;
   camPreset?: CamPreset | null;
   cinematicRotateSpeed: number;
   onCameraDistance?: (d: number) => void;
+  aimAtSphere?: [number, number, number] | null;
 }) {
   const { camera } = useThree();
   const ctrlRef = useRef<ElementRef<typeof OrbitControls> | null>(null);
@@ -121,6 +122,19 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, cinematicRotate
   useEffect(() => {
     settling.current = true;
     lastTargetChange.current = Date.now();
+    // Aim-at-sphere overrides everything: we drop the camera just inside the
+    // celestial sphere along the line from origin → target, looking outward at
+    // the constellation centroid (or any other point we want centered).
+    if (aimAtSphere) {
+      const [tx, ty, tz] = aimAtSphere;
+      const len = Math.hypot(tx, ty, tz) || 1;
+      const back = 8;
+      const k = Math.max(0, (len - back) / len);
+      tLook.current.set(tx, ty, tz);
+      tPos.current.set(tx * k, ty * k, tz * k);
+      observeUserTook.current = false;
+      return;
+    }
     if (focusTarget !== null) {
       const pp = positions.get(focusTarget.planetIdx);
       if (pp) {
@@ -150,7 +164,7 @@ function CamCtrl({ focusTarget, positions, cinematic, camPreset, cinematicRotate
       tLook.current.set(...HOME_TGT);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps -- positions excluded intentionally: useFrame handles orbital tracking
-  }, [focusTarget, camPreset, cinematic, computeFocusOffset, computePresetFollowOffset]);
+  }, [focusTarget, camPreset, cinematic, computeFocusOffset, computePresetFollowOffset, aimAtSphere]);
 
   // Stop transition when user grabs orbit controls
   useEffect(() => {
@@ -343,6 +357,13 @@ export interface SceneProps {
   onDeepSkySelect?: (id: string) => void;
   selConstellationId: string | null;
   accentColor: string;
+  /**
+   * Optional override for the camera's look target on the celestial sphere.
+   * When set, the camera lerps to a vantage just inside the celestial sphere
+   * pointing outward at this 3D point. Used by the random tour to actually
+   * orient the user toward a rolled constellation.
+   */
+  aimAtSphere?: [number, number, number] | null;
 }
 
 export default function Scene({
@@ -353,7 +374,7 @@ export default function Scene({
   constellationFocus, constellationTourPulse = false, cinematic, cinematicRotateSpeed, onMoonSelect, selMoonIdx, onCameraDistance, cameraDistance, camPreset,
   showBodyGlyphs = false,
   selComet, setSelComet, selMeteor, setSelMeteor, selSatellite, setSelSatellite,
-  selSpacecraft, setSelSpacecraft, selNearStar, setSelNearStar, selGalaxy, setSelGalaxy, onSunSelect,
+  selSpacecraft, setSelSpacecraft, selNearStar, setSelNearStar, selGalaxy, setSelGalaxy, onSunSelect, aimAtSphere,
   onConstellationSelect, onAsterismSelect, onDeepSkySelect,
   selConstellationId, accentColor,
 }: SceneProps) {
@@ -492,6 +513,7 @@ export default function Scene({
         camPreset={camPreset}
         cinematicRotateSpeed={cinematicRotateSpeed}
         onCameraDistance={handleCameraDistance}
+        aimAtSphere={aimAtSphere}
       />
     </>
   );

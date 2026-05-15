@@ -13,7 +13,7 @@ import * as THREE from 'three';
 import { ALL_BODIES, CAMS, camIndex } from './data/planets';
 import { getMoonsForPlanet } from './data/moons';
 import type { NEO, FocusTarget } from './lib/kepler';
-import { julianDate, moonPhase } from './lib/kepler';
+import { julianDate, moonPhase, raDecTo3D } from './lib/kepler';
 import { ThemeProvider, useTheme } from './lib/themes';
 import type { CometDef } from './data/comets';
 import type { MeteorShower } from './scene/Meteors';
@@ -26,6 +26,27 @@ import Scene from './scene/Scene';
 import Panels from './ui/Panels';
 import LoadingScreen from './ui/LoadingScreen';
 import { OBSERVATORY_MODE } from './lib/mode';
+
+/** Curated famous deep-sky objects used by the random tour. IDs must exist in
+ *  `public/data/deepsky.json` so the existing `selDeepSky` info card resolves;
+ *  M045 (Pleiades) is intentionally excluded — `prebake-deepsky.ts` drops it
+ *  via the NGC catalog mag/size cutoffs. Coordinates are J2000 RA/Dec degrees.
+ *  `name` is the friendly breadcrumb label since deepsky.json's `name` is
+ *  sometimes blank. */
+const FAMOUS_DSO: ReadonlyArray<{ id: string; name: string; ra: number; dec: number }> = [
+  { id: 'M031', name: 'Andromeda Galaxy', ra: 10.6848, dec: 41.2691 },
+  { id: 'M042', name: 'Great Orion Nebula', ra: 83.8187, dec: -5.3897 },
+  { id: 'M044', name: 'Beehive Cluster', ra: 130.0925, dec: 19.6721 },
+  { id: 'M013', name: 'Hercules Cluster', ra: 250.4233, dec: 36.4603 },
+  { id: 'M051', name: 'Whirlpool Galaxy', ra: 202.4696, dec: 47.1953 },
+  { id: 'M081', name: "Bode's Galaxy", ra: 148.8882, dec: 69.0653 },
+  { id: 'M104', name: 'Sombrero Galaxy', ra: 189.9976, dec: -11.6231 },
+  { id: 'M027', name: 'Dumbbell Nebula', ra: 299.9015, dec: 22.7213 },
+  { id: 'M057', name: 'Ring Nebula', ra: 283.3962, dec: 33.0292 },
+];
+
+/** Sphere radius matching `Stars.tsx` and `constellationCentroids.ts`. */
+const CELESTIAL_SPHERE_RADIUS = 300;
 
 type CinematicStep = {
   camPreset?: number; focusPlanet?: number; focusMoon?: number;
@@ -769,6 +790,10 @@ function OrreryInner() {
     });
     const constellationKeys = Object.keys(CONSTELLATION_NAMES);
 
+    // Dwarf planet indices: ALL_BODIES = [...PLANETS (0-7), ...DWARF_PLANETS (8-10)].
+    const dwarfIndices: number[] = [];
+    for (let i = 8; i < ALL_BODIES.length; i++) dwarfIndices.push(i);
+
     type Target =
       | { kind: 'preset'; label: string; key: string }
       | { kind: 'planet'; planetIdx: number; key: string }
@@ -776,7 +801,8 @@ function OrreryInner() {
       | { kind: 'constellation'; id: string; key: string }
       | { kind: 'spacecraft'; idx: number; key: string }
       | { kind: 'nearStar'; idx: number; key: string }
-      | { kind: 'galaxy'; idx: number; key: string };
+      | { kind: 'galaxy'; idx: number; key: string }
+      | { kind: 'dso'; idx: number; key: string };
 
     const destinations: Target[] = [
       { kind: 'preset', label: 'Sun', key: 'preset:Sun' },
@@ -787,11 +813,13 @@ function OrreryInner() {
       { kind: 'preset', label: 'Oort', key: 'preset:Oort' },
       { kind: 'preset', label: 'Stellar', key: 'preset:Stellar' },
       ...planetIndices.map<Target>((planetIdx) => ({ kind: 'planet', planetIdx, key: `planet:${planetIdx}` })),
+      ...dwarfIndices.map<Target>((planetIdx) => ({ kind: 'planet', planetIdx, key: `planet:${planetIdx}` })),
       ...moonTargets.map<Target>((m) => ({ ...m, key: `moon:${m.planetIdx}:${m.moonIdx}` })),
       ...constellationKeys.map<Target>((id) => ({ kind: 'constellation', id, key: `constellation:${id}` })),
       ...SPACECRAFT.map<Target>((_, idx) => ({ kind: 'spacecraft', idx, key: `spacecraft:${idx}` })),
       ...NEARBY_STARS.map<Target>((_, idx) => ({ kind: 'nearStar', idx, key: `nearStar:${idx}` })),
       ...LOCAL_GROUP.map<Target>((_, idx) => ({ kind: 'galaxy', idx, key: `galaxy:${idx}` })),
+      ...FAMOUS_DSO.map<Target>((_, idx) => ({ kind: 'dso', idx, key: `dso:${idx}` })),
     ];
 
     let target = destinations[Math.floor(Math.random() * destinations.length)];
@@ -821,6 +849,10 @@ function OrreryInner() {
       case 'planet':
         clearObjectSelections();
         setAimAtSphere(null);
+        // Dwarf planets are filtered out of `visibleBodies` unless `showDwarf`
+        // is enabled; without this, focusing Eris/Pluto/Ceres lands the camera
+        // on coordinates where no body is rendered.
+        if (target.planetIdx >= 8) setShowDwarf(true);
         handlePlanetSelect(target.planetIdx);
         return;
       case 'moon':
@@ -893,11 +925,34 @@ function OrreryInner() {
         setSelGalaxy(LOCAL_GROUP[target.idx]);
         return;
       }
+      case 'dso': {
+        const dso = FAMOUS_DSO[target.idx];
+        setSelSun(false);
+        setSelPlanet(null);
+        setSelMoonIdx(null);
+        setSelConstellation(null);
+        setSelSpacecraft(null);
+        setSelNearStar(null);
+        setSelGalaxy(null);
+        setFocusTarget(null);
+        // Sky-mode + Stargazer preset puts us inside the celestial sphere; the
+        // aim-at-sphere override then lerps the camera onto the line through
+        // the DSO so it's centered when settling completes.
+        setShowDeepSky(true);
+        setShowStars(true);
+        jumpToPreset('Stargazer');
+        setConstellationFocus(true);
+        setSelDeepSky(dso.id);
+        setAimAtSphere(raDecTo3D(dso.ra, dso.dec, CELESTIAL_SPHERE_RADIUS, false));
+        setNavStack(['Solar System', dso.name]);
+        return;
+      }
     }
   }, [cinematic, handleMoonSelect, handlePlanetSelect, handleSunSelect, jumpToPreset]);
 
   const currentAreaLabel = useMemo(() => {
     if (cinematic) return '';
+    if (selDeepSky) return 'Deep Sky';
     if (selNearStar) return 'Nearby Star';
     if (selGalaxy) return 'Local Group';
     if (selSpacecraft) return 'Deep Space';
@@ -912,7 +967,7 @@ function OrreryInner() {
     if (camPreset?.label === 'Stellar') return 'Deep Space';
     if (camPreset?.label === 'Sun') return 'Inner';
     return 'Full System';
-  }, [camPreset?.label, cinematic, selGalaxy, selMoonIdx, selNearStar, selPlanet, selSpacecraft, selSun]);
+  }, [camPreset?.label, cinematic, selDeepSky, selGalaxy, selMoonIdx, selNearStar, selPlanet, selSpacecraft, selSun]);
 
   // Keyboard shortcuts
   useEffect(() => {

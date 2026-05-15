@@ -173,14 +173,18 @@ function ZoomControls({ cams, cameraDistance, onPresetSelect, mobile }: {
     pointerEvents: 'auto',
   });
 
+  // On mobile we sit directly under the dice/sky cluster (top-right) so phones
+  // get the same +/- buttons that desktop and tablet already had at bottom-right
+  // — earlier mobile placement was anchored too far down and could disappear
+  // behind the bottom-sheet detail card on smaller screens.
   return (
     <div style={{
       position: mobile ? 'fixed' : 'absolute',
-      top: mobile ? safeAreaTop(168) : 'auto',
+      top: mobile ? safeAreaTop(64) : 'auto',
       bottom: mobile ? 'auto' : safeAreaBottom(20),
       right: safeAreaRight(12),
       display: 'flex', flexDirection: 'column', gap: 4,
-      zIndex: Z.canvasOverlay,
+      zIndex: Z.hud,
       pointerEvents: 'none',
     }}>
       <button onClick={() => zoom(-1)} disabled={atMin} aria-label="Zoom in to next scale level" style={btnStyle(atMin)}>

@@ -335,8 +335,6 @@ export interface SceneProps {
   showDeepSky: boolean;
   showDeepSpace: boolean;
   constellationFocus: boolean;
-  /** Brief tour cue: brighten constellation lines/labels during Inner Planets cinematic. */
-  constellationTourPulse?: boolean;
   cinematic: boolean;
   cinematicRotateSpeed: number;
   onMoonSelect?: (planetIdx: number, moonIdx: number) => void;
@@ -371,7 +369,7 @@ export default function Scene({
   focusTarget, onPositionsUpdate, showDwarf,
   showStars, showConstellations, constellationRevealTick, showAsterisms, showAsteroidBelt,
   showComets, showMeteors, showSatellites, showDeepSky, showDeepSpace,
-  constellationFocus, constellationTourPulse = false, cinematic, cinematicRotateSpeed, onMoonSelect, selMoonIdx, onCameraDistance, cameraDistance, camPreset,
+  constellationFocus, cinematic, cinematicRotateSpeed, onMoonSelect, selMoonIdx, onCameraDistance, cameraDistance, camPreset,
   showBodyGlyphs = false,
   selComet, setSelComet, selMeteor, setSelMeteor, selSatellite, setSelSatellite,
   selSpacecraft, setSelSpacecraft, selNearStar, setSelNearStar, selGalaxy, setSelGalaxy, onSunSelect, aimAtSphere,
@@ -464,8 +462,8 @@ export default function Scene({
         accent={accentColor}
         immersive={immersiveSky}
       />
-      <ConstellationLines visible={showConstellations && cameraDistance < 600} focus={constellationFocus} tourPulse={constellationTourPulse} revealTick={constellationRevealTick} onLoad={() => onLoadComplete?.('constellationLines')} selectedId={selConstellationId} />
-      <ConstellationLabels visible={showConstellations && cameraDistance < 600} focus={constellationFocus} tourPulse={constellationTourPulse} revealTick={constellationRevealTick} onSelect={onConstellationSelect} onLoad={() => onLoadComplete?.('constellations')} selectedId={selConstellationId} accent={accentColor} />
+      <ConstellationLines visible={showConstellations && cameraDistance < 600} focus={constellationFocus} revealTick={constellationRevealTick} onLoad={() => onLoadComplete?.('constellationLines')} selectedId={selConstellationId} />
+      <ConstellationLabels visible={showConstellations && cameraDistance < 600} focus={constellationFocus} revealTick={constellationRevealTick} onSelect={onConstellationSelect} onLoad={() => onLoadComplete?.('constellations')} selectedId={selConstellationId} accent={accentColor} />
       <AsterismField visible={showAsterisms && cameraDistance < 600} onSelect={onAsterismSelect} />
       <DeepSkyField
         visible={showDeepSky}

@@ -3,8 +3,9 @@
  *
  * Main component: state management, effects, Canvas composition.
  * 3D scene in scene/, UI overlays in ui/.
- * Cinematic tour: time-bounded constellation pulse on Inner Planets; after Earth exit,
- * enables Sky mode with a short hint and a delayed Sky-toggle pulse (after pulse window).
+ * Cinematic tour: constellations stay hidden through the Deep Space → Solar System →
+ * Inner Planets sweep and only appear when the camera lands on Earth, alongside the
+ * Sky-mode hint and a Sky-toggle pulse.
  */
 
 import { useEffect, useState, useRef, useMemo, useCallback, Suspense } from 'react';
@@ -235,13 +236,9 @@ function OrreryInner() {
   const [cinematicRotateSpeed, setCinematicRotateSpeed] = useState(0.5);
   const [showSkyModeHint, setShowSkyModeHint] = useState(false);
   const [pulseSkyToggle, setPulseSkyToggle] = useState(false);
-  const [constellationTourPulse, setConstellationTourPulse] = useState(false);
   const [constellationRevealTick, setConstellationRevealTick] = useState(0);
   const positionsRef = useRef(new Map<number, [number, number, number]>());
-  /** Cleared after Inner Planets cue so Sky-toggle pulse can wait for constellation emphasis. */
-  const constellationPulseUntilRef = useRef(0);
   const skyCueTimeoutsRef = useRef<number[]>([]);
-  const innerPlanetsPulseTimerRef = useRef(0);
 
   const clearSkyCueTimeouts = useCallback(() => {
     skyCueTimeoutsRef.current.forEach((id) => window.clearTimeout(id));
@@ -250,7 +247,6 @@ function OrreryInner() {
 
   useEffect(() => () => {
     clearSkyCueTimeouts();
-    if (innerPlanetsPulseTimerRef.current) window.clearTimeout(innerPlanetsPulseTimerRef.current);
   }, [clearSkyCueTimeouts]);
 
   const jd = useMemo(() => julianDate(simTime), [simTime]);
@@ -261,10 +257,11 @@ function OrreryInner() {
 
   // ─── Cinematic: tight highlight reel through scale levels ────────────────────
   const cinematicSteps = useMemo((): CinematicStep[] => [
-    { ...CINEMATIC_DEFAULTS, camPreset: 9, duration: 2000, label: 'Deep Space', deepSky: true, deepSpace: true, dwarf: true, constellations: true, constellationFocus: true, autoRotateSpeed: 0.14 },
+    { ...CINEMATIC_DEFAULTS, camPreset: 9, duration: 2000, label: 'Deep Space', deepSky: true, deepSpace: true, dwarf: true, autoRotateSpeed: 0.14 },
     { ...CINEMATIC_DEFAULTS, camPreset: 1, duration: 5000, label: 'Solar System', asteroidBelt: true, dwarf: true, autoRotateSpeed: 0.2 },
-    // Briefly reveal stargazing overlays as we transition into the inner system.
-    { ...CINEMATIC_DEFAULTS, camPreset: 0, duration: 4000, label: 'Inner Planets', asteroidBelt: true, constellations: true, deepSky: true, constellationFocus: true, autoRotateSpeed: 0.3 },
+    // Constellations stay off through Inner Planets — they're saved as the
+    // climactic reveal when the camera lands on Earth (see exitCinematic).
+    { ...CINEMATIC_DEFAULTS, camPreset: 0, duration: 4000, label: 'Inner Planets', asteroidBelt: true, deepSky: true, autoRotateSpeed: 0.3 },
     { ...CINEMATIC_DEFAULTS, focusPlanet: 2, duration: 5000, label: 'Earth', autoRotateSpeed: 0.5 },
   ], []);
 
@@ -289,11 +286,6 @@ function OrreryInner() {
 
   // Leave cinematic and clear all selection state; default lands on Earth focus.
   const exitCinematic = useCallback((target: ExitTarget = { kind: 'planet', idx: 2, label: 'Earth' }) => {
-    if (innerPlanetsPulseTimerRef.current) {
-      window.clearTimeout(innerPlanetsPulseTimerRef.current);
-      innerPlanetsPulseTimerRef.current = 0;
-    }
-    setConstellationTourPulse(false);
     setPanelOpen(false);
     // Invalidate any pending dice-roll aim resolve so a Promise that resolves
     // after cinematic exit can't pull the camera to a stale constellation.
@@ -309,13 +301,13 @@ function OrreryInner() {
       setShowSkyModeHint(true);
       const hintId = window.setTimeout(() => setShowSkyModeHint(false), 2200);
       skyCueTimeoutsRef.current.push(hintId);
-      // Pulse Sky toggle only after Inner Planets constellation cue window ends (or a short grace if skipped).
-      const waitMs = Math.max(0, constellationPulseUntilRef.current - Date.now()) + 200;
+      // Short grace so the constellation reveal animation reads before the
+      // Sky-toggle starts pulsing.
       const pulseOnId = window.setTimeout(() => {
         setPulseSkyToggle(true);
         const pulseOffId = window.setTimeout(() => setPulseSkyToggle(false), 5200);
         skyCueTimeoutsRef.current.push(pulseOffId);
-      }, waitMs);
+      }, 200);
       skyCueTimeoutsRef.current.push(pulseOnId);
     }
 
@@ -384,20 +376,6 @@ function OrreryInner() {
     if (step.meteors !== undefined) setShowMeteors(() => step.meteors!);
     setCinematicRotateSpeed(step.autoRotateSpeed ?? 0.5);
 
-    if (innerPlanetsPulseTimerRef.current) {
-      window.clearTimeout(innerPlanetsPulseTimerRef.current);
-      innerPlanetsPulseTimerRef.current = 0;
-    }
-    if (step.label === 'Inner Planets') {
-      constellationPulseUntilRef.current = Date.now() + 3200;
-      setConstellationTourPulse(true);
-      innerPlanetsPulseTimerRef.current = window.setTimeout(() => {
-        setConstellationTourPulse(false);
-        innerPlanetsPulseTimerRef.current = 0;
-      }, 3200);
-    } else {
-      setConstellationTourPulse(false);
-    }
   }, [cinematicSteps]);
 
   const startCinematicTour = useCallback(() => {
@@ -1140,7 +1118,6 @@ function OrreryInner() {
             accentColor={theme.uiAccent}
             aimAtSphere={aimAtSphere}
             constellationFocus={constellationFocus}
-            constellationTourPulse={constellationTourPulse}
             cinematic={cinematic}
             cinematicRotateSpeed={cinematicRotateSpeed}
             onMoonSelect={handleMoonSelect}

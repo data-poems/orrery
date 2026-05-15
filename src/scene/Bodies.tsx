@@ -259,7 +259,14 @@ export function Planet({ planet, T, selected, onSelect, hovered, onHover, moonFo
       (2 * distanceToCamera * Math.tan(THREE.MathUtils.degToRad(perspectiveCamera.fov / 2))) /
       size.height;
     const distanceAwareRadius = MIN_PLANET_HIT_SCREEN_PX * worldUnitsPerPixel;
-    hitRef.current.scale.setScalar(Math.max(baseHitRadius, distanceAwareRadius));
+    const desiredRadius = Math.max(baseHitRadius, distanceAwareRadius);
+
+    // Prevent "can't click anything while zoomed in" failures: if the camera
+    // ends up inside a planet's invisible hit sphere, every ray hits that same
+    // sphere first. Clamp radius so the pick proxy can never envelop camera.
+    const minPhysicalRadius = Math.max(r * 1.05, 0.035);
+    const cameraSafeMax = Math.max(minPhysicalRadius, distanceToCamera * 0.85);
+    hitRef.current.scale.setScalar(Math.min(desiredRadius, cameraSafeMax));
   });
 
   return (

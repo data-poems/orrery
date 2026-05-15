@@ -71,6 +71,29 @@ function Stat({ label, val, c }: { label: string; val: string | number; c?: stri
   );
 }
 
+const EARTH_ORBITAL_PERIOD_DAYS = 365.25;
+const EARTH_GRAVITY_MPS2 = 9.80665;
+
+function formatEarthRelativePeriod(periodDays: number): string {
+  const earthYears = periodDays / EARTH_ORBITAL_PERIOD_DAYS;
+  if (!Number.isFinite(earthYears) || earthYears <= 0) return '—';
+  if (earthYears < 0.1) return `${earthYears.toFixed(2)}x Earth year`;
+  if (earthYears < 10) return `${earthYears.toFixed(1)}x Earth year`;
+  return `${earthYears.toFixed(0)}x Earth year`;
+}
+
+function formatEarthRelativeGravity(gravity: string | undefined): string {
+  if (!gravity) return '—';
+  const match = gravity.match(/-?\d+(\.\d+)?/);
+  if (!match) return gravity;
+  const mps2 = Number(match[0]);
+  if (!Number.isFinite(mps2)) return gravity;
+  const g = mps2 / EARTH_GRAVITY_MPS2;
+  if (g < 0.1) return `${g.toFixed(2)}x Earth`;
+  if (g < 10) return `${g.toFixed(1)}x Earth`;
+  return `${g.toFixed(0)}x Earth`;
+}
+
 // ─── Zoom controls (jumps between camera scale-level presets) ───────────────────
 
 const ZOOM_LEVEL_LABELS = ['Sun', 'Inner', 'System', 'Outer', 'Kuiper', 'Oort', 'Stellar'] as const;
@@ -600,11 +623,13 @@ export default function Panels(props: PanelProps) {
     ? getMoonsForPlanet(selPlanet)[selMoonIdx]
     : null;
   const planetStats = !selectedMoon && sp ? [
-    { label: 'Distance', value: `${sp.distAU} AU` },
-    { label: 'Period', value: sp.period < 365 ? `${sp.period.toFixed(0)} days` : `${(sp.period / 365.25).toFixed(1)} years` },
-    sp.gravity ? { label: 'Gravity', value: sp.gravity } : null,
-    sp.surfaceTemp ? { label: 'Temp', value: sp.surfaceTemp } : null,
+    { label: 'Type', value: sp.type },
     { label: 'Moons', value: String(sp.moons) },
+    { label: 'Period', value: formatEarthRelativePeriod(sp.period) },
+    { label: 'Gravity', value: formatEarthRelativeGravity(sp.gravity) },
+    sp.surfaceTemp ? { label: 'Temp', value: sp.surfaceTemp } : null,
+    // Distance kept in the least-prominent slot per UX request.
+    { label: 'Distance', value: `${sp.distAU} AU` },
   ].filter((item): item is { label: string; value: string } => item !== null) : [];
   const moonStats = selectedMoon ? [
     { label: 'Orbital period', value: selectedMoon.period < 1 ? `${(selectedMoon.period * 24).toFixed(1)} hours` : `${selectedMoon.period.toFixed(1)} days` },
@@ -943,7 +968,12 @@ export default function Panels(props: PanelProps) {
             <div id={detailsBodyId}>
               {/* Stats grid */}
               {!selectedMoon && !selSun && planetStats.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginTop: 8 }}>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: mobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(3, minmax(0, 1fr))',
+                  gap: 6,
+                  marginTop: 8,
+                }}>
                   {planetStats.map((item) => (
                     <div key={item.label} style={{ padding: '6px 7px', borderRadius: 6, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
                       <div style={{ color: 'rgba(255,255,255,0.68)', fontSize: 9, letterSpacing: 1.1, textTransform: 'uppercase' }}>{item.label}</div>

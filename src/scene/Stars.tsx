@@ -176,13 +176,18 @@ function bayerToGreek(bayer: string): string | null {
 
 function useStarData(visible: boolean): StarData | null {
   const [data, setData] = useState<StarData | null>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!visible || data) return;
-    fetch(BASE_PATH + 'stars.hyg-8.json')
+    const catalog = isMobile ? 'stars.mobile.json' : 'stars.hyg-8.json';
+    fetch(BASE_PATH + catalog)
       .then(r => r.json())
       .then((geojson: StarGeoJson) => {
-        const features = geojson.features;
+        const features = geojson.features.filter((f) => {
+          const mag = f.properties.mag ?? 6;
+          return !(isMobile && mag > 6.5);
+        });
         const count = features.length;
         const positions = new Float32Array(count * 3);
         const sizes = new Float32Array(count);
@@ -254,7 +259,7 @@ function useStarData(visible: boolean): StarData | null {
         setData({ positions, sizes, colors, count, namedStars, bayerStars, constellationCodes, constellationCodeMap });
       })
       .catch(() => {});
-  }, [visible, data]);
+  }, [visible, data, isMobile]);
 
   return data;
 }

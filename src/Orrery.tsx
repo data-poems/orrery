@@ -11,7 +11,7 @@
 import { useEffect, useState, useRef, useMemo, useCallback, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import * as THREE from 'three';
-import { ALL_BODIES, CAMS, camIndex } from './data/planets';
+import { ALL_BODIES, CAMS, CAM_PRESET_LAYER_EFFECTS, camIndex } from './data/planets';
 import { getMoonsForPlanet } from './data/moons';
 import type { NEO, FocusTarget } from './lib/kepler';
 import { julianDate, moonPhase, raDecTo3D } from './lib/kepler';
@@ -26,6 +26,8 @@ import { getConstellationCentroid, prefetchConstellationCentroids } from './lib/
 import Scene from './scene/Scene';
 import Panels from './ui/Panels';
 import LoadingScreen from './ui/LoadingScreen';
+import OrreryDiagOverlay from './ui/OrreryDiagOverlay';
+import { neoFeedUrlForDay } from './lib/neoFeed';
 import { OBSERVATORY_MODE } from './lib/mode';
 
 /** Curated famous deep-sky objects used by the random tour. IDs must exist in
@@ -65,7 +67,10 @@ const FAMOUS_CONSTELLATIONS: ReadonlyArray<string> = [
 ];
 
 type CinematicStep = {
-  camPreset?: number; focusPlanet?: number; focusMoon?: number;
+  /** Preferred — resolves via `camIndex(label)` instead of fragile array index. */
+  presetLabel?: string;
+  camPreset?: number;
+  focusPlanet?: number; focusMoon?: number;
   duration: number; label: string;
   desc?: string;
   stars?: boolean;
@@ -159,6 +164,7 @@ function fallbackOrbitForNeo(neo: NEO): NeoOrbit {
     ma: 0,
     epoch: 2451545,
     loaded: true,
+    synthetic: true,
   };
 }
 
@@ -215,6 +221,9 @@ function OrreryInner() {
   const [playing, setPlaying] = useState(true);
   const [focusTarget, setFocusTarget] = useState<FocusTarget | null>(null);
   const [canvasCreated, setCanvasCreated] = useState(false);
+  const [canvasKey, setCanvasKey] = useState(0);
+  const glCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const tabHiddenRef = useRef(false);
   const [loadingTasks, setLoadingTasks] = useState<Record<string, boolean>>({
     stars: false,
     deepsky: false,
@@ -272,11 +281,11 @@ function OrreryInner() {
 
   // ─── Cinematic: tight highlight reel through scale levels ────────────────────
   const cinematicSteps = useMemo((): CinematicStep[] => [
-    { ...CINEMATIC_DEFAULTS, camPreset: 9, duration: 2000, label: 'Deep Space', deepSky: true, deepSpace: true, dwarf: true, autoRotateSpeed: 0.14 },
-    { ...CINEMATIC_DEFAULTS, camPreset: 1, duration: 5000, label: 'Solar System', asteroidBelt: true, dwarf: true, autoRotateSpeed: 0.2 },
+    { ...CINEMATIC_DEFAULTS, presetLabel: 'Oort', duration: 2000, label: 'Deep Space', deepSky: true, deepSpace: true, dwarf: true, autoRotateSpeed: 0.14 },
+    { ...CINEMATIC_DEFAULTS, presetLabel: 'System', duration: 5000, label: 'Solar System', asteroidBelt: true, dwarf: true, autoRotateSpeed: 0.2 },
     // Constellations stay off through Inner Planets — they're saved as the
     // climactic reveal when the camera lands on Earth (see exitCinematic).
-    { ...CINEMATIC_DEFAULTS, camPreset: 0, duration: 4000, label: 'Inner Planets', asteroidBelt: true, deepSky: true, autoRotateSpeed: 0.3 },
+    { ...CINEMATIC_DEFAULTS, presetLabel: 'Inner', duration: 4000, label: 'Inner Planets', asteroidBelt: true, deepSky: true, autoRotateSpeed: 0.3 },
     { ...CINEMATIC_DEFAULTS, focusPlanet: 2, duration: 5000, label: 'Earth', autoRotateSpeed: 0.5 },
   ], []);
 
@@ -375,7 +384,12 @@ function OrreryInner() {
     } else {
       setSelPlanet(null);
       setFocusTarget(null);
-      if (step.camPreset !== undefined) setCamIdx(step.camPreset);
+      if (step.presetLabel !== undefined) {
+        const idx = camIndex(step.presetLabel);
+        if (idx >= 0) setCamIdx(idx);
+      } else if (step.camPreset !== undefined) {
+        setCamIdx(step.camPreset);
+      }
     }
 
     if (step.stars !== undefined) setShowStars(() => step.stars!);
@@ -405,18 +419,18 @@ function OrreryInner() {
     setCinematic(true);
   }, [applyCinematicStep, setPanelOpen]);
 
-  // Cinematic timer — poll-based to avoid fragile setTimeout chains
+  // Cinematic timer — poll-based; pauses while tab is hidden
+  const cinematicHiddenAt = useRef<number | null>(null);
   useEffect(() => {
     if (!cinematic || !sceneReady) return;
 
-    // Use setInterval to poll elapsed time — robust against React re-renders
     const id = setInterval(() => {
+      if (tabHiddenRef.current) return;
       const elapsed = Date.now() - cinematicStart.current;
       const dur = cinematicSteps[cinematicIdx.current].duration;
       if (elapsed >= dur) {
         const next = cinematicIdx.current + 1;
         if (next >= cinematicSteps.length) {
-          // Tour complete — exit to interactive (Earth focus)
           exitCinematic();
         } else {
           cinematicIdx.current = next;
@@ -428,6 +442,24 @@ function OrreryInner() {
 
     return () => clearInterval(id);
   }, [cinematic, sceneReady, applyCinematicStep, cinematicSteps, exitCinematic]);
+
+  useEffect(() => {
+    const onVisibility = () => {
+      const hidden = document.visibilityState === 'hidden';
+      tabHiddenRef.current = hidden;
+      if (hidden) {
+        cinematicHiddenAt.current = Date.now();
+        return;
+      }
+      if (cinematicHiddenAt.current !== null && cinematic) {
+        const pauseMs = Date.now() - cinematicHiddenAt.current;
+        cinematicStart.current += pauseMs;
+        cinematicHiddenAt.current = null;
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [cinematic]);
 
   // Observatory mode: anchor camera at Earth's position via the Earth Observer preset.
   // Fires once — `observatoryEntered` ref prevents re-entry on subsequent renders.
@@ -453,10 +485,13 @@ function OrreryInner() {
     positionsRef.current = m;
   }, []);
 
-  // Time tick (~60fps)
+  // Time tick (~60fps) — skipped while tab is hidden
   useEffect(() => {
     if (!playing) return;
-    const id = setInterval(() => setSimTime(p => new Date(p.getTime() + speed * 16)), 16);
+    const id = setInterval(() => {
+      if (tabHiddenRef.current) return;
+      setSimTime(p => new Date(p.getTime() + speed * 16));
+    }, 16);
     return () => clearInterval(id);
   }, [playing, speed]);
 
@@ -467,7 +502,7 @@ function OrreryInner() {
     const day = neoCacheKey.slice(4);
     let cancelled = false;
 
-    fetch(`https://api.nasa.gov/neo/rest/v1/feed?start_date=${day}&end_date=${day}&api_key=DEMO_KEY`)
+    fetch(neoFeedUrlForDay(day))
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
@@ -695,40 +730,18 @@ function OrreryInner() {
       setFocusTarget(null);
       setNavStack(['Solar System']);
     }
-    // Screensaver preset: enable constellations + stars for ambient display
     if (preset.autoRotate && preset.follow !== undefined) {
       setShowStars(true);
       setShowConstellations(true);
     }
-    // Stargazer preset: enable stars, constellations, deep sky in focus mode
-    if (preset.label === 'Stargazer') {
-      setShowStars(true);
-      setShowConstellations(true);
-      setConstellationFocus(true);
-      setShowDeepSky(true);
-    }
-    // Deep-space presets: auto-enable required layers
-    if (preset.label === 'Oort') {
-      setShowDeepSpace(true);
-      setShowDeepSky(true);
-      setShowDwarf(true);
-    }
-    if (preset.label === 'Kuiper') {
-      setShowDwarf(true);
-      setShowDeepSky(true);
-    }
-    if (preset.label === 'Outer') {
-      setShowDwarf(true);
-    }
-    if (preset.label === 'Belt') {
-      setShowAsteroidBelt(true);
-    }
-    if (preset.label === 'Stellar') {
-      setShowDeepSpace(true);
-      setShowDeepSky(true);
-      setShowDwarf(true);
-      setShowStars(true);
-    }
+    const fx = CAM_PRESET_LAYER_EFFECTS[preset.label];
+    if (fx?.stars !== undefined) setShowStars(fx.stars);
+    if (fx?.constellations !== undefined) setShowConstellations(fx.constellations);
+    if (fx?.deepSky !== undefined) setShowDeepSky(fx.deepSky);
+    if (fx?.deepSpace !== undefined) setShowDeepSpace(fx.deepSpace);
+    if (fx?.dwarf !== undefined) setShowDwarf(fx.dwarf);
+    if (fx?.asteroidBelt !== undefined) setShowAsteroidBelt(fx.asteroidBelt);
+    if (fx?.constellationFocus !== undefined) setConstellationFocus(fx.constellationFocus);
   }, []);
 
   const jumpToPreset = useCallback((label: string) => {
@@ -827,6 +840,17 @@ function OrreryInner() {
       setSelNearStar(null);
       setSelGalaxy(null);
       setSelConstellation(null);
+      setSelDeepSky(null);
+    };
+
+    const enableSkyTourLayers = () => {
+      setShowStars(true);
+      setShowConstellations(true);
+      setShowDeepSky(true);
+      setConstellationFocus(true);
+      setCamIdx(-1);
+      setSelPlanet(null);
+      setFocusTarget(null);
     };
 
     switch (target.kind) {
@@ -855,14 +879,9 @@ function OrreryInner() {
         return;
       case 'constellation': {
         setSelSun(false);
-        setSelPlanet(null);
         setSelMoonIdx(null);
-        setSelSpacecraft(null);
-        setSelNearStar(null);
-        setSelGalaxy(null);
-        setFocusTarget(null);
-        jumpToPreset('Stargazer');
-        setConstellationFocus(true);
+        clearObjectSelections();
+        enableSkyTourLayers();
         setSelConstellation(target.id);
         setNavStack(['Solar System', CONSTELLATION_NAMES[target.id] ?? target.id]);
         // Aim the camera at the constellation centroid (async fetch is cached
@@ -921,20 +940,9 @@ function OrreryInner() {
       case 'dso': {
         const dso = FAMOUS_DSO[target.idx];
         setSelSun(false);
-        setSelPlanet(null);
         setSelMoonIdx(null);
-        setSelConstellation(null);
-        setSelSpacecraft(null);
-        setSelNearStar(null);
-        setSelGalaxy(null);
-        setFocusTarget(null);
-        // Sky-mode + Stargazer preset puts us inside the celestial sphere; the
-        // aim-at-sphere override then lerps the camera onto the line through
-        // the DSO so it's centered when settling completes.
-        setShowDeepSky(true);
-        setShowStars(true);
-        jumpToPreset('Stargazer');
-        setConstellationFocus(true);
+        clearObjectSelections();
+        enableSkyTourLayers();
         setSelDeepSky(dso.id);
         setAimAtSphere(raDecTo3D(dso.ra, dso.dec, CELESTIAL_SPHERE_RADIUS, false));
         setNavStack(['Solar System', dso.name]);
@@ -1065,6 +1073,44 @@ function OrreryInner() {
 
   const accentRgb = theme.uiAccentRgb;
 
+  const handleUserGrabDuringCinematic = useCallback(() => {
+    if (cinematic) exitCinematic();
+  }, [cinematic, exitCinematic]);
+
+  const reloadLoadingTasks = useCallback(() => {
+    setLoadingTasks({
+      stars: false,
+      deepsky: false,
+      asteroids: false,
+      constellations: false,
+      constellationLines: false,
+      comets: false,
+      meteors: false,
+      satellites: false,
+    });
+  }, []);
+
+  useEffect(() => {
+    const canvas = glCanvasRef.current;
+    if (!canvas) return;
+    const onLost = (e: Event) => {
+      e.preventDefault();
+      setPlaying(false);
+      setCinematic(false);
+      reloadLoadingTasks();
+    };
+    const onRestored = () => {
+      reloadLoadingTasks();
+      setCanvasKey(k => k + 1);
+    };
+    canvas.addEventListener('webglcontextlost', onLost);
+    canvas.addEventListener('webglcontextrestored', onRestored);
+    return () => {
+      canvas.removeEventListener('webglcontextlost', onLost);
+      canvas.removeEventListener('webglcontextrestored', onRestored);
+    };
+  }, [canvasCreated, reloadLoadingTasks]);
+
   return (
     <div
       style={{
@@ -1081,16 +1127,18 @@ function OrreryInner() {
       onClick={handleCinematicClick}
     >
       <Canvas
+        key={canvasKey}
         dpr={[1, 1.5]}
         camera={{
           position: OBSERVATORY_MODE ? [1, 0.001, 0] : [0, 3, 4],
           fov: 55,
-          near: 0.005,
+          near: 0.02,
           far: 250000,
         }}
         style={{ position: 'absolute', inset: 0 }}
         gl={{ antialias: true, logarithmicDepthBuffer: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.2 }}
-        onCreated={() => {
+        onCreated={({ gl }) => {
+          glCanvasRef.current = gl.domElement;
           setCanvasCreated(true);
           if (cinematic) startCinematicTour();
         }}
@@ -1148,11 +1196,19 @@ function OrreryInner() {
             selNearStar={selNearStar} setSelNearStar={setSelNearStar}
             selGalaxy={selGalaxy} setSelGalaxy={setSelGalaxy}
             onSunSelect={handleSunSelect}
+            onUserGrabDuringCinematic={handleUserGrabDuringCinematic}
           />
         </Suspense>
       </Canvas>
 
-      <LoadingScreen ready={sceneReady} progress={loadingProgress} />
+      <OrreryDiagOverlay />
+
+      <LoadingScreen
+        ready={sceneReady}
+        progress={loadingProgress}
+        loadingTasks={loadingTasks}
+        onReload={reloadLoadingTasks}
+      />
 
       <Panels
         simTime={simTime} moon={moon} solarWind={solarWind}

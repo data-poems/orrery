@@ -6,11 +6,17 @@ import { useMemo, useRef } from 'react';
 import { useFrame, useLoader, useThree } from '@react-three/fiber';
 import { Html, Line } from '@react-three/drei';
 import * as THREE from 'three';
-import { TEX } from '../data/planets';
+import { buildTextureUrls } from '../data/planets';
+import { useIsMobile } from '../ui/styles';
 import { BODY_SYMBOLS } from '../data/body-symbols';
 import type { PlanetDef } from '../lib/kepler';
 import { planetXYZ, orbitPath } from '../lib/kepler';
 import type { MoonDef } from '../data/moons';
+
+function useTextures() {
+  const isMobile = useIsMobile();
+  return useMemo(() => buildTextureUrls(isMobile), [isMobile]);
+}
 
 // ─── Sun ────────────────────────────────────────────────────────────────────────
 
@@ -82,6 +88,7 @@ export function Sun({
   onSelect?: () => void;
 }) {
   const ref = useRef<THREE.Mesh>(null);
+  const TEX = useTextures();
   const tex = useLoader(THREE.TextureLoader, TEX.sun);
   useFrame((_, dt) => {
     if (ref.current) ref.current.rotation.y += dt * 0.02;
@@ -141,6 +148,7 @@ function moonLabelScale(radius: number) {
 
 function EarthClouds({ radius }: { radius: number }) {
   const ref = useRef<THREE.Mesh>(null);
+  const TEX = useTextures();
   const cloudTex = useLoader(THREE.TextureLoader, TEX.earthClouds);
   useFrame((_, dt) => { if (ref.current) ref.current.rotation.y += dt * 0.18; });
   return (
@@ -228,6 +236,7 @@ export function Planet({ planet, T, selected, onSelect, hovered, onHover, moonFo
   const worldPosRef = useRef(new THREE.Vector3());
   const { camera, size } = useThree();
   const pos = useMemo(() => planetXYZ(planet, T), [planet, T]);
+  const TEX = useTextures();
   const tex = useLoader(THREE.TextureLoader, TEX[planet.tex]);
   const r = planet.radius;
   const labelScale = planetLabelScale(r);
@@ -337,6 +346,7 @@ export function Satellite({ moon, parentPos, jd, selected, onSelect, hovered, on
   const inc = (moon.i || 0) * (Math.PI / 180);
 
   const isEarthMoon = moon.name === 'Moon' && moon.parent === 2;
+  const TEX = useTextures();
   const tex = useLoader(THREE.TextureLoader, isEarthMoon ? TEX.moon : TEX.mercury);
 
   const pos: [number, number, number] = [

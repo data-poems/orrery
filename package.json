@@ -12,6 +12,7 @@
     "ios:compile": "pnpm ios:sync && xcodebuild -project ios/App/App.xcodeproj -scheme Orrery -destination 'generic/platform=iOS' -configuration Debug build CODE_SIGNING_ALLOWED=NO",
     "ios:open": "cap open ios",
     "lint": "eslint .",
+    "test": "vitest run",
     "preview": "vite preview",
     "prebake": "tsx scripts/prebake.ts"
   },
@@ -39,9 +40,11 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
+    "jsdom": "^29.1.1",
     "tsx": "^4.21.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.56.1",
-    "vite": "^8.0.0"
+    "vite": "^8.0.0",
+    "vitest": "^4.1.6"
   }
 }

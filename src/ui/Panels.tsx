@@ -275,6 +275,13 @@ function AboutDialog({ open, onClose, accent, accentRgb }: {
     color: `rgba(${accentRgb},0.78)`,
   };
 
+  const licenseNotes = [
+    { label: 'HYG star catalog · CC BY-SA 4.0', href: 'https://creativecommons.org/licenses/by-sa/4.0/' },
+    { label: 'OpenNGC deep sky · CC BY-SA 4.0', href: 'https://creativecommons.org/licenses/by-sa/4.0/' },
+    { label: 'd3-celestial constellations · BSD-3-Clause', href: 'https://github.com/ofrohn/d3-celestial/blob/master/LICENSE' },
+    { label: 'Solar System Scope textures · CC BY 4.0', href: 'https://creativecommons.org/licenses/by/4.0/' },
+  ] as const;
+
   const catalogSources = [
     { label: '41,119 stars · HYG Database', href: 'https://astronexus.com/projects/hyg' },
     { label: '88 constellations · IAU / d3-celestial', href: 'https://github.com/ofrohn/d3-celestial' },
@@ -361,6 +368,21 @@ function AboutDialog({ open, onClose, accent, accentRgb }: {
             </a>
           </div>
         ))}
+
+        <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginTop: 16, marginBottom: 8 }}>Licenses</div>
+        {licenseNotes.map((source) => (
+          <div key={source.label}>
+            <a href={source.href} target="_blank" rel="noopener noreferrer" style={sourceLinkStyle}>
+              {source.label}
+            </a>
+          </div>
+        ))}
+
+        <div style={{ marginTop: 16, textAlign: 'center' }}>
+          <a href={`${import.meta.env.BASE_URL}privacy.html`} target="_blank" rel="noopener noreferrer" style={liveLinkStyle}>
+            Privacy policy
+          </a>
+        </div>
 
         <div style={{ marginTop: 24, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <a href="https://lukesteuber.com" target="_blank" rel="noopener noreferrer" style={{ color: accent, fontSize: 14, textDecoration: 'none', fontWeight: 400 }}>lukesteuber.com</a>
@@ -534,7 +556,8 @@ export interface PanelProps {
 export default function Panels(props: PanelProps) {
   const {
     simTime: _simTime, moon, solarWind, speed: _speed,
-    selPlanet, setSelPlanet: _setSelPlanet, neos: _neos, neoStatus: _neoStatus, selNeo, setSelNeo,
+    selPlanet, setSelPlanet: _setSelPlanet, neos: _neos, neoStatus, selNeo, setSelNeo,
+    showNeo,
     setShowNeo: _setShowNeo,
     setShowDwarf: _setShowDwarf,
     showStars: _showStars, setShowStars,
@@ -567,7 +590,7 @@ export default function Panels(props: PanelProps) {
     onJumpToGalaxy,
     onRandomJump,
   } = props;
-  void _setShowNeo; void _simTime; void _speed; void _setSelPlanet; void _neos; void _neoStatus; void _setShowDwarf; void _showStars; void _showConstellations;
+  void _setShowNeo; void _simTime; void _speed; void _setSelPlanet; void _neos; void _setShowDwarf; void _showStars; void _showConstellations;
   void _setShowAsterisms; void _setShowAsteroidBelt; void _setShowComets;
   void _setShowMeteors; void _setShowSatellites; void _showDeepSky;
   void _panelOpen; void _setPanelOpen; void _setShowDeepSpace;
@@ -1034,6 +1057,20 @@ export default function Panels(props: PanelProps) {
         </div>
       )}
 
+      {showNeo && neoStatus === 'error' && !cinematic && (
+        <div
+          role="status"
+          style={{
+            position: 'absolute', bottom: mobile ? 120 : 108, left: '50%', transform: 'translateX(-50%)',
+            ...bokehCard, padding: '10px 16px', zIndex: Z.controls, maxWidth: 360, textAlign: 'center',
+          }}
+        >
+          <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, fontWeight: 300 }}>
+            Near-Earth object feed unavailable. Check your connection or try again later.
+          </div>
+        </div>
+      )}
+
       {/* ── Selected NEO detail (hidden during cinematic tour) ── */}
       {selNeo && !cinematic && (
         <div
@@ -1058,13 +1095,18 @@ export default function Panels(props: PanelProps) {
             <Stat label="Miss distance" val={`${selNeo.missLunar.toFixed(1)} LD`} />
             <Stat label="Velocity" val={`${selNeo.velKms.toFixed(1)} km/s`} />
             <Stat label="Close approach" val={selNeo.date} />
-            {selNeo.orbit?.loaded && (
+            {selNeo.orbit?.loaded && !selNeo.orbit.synthetic && (
               <>
                 <Stat label="Semi-major axis" val={`${selNeo.orbit.a.toFixed(3)} AU`} c={accent} />
                 <Stat label="Eccentricity" val={selNeo.orbit.e.toFixed(4)} c={accent} />
                 <Stat label="Inclination" val={`${selNeo.orbit.i.toFixed(2)}\u00b0`} c={accent} />
                 <Stat label="Orbit shown" val="in scene" c={accent} />
               </>
+            )}
+            {selNeo.orbit?.loaded && selNeo.orbit.synthetic && (
+              <div style={{ gridColumn: '1/-1', color: 'rgba(255,200,120,0.9)', fontSize: 11, fontStyle: 'italic', lineHeight: 1.4 }}>
+                Approximate orbit — JPL SBDB unavailable
+              </div>
             )}
             {selNeo.orbit && !selNeo.orbit.loaded && (
               <div style={{ gridColumn: '1/-1', color: 'rgba(255,255,255,0.7)', fontSize: 9 }}>Loading orbital elements...</div>

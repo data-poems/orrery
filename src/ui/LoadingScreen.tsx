@@ -2,9 +2,7 @@
  * Loading overlay — visible until 3D scene is ready.
  * Film title card aesthetic: sparse, cinematic, minimal.
  *
- * In observatory mode, the fade is longer (1.4s vs 0.7s) so the handoff
- * to the interactive sky doesn't feel abrupt, and the catalog stats give
- * the user something to read while data loads.
+ * Watchdog: if loading stalls >8s, offer retry (up to 2) then full reload.
  */
 
 import { useState, useEffect } from 'react';
@@ -24,8 +22,23 @@ const ORRERY_STATS = [
   'live near-Earth objects',
 ];
 
-export default function LoadingScreen({ ready, progress = 0 }: { ready: boolean; progress?: number }) {
+const WATCHDOG_MS = 8000;
+const MAX_RETRIES = 2;
+
+export default function LoadingScreen({
+  ready,
+  progress = 0,
+  loadingTasks,
+  onReload,
+}: {
+  ready: boolean;
+  progress?: number;
+  loadingTasks?: Record<string, boolean>;
+  onReload?: () => void;
+}) {
   const [visible, setVisible] = useState(true);
+  const [stuck, setStuck] = useState(false);
+  const [retries, setRetries] = useState(0);
 
   useEffect(() => {
     if (ready) {
@@ -33,7 +46,9 @@ export default function LoadingScreen({ ready, progress = 0 }: { ready: boolean;
       const t = setTimeout(() => setVisible(false), holdMs);
       return () => clearTimeout(t);
     }
-  }, [ready]);
+    const t = setTimeout(() => setStuck(true), WATCHDOG_MS);
+    return () => clearTimeout(t);
+  }, [ready, retries]);
 
   if (!visible) return null;
 
@@ -41,6 +56,20 @@ export default function LoadingScreen({ ready, progress = 0 }: { ready: boolean;
   const tagline = OBSERVATORY_MODE ? 'Look up.' : 'Real data. Real time.';
   const stats = OBSERVATORY_MODE ? OBSERVATORY_STATS : ORRERY_STATS;
   const fadeMs = OBSERVATORY_MODE ? 1.4 : 0.7;
+
+  const pendingTasks = loadingTasks
+    ? Object.entries(loadingTasks).filter(([, done]) => !done).map(([k]) => k)
+    : [];
+
+  const handleReload = () => {
+    if (retries >= MAX_RETRIES) {
+      window.location.reload();
+      return;
+    }
+    setRetries(r => r + 1);
+    setStuck(false);
+    onReload?.();
+  };
 
   return (
     <div
@@ -57,12 +86,14 @@ export default function LoadingScreen({ ready, progress = 0 }: { ready: boolean;
         pointerEvents: ready ? 'none' : 'auto',
       }}
     >
-      <div style={{
-        color: 'rgba(255,255,255,0.55)',
-        fontSize: 32, letterSpacing: 12,
-        textTransform: 'uppercase', fontWeight: 300,
-        marginBottom: 14,
-      }}>
+      <div
+        style={{
+          color: 'rgba(255,255,255,0.55)',
+          fontSize: 32, letterSpacing: 12,
+          textTransform: 'uppercase', fontWeight: 300,
+          marginBottom: 14,
+        }}
+      >
         {title}
       </div>
 
@@ -100,6 +131,37 @@ export default function LoadingScreen({ ready, progress = 0 }: { ready: boolean;
       }}>
         {stats.map(s => <li key={s}>{s}</li>)}
       </ul>
+
+      {stuck && !ready && (
+        <div style={{ marginTop: 28, textAlign: 'center', maxWidth: 280 }}>
+          <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13, marginBottom: 12 }}>
+            Loading is taking longer than expected.
+            {pendingTasks.length > 0 && (
+              <span style={{ display: 'block', marginTop: 6, fontSize: 11 }}>
+                Waiting: {pendingTasks.join(', ')}
+              </span>
+            )}
+          </p>
+          <button
+            type="button"
+            onClick={handleReload}
+            style={{
+              background: 'rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              color: 'rgba(255,255,255,0.7)',
+              fontFamily: 'inherit',
+              fontSize: 12,
+              letterSpacing: 2,
+              textTransform: 'uppercase',
+              padding: '10px 20px',
+              cursor: 'pointer',
+              minHeight: 44,
+            }}
+          >
+            {retries >= MAX_RETRIES ? 'Reload page' : 'Retry loading'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

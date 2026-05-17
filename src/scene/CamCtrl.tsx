@@ -1,0 +1,323 @@
+/*
+ * Camera controller — three regimes (interactive, cinematic, observe) + aim-at-sphere.
+ * Sole writer of camera.position and OrbitControls.target during automated moves.
+ */
+
+import { useEffect, useRef, useCallback, type ElementRef } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
+import * as THREE from 'three';
+import { ALL_BODIES } from '../data/planets';
+import { getMoonsForPlanet } from '../data/moons';
+import type { CamPreset, FocusTarget } from '../lib/kepler';
+import { OBSERVATORY_MODE } from '../lib/mode';
+import {
+  getPositionsUpdatesPerSec,
+  isOrreryDiagEnabled,
+  publishOrreryDiag,
+} from '../lib/orreryDiag';
+
+const HOME_POS: [number, number, number] = [0, 30, 40];
+const HOME_TGT: [number, number, number] = [0, 0, 0];
+
+type CamPhase = 'idle' | 'settling' | 'tracking' | 'cinematic' | 'observing' | 'aiming';
+
+export interface CamCtrlProps {
+  focusTarget: FocusTarget | null;
+  positions: Map<number, [number, number, number]>;
+  cinematic: boolean;
+  camPreset?: CamPreset | null;
+  cinematicRotateSpeed: number;
+  onCameraDistance?: (d: number) => void;
+  aimAtSphere?: [number, number, number] | null;
+  onUserGrabDuringCinematic?: () => void;
+}
+
+export default function CamCtrl({
+  focusTarget,
+  positions,
+  cinematic,
+  camPreset,
+  cinematicRotateSpeed,
+  onCameraDistance,
+  aimAtSphere,
+  onUserGrabDuringCinematic,
+}: CamCtrlProps) {
+  const { camera } = useThree();
+  const ctrlRef = useRef<ElementRef<typeof OrbitControls> | null>(null);
+  const interactiveFreePreset = camPreset?.label === 'Stargazer';
+  const tPos = useRef(new THREE.Vector3(...HOME_POS));
+  const tLook = useRef(new THREE.Vector3(...HOME_TGT));
+  const settling = useRef(true);
+  const observeUserTook = useRef(false);
+  const prevTrackPos = useRef(new THREE.Vector3());
+  const lastDistanceReportRef = useRef(0);
+  const lastDistanceValueRef = useRef(0);
+  const presetTrackPos = useRef(new THREE.Vector3());
+  const lastTargetChange = useRef(0);
+  const phaseRef = useRef<CamPhase>('idle');
+  const frameSinceTargetRef = useRef(0);
+  const diagFramesRef = useRef(0);
+  const diagLastTRef = useRef(0);
+  const diagFpsRef = useRef(0);
+
+  const offsetFromAngle = useCallback((dist: number, angle: number, elevation: number): [number, number, number] => [
+    dist * Math.cos(elevation) * Math.cos(angle),
+    dist * Math.sin(elevation),
+    dist * Math.cos(elevation) * Math.sin(angle),
+  ], []);
+
+  const computeFocusOffset = useCallback((pp: [number, number, number]) => {
+    if (focusTarget === null) return;
+    if (focusTarget.moonIdx !== undefined) {
+      const moons = getMoonsForPlanet(focusTarget.planetIdx);
+      const moon = moons[focusTarget.moonIdx];
+      if (moon) {
+        const d = moon.radius * 15;
+        const [ox, oy, oz] = offsetFromAngle(d, 0.7, 0.4);
+        return { pos: [pp[0] + ox, pp[1] + oy, pp[2] + oz] as [number, number, number], look: pp };
+      }
+    } else {
+      const planet = ALL_BODIES[focusTarget.planetIdx];
+      const moons = getMoonsForPlanet(focusTarget.planetIdx);
+      const maxMoonA = moons.length > 0 ? Math.max(...moons.map(m => m.a)) : 0;
+      const d = Math.max(planet.radius * 8, maxMoonA * 2.5);
+      const [ox, oy, oz] = offsetFromAngle(d, 0.7, 0.4);
+      return { pos: [pp[0] + ox, pp[1] + oy, pp[2] + oz] as [number, number, number], look: pp };
+    }
+    return undefined;
+  }, [focusTarget, offsetFromAngle]);
+
+  const computePresetFollowOffset = useCallback((pp: [number, number, number], preset: CamPreset) => {
+    if (preset.observe) {
+      return {
+        pos: [pp[0] + 0.1, pp[1], pp[2]] as [number, number, number],
+        look: pp,
+      };
+    }
+    return {
+      pos: [pp[0] + preset.pos[0], pp[1] + preset.pos[1], pp[2] + preset.pos[2]] as [number, number, number],
+      look: pp,
+    };
+  }, []);
+
+  const planAimAtSphere = useCallback((target: [number, number, number]) => {
+    const [tx, ty, tz] = target;
+    const len = Math.hypot(tx, ty, tz);
+    if (len < 1e-6) return false;
+    const back = 8;
+    const k = Math.max(0, (len - back) / len);
+    tLook.current.set(tx, ty, tz);
+    tPos.current.set(tx * k, ty * k, tz * k);
+    phaseRef.current = 'aiming';
+    return true;
+  }, []);
+
+  useEffect(() => {
+    settling.current = true;
+    lastTargetChange.current = performance.now();
+    frameSinceTargetRef.current = 0;
+
+    if (aimAtSphere && planAimAtSphere(aimAtSphere)) {
+      observeUserTook.current = false;
+      return;
+    }
+
+    if (focusTarget !== null) {
+      const pp = positions.get(focusTarget.planetIdx);
+      if (pp) {
+        const off = computeFocusOffset(pp);
+        if (off) {
+          tLook.current.set(...off.look);
+          tPos.current.set(...off.pos);
+          prevTrackPos.current.set(...pp);
+        }
+      }
+      phaseRef.current = 'settling';
+    } else if (camPreset?.follow !== undefined) {
+      const pp = positions.get(camPreset.follow);
+      if (pp) {
+        const followView = computePresetFollowOffset(pp, camPreset);
+        tLook.current.set(...followView.look);
+        tPos.current.set(...followView.pos);
+        presetTrackPos.current.set(...pp);
+        phaseRef.current = camPreset.observe ? 'observing' : 'settling';
+      } else {
+        tPos.current.set(...camPreset.pos);
+        tLook.current.set(...camPreset.tgt);
+        phaseRef.current = 'settling';
+      }
+    } else if (camPreset) {
+      tPos.current.set(...camPreset.pos);
+      tLook.current.set(...camPreset.tgt);
+      phaseRef.current = 'settling';
+    } else {
+      tPos.current.set(...HOME_POS);
+      tLook.current.set(...HOME_TGT);
+      phaseRef.current = 'settling';
+    }
+  }, [focusTarget, camPreset, cinematic, computeFocusOffset, computePresetFollowOffset, aimAtSphere, planAimAtSphere, positions]);
+
+  useEffect(() => {
+    const ctrl = ctrlRef.current;
+    if (!ctrl) return;
+    const stop = () => {
+      if (cinematic) {
+        observeUserTook.current = true;
+        onUserGrabDuringCinematic?.();
+        return;
+      }
+      settling.current = false;
+      observeUserTook.current = true;
+    };
+    ctrl.addEventListener('start', stop);
+    return () => ctrl.removeEventListener('start', stop);
+  }, [cinematic, onUserGrabDuringCinematic]);
+
+  useEffect(() => {
+    observeUserTook.current = false;
+  }, [camPreset]);
+
+  useFrame((_, dt) => {
+    const ctrl = ctrlRef.current;
+    if (!ctrl) return;
+
+    frameSinceTargetRef.current += 1;
+    diagFramesRef.current += 1;
+    const diagNow = performance.now();
+    if (diagNow - diagLastTRef.current >= 1000) {
+      diagFpsRef.current = diagFramesRef.current;
+      diagFramesRef.current = 0;
+      diagLastTRef.current = diagNow;
+    }
+
+    const trackIdx = interactiveFreePreset && !cinematic
+      ? focusTarget?.planetIdx ?? null
+      : focusTarget?.planetIdx ?? camPreset?.follow ?? null;
+
+    const remainDist = camera.position.distanceTo(tPos.current);
+    const observeMode = camPreset?.observe ?? false;
+
+    let phase: CamPhase = phaseRef.current;
+    if (cinematic) phase = 'cinematic';
+    else if (aimAtSphere) phase = 'aiming';
+    else if (observeMode) phase = observeUserTook.current ? 'tracking' : 'observing';
+    else if (trackIdx !== null) phase = settling.current ? 'settling' : 'tracking';
+    else if (settling.current) phase = 'settling';
+    else phase = 'idle';
+    phaseRef.current = phase;
+
+    let smoothBase = cinematic ? 0.45 : observeMode ? 0.5 : 1.0;
+    if (cinematic) smoothBase = 0.6;
+
+    const smoothBoost = cinematic
+      ? (remainDist > 10000 ? 0.35 : remainDist > 1000 ? 0.2 : remainDist > 100 ? 0.1 : 0)
+      : observeMode
+        ? 0
+        : (remainDist > 10000 ? 0.8 : remainDist > 1000 ? 0.5 : remainDist > 100 ? 0.2 : 0);
+    const posAlpha = 1 - Math.exp(-(smoothBase + smoothBoost) * dt);
+    const lookAlpha = 1 - Math.exp(-(smoothBase + smoothBoost * 0.7) * dt);
+    const settleThreshold = remainDist > 10000 ? 120 : remainDist > 1000 ? 32 : remainDist > 100 ? 3 : 0.035;
+
+    const dampingWhileSettling = settling.current || cinematic || (observeMode && !observeUserTook.current);
+    ctrl.dampingFactor = dampingWhileSettling ? 0.04 : 0.08;
+
+    if (phase === 'cinematic' || cinematic) {
+      if (trackIdx !== null) {
+        const pp = positions.get(trackIdx);
+        if (pp) {
+          const off = focusTarget !== null ? computeFocusOffset(pp) : camPreset ? computePresetFollowOffset(pp, camPreset) : null;
+          if (off) {
+            tPos.current.set(...off.pos);
+            tLook.current.set(...off.look);
+          } else {
+            tLook.current.set(...pp);
+          }
+        }
+      }
+      camera.position.lerp(tPos.current, posAlpha);
+      ctrl.target.lerp(tLook.current, lookAlpha);
+    } else if (trackIdx !== null) {
+      const pp = positions.get(trackIdx);
+      if (pp) {
+        const newTarget = new THREE.Vector3(...pp);
+
+        if (settling.current || (observeMode && !observeUserTook.current)) {
+          const off = focusTarget !== null ? computeFocusOffset(pp) : camPreset ? computePresetFollowOffset(pp, camPreset) : null;
+          if (off) {
+            tPos.current.set(...off.pos);
+            tLook.current.set(...off.look);
+          } else {
+            tLook.current.copy(newTarget);
+          }
+
+          camera.position.lerp(tPos.current, posAlpha);
+          ctrl.target.lerp(tLook.current, lookAlpha);
+          if (!observeMode && camera.position.distanceTo(tPos.current) < settleThreshold) {
+            settling.current = false;
+            prevTrackPos.current.copy(newTarget);
+            presetTrackPos.current.copy(newTarget);
+          }
+        } else {
+          const prevTrackedPos = focusTarget !== null ? prevTrackPos.current : presetTrackPos.current;
+          const delta = newTarget.clone().sub(prevTrackedPos);
+          if (delta.length() > 0.00001) {
+            camera.position.add(delta);
+            ctrl.target.add(delta);
+          }
+        }
+        if (focusTarget !== null) prevTrackPos.current.copy(newTarget);
+        else presetTrackPos.current.copy(newTarget);
+      }
+    } else if (phase === 'aiming' || settling.current) {
+      camera.position.lerp(tPos.current, posAlpha);
+      ctrl.target.lerp(tLook.current, lookAlpha);
+      if (camera.position.distanceTo(tPos.current) < settleThreshold) {
+        settling.current = false;
+      }
+    }
+
+    if (onCameraDistance) {
+      const distance = camera.position.length();
+      const now = performance.now();
+      if (
+        now - lastDistanceReportRef.current > 120 &&
+        Math.abs(distance - lastDistanceValueRef.current) > Math.max(0.05, distance * 0.01)
+      ) {
+        lastDistanceReportRef.current = now;
+        lastDistanceValueRef.current = distance;
+        onCameraDistance(distance);
+      }
+    }
+
+    if (isOrreryDiagEnabled()) {
+      publishOrreryDiag({
+        fps: diagFpsRef.current,
+        rendersPerSec: diagFpsRef.current,
+        cameraDistance: camera.position.length(),
+        remainDist,
+        settling: settling.current,
+        tPosMag: tPos.current.length(),
+        framesSinceTargetChange: frameSinceTargetRef.current,
+        positionsUpdatesPerSec: getPositionsUpdatesPerSec(),
+        phase: phaseRef.current,
+        cinematic,
+      });
+    }
+
+    ctrl.update();
+  });
+
+  return (
+    <OrbitControls
+      ref={ctrlRef}
+      enableDamping
+      dampingFactor={0.08}
+      minDistance={0.05}
+      maxDistance={200000}
+      autoRotate={cinematic || camPreset?.autoRotate || false}
+      autoRotateSpeed={cinematic ? cinematicRotateSpeed * 0.78 : camPreset?.autoRotate ? 0.1 : 0}
+      rotateSpeed={OBSERVATORY_MODE ? -1 : 1}
+    />
+  );
+}

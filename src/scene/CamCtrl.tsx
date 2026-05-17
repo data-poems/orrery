@@ -120,6 +120,10 @@ export default function CamCtrl({
 
     if (aimAtSphere && planAimAtSphere(aimAtSphere)) {
       observeUserTook.current = false;
+      // Snap orientation: camera looks at the celestial-sphere target instantly,
+      // then drifts into position. This is the "pan first, travel second" rule.
+      const ctrl = ctrlRef.current;
+      if (ctrl) ctrl.target.copy(tLook.current);
       return;
     }
 
@@ -131,6 +135,8 @@ export default function CamCtrl({
           tLook.current.set(...off.look);
           tPos.current.set(...off.pos);
           prevTrackPos.current.set(...pp);
+          const ctrl = ctrlRef.current;
+          if (ctrl) ctrl.target.copy(tLook.current);
         }
       }
       phaseRef.current = 'settling';
@@ -142,19 +148,27 @@ export default function CamCtrl({
         tPos.current.set(...followView.pos);
         presetTrackPos.current.set(...pp);
         phaseRef.current = camPreset.observe ? 'observing' : 'settling';
+        const ctrl = ctrlRef.current;
+        if (ctrl) ctrl.target.copy(tLook.current);
       } else {
         tPos.current.set(...camPreset.pos);
         tLook.current.set(...camPreset.tgt);
         phaseRef.current = 'settling';
+        const ctrl = ctrlRef.current;
+        if (ctrl) ctrl.target.copy(tLook.current);
       }
     } else if (camPreset) {
       tPos.current.set(...camPreset.pos);
       tLook.current.set(...camPreset.tgt);
       phaseRef.current = 'settling';
+      const ctrl = ctrlRef.current;
+      if (ctrl) ctrl.target.copy(tLook.current);
     } else {
       tPos.current.set(...HOME_POS);
       tLook.current.set(...HOME_TGT);
       phaseRef.current = 'settling';
+      const ctrl = ctrlRef.current;
+      if (ctrl) ctrl.target.copy(tLook.current);
     }
   }, [focusTarget, camPreset, cinematic, computeFocusOffset, computePresetFollowOffset, aimAtSphere, planAimAtSphere, positions]);
 
@@ -216,7 +230,10 @@ export default function CamCtrl({
         ? 0
         : (remainDist > 10000 ? 0.8 : remainDist > 1000 ? 0.5 : remainDist > 100 ? 0.2 : 0);
     const posAlpha = 1 - Math.exp(-(smoothBase + smoothBoost) * dt);
-    const lookAlpha = 1 - Math.exp(-(smoothBase + smoothBoost * 0.7) * dt);
+    // Look-at converges ~5x faster than position so the camera always faces
+    // its destination during the travel — pan/tilt finishes long before the
+    // dolly does. Without this the camera arrives "from the side" of the target.
+    const lookAlpha = 1 - Math.exp(-(smoothBase + smoothBoost) * 5 * dt);
     const settleThreshold = remainDist > 10000 ? 120 : remainDist > 1000 ? 32 : remainDist > 100 ? 3 : 0.035;
 
     const dampingWhileSettling = settling.current || cinematic || (observeMode && !observeUserTook.current);

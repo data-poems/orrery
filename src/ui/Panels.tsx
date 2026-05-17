@@ -277,7 +277,6 @@ function AboutDialog({ open, onClose, accent, accentRgb }: {
 
   const licenseNotes = [
     { label: 'HYG star catalog · CC BY-SA 4.0', href: 'https://creativecommons.org/licenses/by-sa/4.0/' },
-    { label: 'OpenNGC deep sky · CC BY-SA 4.0', href: 'https://creativecommons.org/licenses/by-sa/4.0/' },
     { label: 'd3-celestial constellations · BSD-3-Clause', href: 'https://github.com/ofrohn/d3-celestial/blob/master/LICENSE' },
     { label: 'Solar System Scope textures · CC BY 4.0', href: 'https://creativecommons.org/licenses/by/4.0/' },
   ] as const;
@@ -289,7 +288,6 @@ function AboutDialog({ open, onClose, accent, accentRgb }: {
     { label: '32 moons · JPL Horizons', href: 'https://ssd.jpl.nasa.gov/horizons/' },
     { label: '5,000 main-belt asteroids · synthetic Kirkwood model', href: 'https://en.wikipedia.org/wiki/Kirkwood_gap' },
     { label: '2,000 distant objects · MPC Distant.txt', href: 'https://minorplanetcenter.net/iau/MPCORB.html' },
-    { label: '110+ deep sky objects · OpenNGC', href: 'https://github.com/mattiaverga/OpenNGC' },
     { label: '20+ comets · MPC CometEls.txt', href: 'https://minorplanetcenter.net/iau/Ephemerides/Comets/Soft03Cmt.txt' },
     { label: '14 meteor showers · IAU Meteor Data Center', href: 'https://www.ta3.sk/IAUC22DB/MDC2007/' },
     { label: '5 spacecraft · NASA/JPL mission tracking', href: 'https://eyes.nasa.gov/apps/solar-system/#/home' },
@@ -441,64 +439,6 @@ function InfoPanel({
   );
 }
 
-// ─── Deep Sky info popup (fetches deepsky.json on demand) ──────────────────
-
-interface DeepSkyEntry {
-  id: string; name: string; type: string; ra: number; dec: number;
-  mag: number; con: string; size: number;
-}
-
-let deepSkyCache: DeepSkyEntry[] | null = null;
-let deepSkyPromise: Promise<DeepSkyEntry[]> | null = null;
-
-function loadDeepSky(): Promise<DeepSkyEntry[]> {
-  if (deepSkyCache) return Promise.resolve(deepSkyCache);
-  if (deepSkyPromise) return deepSkyPromise;
-  deepSkyPromise = fetch(import.meta.env.BASE_URL + 'data/deepsky.json')
-    .then(r => r.json() as Promise<DeepSkyEntry[]>)
-    .then(d => { deepSkyCache = d; return d; });
-  return deepSkyPromise;
-}
-
-const DEEP_SKY_TYPE_LABEL: Record<string, string> = {
-  galaxy: 'Galaxy', globular: 'Globular cluster',
-  open: 'Open cluster', nebula: 'Nebula',
-};
-
-function DeepSkyInfo({ selDeepSky, accent, accentRgb, mobile, onClose }: {
-  selDeepSky: string; accent: string; accentRgb: string; mobile: boolean; onClose: () => void;
-}) {
-  const [obj, setObj] = useState<DeepSkyEntry | null>(null);
-  useEffect(() => {
-    let alive = true;
-    loadDeepSky().then(d => {
-      if (alive) setObj(d.find(o => o.id === selDeepSky) ?? null);
-    });
-    return () => { alive = false; };
-  }, [selDeepSky]);
-  if (!obj) return null;
-  const constellationName = CONSTELLATION_NAMES[obj.con] ?? obj.con;
-  const typeLabel = DEEP_SKY_TYPE_LABEL[obj.type] ?? obj.type;
-  return (
-    <InfoPanel
-      sectionTitle="Deep Sky"
-      title={obj.name || obj.id}
-      subtitle={`${typeLabel} · in ${constellationName}`}
-      description="" accent={accent} accentRgb={accentRgb} mobile={mobile}
-      onClose={onClose} closeLabel="Close deep sky info"
-    >
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px',
-        marginTop: 10, color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 300,
-      }}>
-        {obj.id !== obj.name && <div>Catalog <span style={{ color: '#fff' }}>{obj.id}</span></div>}
-        <div>Magnitude <span style={{ color: '#fff' }}>{obj.mag.toFixed(1)}</span></div>
-        {obj.size > 0 && <div>Size <span style={{ color: '#fff' }}>{obj.size.toFixed(1)}′</span></div>}
-      </div>
-    </InfoPanel>
-  );
-}
-
 // ─── Panel props ────────────────────────────────────────────────────────────────
 
 export interface PanelProps {
@@ -519,10 +459,8 @@ export interface PanelProps {
   showComets: boolean; setShowComets: (fn: (p: boolean) => boolean) => void;
   showMeteors: boolean; setShowMeteors: (fn: (p: boolean) => boolean) => void;
   showSatellites: boolean; setShowSatellites: (fn: (p: boolean) => boolean) => void;
-  showDeepSky: boolean; setShowDeepSky: (fn: (p: boolean) => boolean) => void;
   selConstellation: string | null; setSelConstellation: (id: string | null) => void;
   selAsterism: string | null; setSelAsterism: (name: string | null) => void;
-  selDeepSky: string | null; setSelDeepSky: (id: string | null) => void;
   panelOpen: boolean; setPanelOpen: (fn: boolean | ((p: boolean) => boolean)) => void;
   cinematic: boolean;
   pulseSkyToggle?: boolean;
@@ -547,9 +485,6 @@ export interface PanelProps {
   selGalaxy: GalaxyMarker | null;
   setSelGalaxy: (g: GalaxyMarker | null) => void;
   currentAreaLabel: string;
-  onJumpToSpacecraft: () => void;
-  onJumpToNearStar: () => void;
-  onJumpToGalaxy: () => void;
   onRandomJump: () => void;
 }
 
@@ -568,10 +503,8 @@ export default function Panels(props: PanelProps) {
     setShowComets: _setShowComets,
     setShowMeteors: _setShowMeteors,
     setShowSatellites: _setShowSatellites,
-    showDeepSky: _showDeepSky, setShowDeepSky,
     selConstellation, setSelConstellation,
     selAsterism, setSelAsterism,
-    selDeepSky, setSelDeepSky,
     panelOpen: _panelOpen, setPanelOpen: _setPanelOpen,
     cinematic,
     pulseSkyToggle = false,
@@ -585,14 +518,11 @@ export default function Panels(props: PanelProps) {
     selNearStar, setSelNearStar,
     selGalaxy, setSelGalaxy,
     currentAreaLabel,
-    onJumpToSpacecraft,
-    onJumpToNearStar,
-    onJumpToGalaxy,
     onRandomJump,
   } = props;
   void _setShowNeo; void _simTime; void _speed; void _setSelPlanet; void _neos; void _setShowDwarf; void _showStars; void _showConstellations;
   void _setShowAsterisms; void _setShowAsteroidBelt; void _setShowComets;
-  void _setShowMeteors; void _setShowSatellites; void _showDeepSky;
+  void _setShowMeteors; void _setShowSatellites;
   void _panelOpen; void _setPanelOpen; void _setShowDeepSpace;
 
   const observatoryMode = OBSERVATORY_MODE;
@@ -631,15 +561,13 @@ export default function Panels(props: PanelProps) {
       if (next) {
         setShowStars(() => true);
         setShowConstellations(() => true);
-        setShowDeepSky(() => true);
         // Entering sky mode should reset single-object selection so the full sky can glow.
         setSelConstellation(null);
         setSelAsterism(null);
-        setSelDeepSky(null);
       }
       return next;
     });
-  }, [setConstellationFocus, setShowStars, setShowConstellations, setShowDeepSky, setSelConstellation, setSelAsterism, setSelDeepSky]);
+  }, [setConstellationFocus, setShowStars, setShowConstellations, setSelConstellation, setSelAsterism]);
 
   // Selected moon info
   const selectedMoon = selPlanet !== null && selMoonIdx !== null
@@ -779,10 +707,6 @@ export default function Panels(props: PanelProps) {
         );
       })()}
 
-      {selDeepSky && !cinematic && (
-        <DeepSkyInfo selDeepSky={selDeepSky} accent={accent} accentRgb={accentRgb} mobile={mobile} onClose={() => setSelDeepSky(null)} />
-      )}
-
       {selSpacecraft && !cinematic && (
         <InfoPanel
           sectionTitle="Spacecraft" title={selSpacecraft.name}
@@ -800,24 +724,6 @@ export default function Panels(props: PanelProps) {
             <div>Light-hours <span style={{ color: '#fff', fontWeight: 400 }}>{(selSpacecraft.distAU / 7.2).toFixed(1)}</span></div>
             <div>Light-years <span style={{ color: '#fff', fontWeight: 400 }}>{(selSpacecraft.distAU / 63241).toFixed(4)}</span></div>
           </div>
-          <button
-            type="button"
-            onClick={onJumpToSpacecraft}
-            style={{
-              marginTop: 12,
-              background: `rgba(${accentRgb},0.12)`,
-              border: `1px solid rgba(${accentRgb},0.34)`,
-              borderRadius: 6,
-              padding: '8px 10px',
-              color: accent,
-              fontFamily: 'inherit',
-              fontSize: 12,
-              letterSpacing: 0.6,
-              cursor: 'pointer',
-            }}
-          >
-            Jump to Oort view
-          </button>
         </InfoPanel>
       )}
 
@@ -837,24 +743,6 @@ export default function Panels(props: PanelProps) {
           <div style={{ marginTop: 10, color: 'rgba(255,255,255,0.72)', fontSize: 13 }}>
             Apparent magnitude <span style={{ color: '#fff' }}>{selNearStar.mag.toFixed(2)}</span>
           </div>
-          <button
-            type="button"
-            onClick={onJumpToNearStar}
-            style={{
-              marginTop: 12,
-              background: `rgba(${accentRgb},0.12)`,
-              border: `1px solid rgba(${accentRgb},0.34)`,
-              borderRadius: 6,
-              padding: '8px 10px',
-              color: accent,
-              fontFamily: 'inherit',
-              fontSize: 12,
-              letterSpacing: 0.6,
-              cursor: 'pointer',
-            }}
-          >
-            Jump to stellar view
-          </button>
         </InfoPanel>
       )}
 
@@ -876,24 +764,6 @@ export default function Panels(props: PanelProps) {
               Apparent magnitude <span style={{ color: '#fff' }}>{selGalaxy.mag.toFixed(1)}</span>
             </div>
           )}
-          <button
-            type="button"
-            onClick={onJumpToGalaxy}
-            style={{
-              marginTop: 12,
-              background: `rgba(${accentRgb},0.12)`,
-              border: `1px solid rgba(${accentRgb},0.34)`,
-              borderRadius: 6,
-              padding: '8px 10px',
-              color: accent,
-              fontFamily: 'inherit',
-              fontSize: 12,
-              letterSpacing: 0.6,
-              cursor: 'pointer',
-            }}
-          >
-            Jump to deep-space view
-          </button>
         </InfoPanel>
       )}
 

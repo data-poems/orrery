@@ -23,7 +23,7 @@ Fly from deep space to Earth, explore planets and constellations, and scrub time
 ## Description
 Orrery is an interactive, real-time model of the solar system and nearby sky built for curiosity and wonder.
 
-Start with a cinematic opening, then move freely through planets, moons, constellations, deep sky objects, and live orbital data.
+Start with a cinematic opening, then move freely through planets, moons, constellations, and live orbital data.
 
 Features:
 - Cinematic opening tour from deep space to Earth

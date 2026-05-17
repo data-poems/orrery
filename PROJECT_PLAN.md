@@ -33,9 +33,32 @@
 - Validate iPad panel behavior in portrait, landscape, and split view after safe-area/close-button patch.
 - Revisit Milky Way backdrop rendering after launch with seam-safe triangulation or texture-based replacement.
 
+## Future: Stellar Neighborhood Mode
+
+The current dice tour skips deep-sky objects, nearby stars, and Local Group
+galaxies because their rendering scheme (camera-pinned celestial sphere or
+fixed beyond any preset's reach) means a "fly to" arrival lands the camera in
+empty space. Removing them from the tour was the cheap fix.
+
+The right long-term fix is a separate **Stellar Neighborhood Mode** that:
+
+1. Promotes a selected nearby star (e.g. Sirius, Alpha Centauri, Polaris) to
+   a "system origin" — render it as a real Sun analog (color/temp/luminosity
+   from its spectral class) at fixed cosmic position.
+2. Renders any known exoplanets/companion stars at their real orbital
+   geometry around it.
+3. Switches the camera coordinate system to that star (so AU grid, motion,
+   and zoom scaling all work naturally around the new origin).
+4. Returns to Sol on exit without losing user state.
+
+Same pattern can host "Galaxy Mode" later (Andromeda, M51) if the rendering
+budget permits it. Until then, the existing decoration toggles remain so
+users can browse the sky-pinned markers without the tour pretending it can
+visit them.
+
 ## Recent Launch Stabilization Work
 
-- Separated `Deep Sky` and `Deep Space` UI toggles to prevent accidental deep-space side effects.
+- Removed the `Deep Sky` data layer and dice destinations entirely after telemetry showed dice rolls landing the camera at empty sphere coordinates; nearby-star/galaxy/spacecraft destinations also stripped from the dice (still selectable via direct click). See "Future: Stellar Neighborhood Mode" for the long-term fix.
 - Added explicit right-panel close control and disabled hover-peek behavior on touch-only devices.
 - Removed Milky Way backdrop runtime path and prefetch from launch build to eliminate startup streak artifacts.
 - Reduced the Sky toggle footprint and colocated it with the top-left info control so both controls share the same compact chrome.

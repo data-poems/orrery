@@ -12,7 +12,6 @@ import { Sun, Planet, OrbitRing, Satellite as MoonSatellite, SatelliteOrbit } fr
 import { RealAsteroidBelt, NeoDot, AsteroidOrbitLine } from './Asteroids';
 import { StarField, ConstellationLines, ConstellationLabels } from './Stars';
 import { AsterismField } from './Asterisms';
-import { DeepSkyField } from './DeepSky';
 import { OBSERVATORY_MODE } from '../lib/mode';
 import { CometField } from './Comets';
 import { MeteorField } from './Meteors';
@@ -62,7 +61,6 @@ export interface SceneProps {
   showComets: boolean;
   showMeteors: boolean;
   showSatellites: boolean;
-  showDeepSky: boolean;
   showDeepSpace: boolean;
   constellationFocus: boolean;
   cinematic: boolean;
@@ -82,7 +80,6 @@ export interface SceneProps {
   onSunSelect?: () => void;
   onConstellationSelect?: (id: string) => void;
   onAsterismSelect?: (name: string) => void;
-  onDeepSkySelect?: (id: string) => void;
   selConstellationId: string | null;
   accentColor: string;
   /**
@@ -99,12 +96,12 @@ export default function Scene({
   jd, T, simTime, onLoadComplete, neos, selNeo, setSelNeo, selPlanet, setSelPlanet,
   focusTarget, onPositionsUpdate, showDwarf,
   showStars, showConstellations, constellationRevealTick, showAsterisms, showAsteroidBelt,
-  showComets, showMeteors, showSatellites, showDeepSky, showDeepSpace,
+  showComets, showMeteors, showSatellites, showDeepSpace,
   constellationFocus, cinematic, cinematicRotateSpeed, onMoonSelect, selMoonIdx, onCameraDistance, cameraDistance, camPreset,
   showBodyGlyphs = false,
   selComet, setSelComet, selMeteor, setSelMeteor, selSatellite, setSelSatellite,
   selSpacecraft, setSelSpacecraft, selNearStar, setSelNearStar, selGalaxy, setSelGalaxy, onSunSelect, aimAtSphere,
-  onConstellationSelect, onAsterismSelect, onDeepSkySelect,
+  onConstellationSelect, onAsterismSelect,
   selConstellationId, accentColor, onUserGrabDuringCinematic,
 }: SceneProps) {
   const [hov, setHov] = useState<number | null>(null);
@@ -129,7 +126,6 @@ export default function Scene({
 
   const visibleBodies = showDwarf ? ALL_BODIES : ALL_BODIES.filter(b => !b.isDwarf);
   const immersiveSky = constellationFocus && selConstellationId === null;
-  const dimSkyLayers = !constellationFocus || selConstellationId !== null;
 
   const handleCameraDistance = onCameraDistance;
 
@@ -210,15 +206,6 @@ export default function Scene({
         <ConstellationLines visible={showConstellations && cameraDistance < 600} focus={constellationFocus} revealTick={constellationRevealTick} onLoad={() => onLoadComplete?.('constellationLines')} selectedId={selConstellationId} />
         <ConstellationLabels visible={showConstellations && cameraDistance < 600} focus={constellationFocus} revealTick={constellationRevealTick} onSelect={onConstellationSelect} onLoad={() => onLoadComplete?.('constellations')} selectedId={selConstellationId} accent={accentColor} />
         <AsterismField visible={showAsterisms && cameraDistance < 600} onSelect={onAsterismSelect} />
-      </Suspense>
-      <Suspense fallback={null}>
-        <DeepSkyField
-          visible={showDeepSky}
-          onLoad={() => onLoadComplete?.('deepsky')}
-          onSelect={onDeepSkySelect}
-          immersive={immersiveSky}
-          dimmed={dimSkyLayers}
-        />
       </Suspense>
       <CometField
         jd={jd}

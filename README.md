@@ -17,7 +17,6 @@ From Earth to the Oort Cloud. Interactive, 41,000 stars, 88 constellations, real
 - **88 constellations** with IAU stick figures (d3-celestial)
 - **8 planets + 3 dwarf planets + 32 moons** from JPL Horizons (J2000 Keplerian elements with secular rates)
 - **3,000 main-belt asteroids** with Kirkwood gap distribution
-- **110+ deep sky objects** (Messier + bright NGC/IC from OpenNGC)
 - **20+ comets** from the Minor Planet Center
 - **14 meteor shower radiants** from the IAU Meteor Data Center
 - **5 interstellar spacecraft** (Voyager 1 at 165 AU, Voyager 2 at 139 AU, New Horizons, Pioneer 10/11)
@@ -34,7 +33,7 @@ From Earth to the Oort Cloud. Interactive, 41,000 stars, 88 constellations, real
 
 - Cinematic opening tour: deep space down to Earth
 - Stargazer mode with immersive constellation + starfield emphasis
-- Deep Sky and Deep Space layers can be toggled independently
+- Deep Space layer (Oort Cloud, spacecraft, nearby star markers, galaxy markers) can be toggled independently
 - Click any planet to zoom in; click Sol or any moon to drill down
 - Split HUD corners: info (`i`) upper-left, Sky mode (constellation icon) upper-right
 - Subtle top-center area labels (Inner, Full System, Deep Space, etc.) stay visible above the canvas
@@ -86,7 +85,6 @@ React 19, TypeScript 5.9, Three.js (r183) via @react-three/fiber + @react-three/
 | [JPL Horizons](https://ssd.jpl.nasa.gov/horizons/) | Planetary orbital elements |
 | [HYG Database](https://astronexus.com/projects/hyg) | Star catalog (41K stars) |
 | [d3-celestial](https://github.com/ofrohn/d3-celestial) | Constellation lines, Milky Way outline |
-| [OpenNGC](https://github.com/mattiaverga/OpenNGC) | Deep sky objects |
 | [Minor Planet Center](https://minorplanetcenter.net/data) | Asteroids, comets |
 | [IAU MDC](https://www.ta3.sk/IAUC22DB/MDC2007/) | Meteor showers |
 | [Solar System Scope](https://www.solarsystemscope.com/textures/) | Planet textures (CC BY 4.0) |

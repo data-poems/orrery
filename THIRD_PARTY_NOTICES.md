@@ -7,7 +7,6 @@ Bundled **data** and **assets** retain their upstream licenses:
 | Asset | Source | License |
 |-------|--------|---------|
 | Star catalog (HYG) | [HYG Database](https://astronexus.com/projects/hyg) | CC BY-SA 4.0 |
-| Deep sky catalog | [OpenNGC](https://github.com/mattiaverga/OpenNGC) | CC BY-SA 4.0 |
 | Constellation lines | [d3-celestial](https://github.com/ofrohn/d3-celestial) | BSD-3-Clause |
 | Planet textures | [Solar System Scope](https://www.solarsystemscope.com/textures/) | CC BY 4.0 |
 | Planetary elements | JPL Horizons | Public domain (U.S. government work) |

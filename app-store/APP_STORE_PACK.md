@@ -37,7 +37,7 @@ This document is the single source of truth for App Store and TestFlight submiss
 
 Orrery is an interactive, real-time model of the solar system and nearby sky built for curiosity and wonder.
 
-Start with a cinematic opening, then move freely through planets, moons, constellations, deep sky objects, and live orbital data.
+Start with a cinematic opening, then move freely through planets, moons, constellations, and live orbital data.
 
 Features:
 - Cinematic opening tour from deep space to Earth
@@ -58,7 +58,7 @@ Questions or feedback: luke@lukesteuber.com
 - Let the cinematic intro complete and verify interactive HUD appears.
 - Select Earth and other planets, then drill into moon-level views.
 - Toggle Sky overlays and constellation labels.
-- Toggle Deep Sky and Deep Space independently and verify no streak artifacts.
+- Toggle Deep Space layer (spacecraft / nearby star markers / galaxy markers) and verify no streak artifacts.
 - Verify iPad sidebar opens and closes reliably with the in-panel close button.
 - Use time controls and verify fast-forward updates without stalling.
 - Verify orientation behavior in portrait and landscape.

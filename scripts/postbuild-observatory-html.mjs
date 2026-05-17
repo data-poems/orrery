@@ -17,15 +17,15 @@ const REPLACEMENTS = [
   // <meta name="description"> + og:description / twitter:description
   [
     /<meta name="description" content="[^"]*" \/>/,
-    '<meta name="description" content="From Earth to the celestial sphere. 41,000 stars, 88 constellations, 110 deep sky objects, real catalog data — anchored at Earth\'s heliocentric position." />',
+    '<meta name="description" content="From Earth to the celestial sphere. 41,000 stars, 88 constellations, 19 asterisms, real catalog data — anchored at Earth\'s heliocentric position." />',
   ],
   [
     /<meta property="og:description" content="[^"]*" \/>/,
-    '<meta property="og:description" content="From Earth to the celestial sphere. Stars, constellations, deep sky — real catalog data." />',
+    '<meta property="og:description" content="From Earth to the celestial sphere. Stars, constellations, asterisms — real catalog data." />',
   ],
   [
     /<meta name="twitter:description" content="[^"]*" \/>/,
-    '<meta name="twitter:description" content="From Earth to the celestial sphere. Stars, constellations, deep sky — real catalog data." />',
+    '<meta name="twitter:description" content="From Earth to the celestial sphere. Stars, constellations, asterisms — real catalog data." />',
   ],
 
   // og:title / twitter:title

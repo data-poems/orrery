@@ -11,7 +11,6 @@ import { OBSERVATORY_MODE } from '../lib/mode';
 const OBSERVATORY_STATS = [
   '41,119 stars',
   '88 constellations',
-  '110 deep sky objects',
   '19 asterisms',
 ];
 

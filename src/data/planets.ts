@@ -111,7 +111,6 @@ export function camIndex(label: string): number {
 export interface CamPresetLayerEffects {
   stars?: boolean;
   constellations?: boolean;
-  deepSky?: boolean;
   deepSpace?: boolean;
   dwarf?: boolean;
   asteroidBelt?: boolean;
@@ -119,12 +118,12 @@ export interface CamPresetLayerEffects {
 }
 
 export const CAM_PRESET_LAYER_EFFECTS: Partial<Record<string, CamPresetLayerEffects>> = {
-  Stargazer: { stars: true, constellations: true, deepSky: true, constellationFocus: true },
-  Oort: { deepSpace: true, deepSky: true, dwarf: true },
-  Kuiper: { dwarf: true, deepSky: true },
+  Stargazer: { stars: true, constellations: true, constellationFocus: true },
+  Oort: { deepSpace: true, dwarf: true },
+  Kuiper: { dwarf: true },
   Outer: { dwarf: true },
   Belt: { asteroidBelt: true },
-  Stellar: { deepSpace: true, deepSky: true, dwarf: true, stars: true },
+  Stellar: { deepSpace: true, dwarf: true, stars: true },
 };
 
 export const CAM_LABEL_ORDER = CAMS.map(c => c.label);

@@ -13,7 +13,6 @@ const scripts = [
   'prebake-meteors.ts',
   'prebake-stars.ts',
   'prebake-asteroids.ts',
-  'prebake-deepsky.ts',
   'prebake-tle.ts',
 ];
 

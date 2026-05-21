@@ -137,6 +137,14 @@ export async function getConstellationCentroid(id: string): Promise<[number, num
   return cachedPositions?.get(id) ?? null;
 }
 
+/** Synchronous centroid lookup. Returns null when the cache hasn't loaded yet
+ *  (call `prefetchConstellationCentroids` on mount to warm it). Used by the
+ *  dice path so the camera target snaps to the constellation in the same React
+ *  batch as the other selection state, avoiding a one-frame flash to origin. */
+export function getConstellationCentroidCached(id: string): [number, number, number] | null {
+  return cachedPositions?.get(id) ?? null;
+}
+
 export async function getConstellationRaDec(id: string): Promise<[number, number] | null> {
   await ensureLoaded();
   return cachedRaDec?.get(id) ?? null;

@@ -21,7 +21,7 @@ import type { MeteorShower } from './scene/Meteors';
 import type { SatellitePosition } from './lib/satellites';
 import type { Spacecraft, NearStar, GalaxyMarker } from './data/deepspace';
 import { CONSTELLATION_NAMES } from './data/mythology';
-import { getConstellationCentroid, prefetchConstellationCentroids } from './lib/constellationCentroids';
+import { getConstellationCentroid, getConstellationCentroidCached, prefetchConstellationCentroids } from './lib/constellationCentroids';
 import Scene from './scene/Scene';
 import Panels from './ui/Panels';
 import LoadingScreen from './ui/LoadingScreen';
@@ -828,15 +828,22 @@ function OrreryInner() {
         enableSkyTourLayers();
         setSelConstellation(target.id);
         setNavStack(['Solar System', CONSTELLATION_NAMES[target.id] ?? target.id]);
-        // Aim the camera at the constellation centroid (async fetch is cached
-        // after first call). Stamp the pick id we tried to aim at so a fast
-        // re-roll between async resolves doesn't clobber a newer aim.
+        // Sync cache is warmed by `prefetchConstellationCentroids` on mount
+        // (Orrery.tsx:735), so the dice path usually hits it. Setting aim in
+        // the same React batch as the layer toggles avoids a one-frame flash
+        // where CamCtrl sees focusTarget/camPreset/aimAtSphere all null and
+        // snaps the camera target to origin before the async resolve.
+        const cached = getConstellationCentroidCached(target.id);
+        if (cached) {
+          setAimAtSphere([cached[0], cached[1], cached[2]]);
+          return;
+        }
+        // Cache miss (first dice roll before prefetch completes): fall back to
+        // the async path with the same staleness gate as before so a fast
+        // re-roll between resolves can't clobber a newer aim.
         const aimTicket = target.key;
         getConstellationCentroid(target.id).then((pos) => {
           if (pos && lastTourPickRef.current === aimTicket) {
-            // Re-stamp by setting state with a fresh array reference so the
-            // useEffect in CamCtrl re-fires even if the centroid happens to
-            // equal the prior aim numerically.
             setAimAtSphere([pos[0], pos[1], pos[2]]);
           }
         });

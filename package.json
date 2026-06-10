@@ -11,6 +11,8 @@
     "ios:sync": "pnpm build:ios && cap sync ios",
     "ios:compile": "pnpm ios:sync && xcodebuild -project ios/App/App.xcodeproj -scheme Orrery -destination 'generic/platform=iOS' -configuration Debug build CODE_SIGNING_ALLOWED=NO",
     "ios:open": "cap open ios",
+    "android:sync": "pnpm build:ios && cap sync android",
+    "android:apk": "pnpm android:sync && cd android && ./gradlew assembleDebug",
     "lint": "eslint .",
     "test": "vitest run",
     "preview": "vite preview",

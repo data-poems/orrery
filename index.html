@@ -2,10 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
+    <link rel="icon" type="image/png" sizes="64x64" href="%BASE_URL%favicon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="%BASE_URL%apple-touch-icon.png" />
     <link rel="manifest" href="%BASE_URL%manifest.webmanifest" />
     <meta name="theme-color" content="#000000" />
-    <link rel="apple-touch-icon" href="%BASE_URL%icon-192.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Orrery</title>
     <meta name="description" content="From Earth to the Oort Cloud. Interactive, 41,000 stars, 88 constellations, real data, mostly live. Fake scales." />
@@ -23,11 +23,34 @@
     <meta name="twitter:description" content="From Earth to the Oort Cloud. Interactive, 41,000 stars, 88 constellations, real data, mostly live. Fake scales." />
     <meta name="twitter:image" content="https://orrery.solar/orrery/og-image.png" />
 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Cormorant:wght@300;400;500;600&display=swap" rel="stylesheet">
+
     <!-- Preload critical-path catalogs so fetch starts during HTML parse, not after JS loads -->
     <link rel="preload" as="fetch" type="application/json" crossorigin href="%BASE_URL%data/stars.hyg-8.json">
     <link rel="preload" as="fetch" type="application/json" crossorigin href="%BASE_URL%data/constellations.json">
     <link rel="preload" as="fetch" type="application/json" crossorigin href="%BASE_URL%data/constellations.lines.json">
-    <link rel="preload" as="fetch" type="application/json" crossorigin href="%BASE_URL%data/deepsky.json">
+
+    <!-- Theme bootstrap: set accent vars before React mounts to avoid first-paint flicker -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('orrery-theme');
+          var THEMES = {
+            brass: ['#00ffcc', '0,255,204', 'rgba(255,255,255,0.08)'],
+            silver: ['#66bbff', '102,187,255', 'rgba(255,255,255,0.08)'],
+            highcontrast: ['#ffff00', '255,255,0', 'rgba(255,255,255,0.15)'],
+            ember: ['#44ccaa', '68,204,170', 'rgba(255,255,255,0.08)']
+          };
+          var c = THEMES[t] || THEMES.brass;
+          var r = document.documentElement;
+          r.style.setProperty('--accent', c[0]);
+          r.style.setProperty('--accent-rgb', c[1]);
+          r.style.setProperty('--panel-border', c[2]);
+        } catch (e) { /* SSR or private browsing */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

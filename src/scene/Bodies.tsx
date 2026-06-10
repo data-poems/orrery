@@ -3,14 +3,20 @@
  */
 
 import { useMemo, useRef } from 'react';
-import { useFrame, useLoader } from '@react-three/fiber';
+import { useFrame, useLoader, useThree } from '@react-three/fiber';
 import { Html, Line } from '@react-three/drei';
 import * as THREE from 'three';
-import { TEX } from '../data/planets';
+import { buildTextureUrls } from '../data/planets';
+import { useIsMobile } from '../ui/styles';
 import { BODY_SYMBOLS } from '../data/body-symbols';
 import type { PlanetDef } from '../lib/kepler';
 import { planetXYZ, orbitPath } from '../lib/kepler';
 import type { MoonDef } from '../data/moons';
+
+function useTextures() {
+  const isMobile = useIsMobile();
+  return useMemo(() => buildTextureUrls(isMobile), [isMobile]);
+}
 
 // ─── Sun ────────────────────────────────────────────────────────────────────────
 
@@ -72,14 +78,30 @@ function BodyGlyph({
   );
 }
 
-export function Sun({ cameraDistance = 0, showGlyphOverlay = false }: { cameraDistance?: number; showGlyphOverlay?: boolean }) {
+export function Sun({
+  cameraDistance = 0,
+  showGlyphOverlay = false,
+  onSelect,
+}: {
+  cameraDistance?: number;
+  showGlyphOverlay?: boolean;
+  onSelect?: () => void;
+}) {
   const ref = useRef<THREE.Mesh>(null);
+  const TEX = useTextures();
   const tex = useLoader(THREE.TextureLoader, TEX.sun);
   useFrame((_, dt) => {
     if (ref.current) ref.current.rotation.y += dt * 0.02;
   });
   return (
     <group>
+      {/* Larger invisible tap target so Sol is selectable like planets. */}
+      <mesh
+        onClick={onSelect ? (e) => { e.stopPropagation(); onSelect(); } : undefined}
+      >
+        <sphereGeometry args={[0.5, 16, 16]} />
+        <meshBasicMaterial visible={false} />
+      </mesh>
       {/* Main textured photosphere */}
       <mesh ref={ref}>
         <sphereGeometry args={[0.15, 48, 48]} />
@@ -126,6 +148,7 @@ function moonLabelScale(radius: number) {
 
 function EarthClouds({ radius }: { radius: number }) {
   const ref = useRef<THREE.Mesh>(null);
+  const TEX = useTextures();
   const cloudTex = useLoader(THREE.TextureLoader, TEX.earthClouds);
   useFrame((_, dt) => { if (ref.current) ref.current.rotation.y += dt * 0.18; });
   return (
@@ -209,7 +232,11 @@ export function Planet({ planet, T, selected, onSelect, hovered, onHover, moonFo
   showGlyphOverlay?: boolean;
 }) {
   const ref = useRef<THREE.Mesh>(null);
+  const hitRef = useRef<THREE.Mesh>(null);
+  const worldPosRef = useRef(new THREE.Vector3());
+  const { camera, size } = useThree();
   const pos = useMemo(() => planetXYZ(planet, T), [planet, T]);
+  const TEX = useTextures();
   const tex = useLoader(THREE.TextureLoader, TEX[planet.tex]);
   const r = planet.radius;
   const labelScale = planetLabelScale(r);
@@ -219,22 +246,49 @@ export function Planet({ planet, T, selected, onSelect, hovered, onHover, moonFo
   const glyphDistanceFactor = Math.max(0.68, labelDistanceFactor * 0.72);
   const glyphSize = THREE.MathUtils.lerp(32, 96, labelScale / 1.5);
   // Invisible click target: larger sphere for easier selection
-  const hitRadius = Math.max(r * 5, 0.25);
+  const baseHitRadius = Math.max(r * 5, 0.25);
+  // Keep far-away planets clickable even when user is zoomed in on another body
+  // (e.g., from Ceres trying to pick Jupiter). This is a minimum on-screen
+  // radius converted into world units each frame.
+  const MIN_PLANET_HIT_SCREEN_PX = 18;
 
   useFrame((_, dt) => {
     if (ref.current) ref.current.rotation.y += dt * 0.12;
+    if (!hitRef.current) return;
+
+    const perspectiveCamera = camera as THREE.PerspectiveCamera;
+    if (!Number.isFinite(perspectiveCamera.fov) || size.height <= 0) {
+      hitRef.current.scale.setScalar(baseHitRadius);
+      return;
+    }
+
+    hitRef.current.getWorldPosition(worldPosRef.current);
+    const distanceToCamera = camera.position.distanceTo(worldPosRef.current);
+    const worldUnitsPerPixel =
+      (2 * distanceToCamera * Math.tan(THREE.MathUtils.degToRad(perspectiveCamera.fov / 2))) /
+      size.height;
+    const distanceAwareRadius = MIN_PLANET_HIT_SCREEN_PX * worldUnitsPerPixel;
+    const desiredRadius = Math.max(baseHitRadius, distanceAwareRadius);
+
+    // Prevent "can't click anything while zoomed in" failures: if the camera
+    // ends up inside a planet's invisible hit sphere, every ray hits that same
+    // sphere first. Clamp radius so the pick proxy can never envelop camera.
+    const minPhysicalRadius = Math.max(r * 1.05, 0.035);
+    const cameraSafeMax = Math.max(minPhysicalRadius, distanceToCamera * 0.85);
+    hitRef.current.scale.setScalar(Math.min(desiredRadius, cameraSafeMax));
   });
 
   return (
     <group position={pos}>
       {/* Invisible larger click target */}
       <mesh
+        ref={hitRef}
         renderOrder={9}
         onClick={e => { e.stopPropagation(); onSelect(); }}
         onPointerEnter={() => onHover(true)}
         onPointerLeave={() => onHover(false)}
       >
-        <sphereGeometry args={[hitRadius, 16, 16]} />
+        <sphereGeometry args={[1, 16, 16]} />
         <meshBasicMaterial visible={false} />
       </mesh>
       <mesh
@@ -292,6 +346,7 @@ export function Satellite({ moon, parentPos, jd, selected, onSelect, hovered, on
   const inc = (moon.i || 0) * (Math.PI / 180);
 
   const isEarthMoon = moon.name === 'Moon' && moon.parent === 2;
+  const TEX = useTextures();
   const tex = useLoader(THREE.TextureLoader, isEarthMoon ? TEX.moon : TEX.mercury);
 
   const pos: [number, number, number] = [

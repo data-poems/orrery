@@ -10,38 +10,40 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import type { NEO, CamPreset } from '../lib/kepler';
-import { ALL_BODIES, camIndex } from '../data/planets';
+import { ALL_BODIES } from '../data/planets';
 import { getMoonsForPlanet } from '../data/moons';
-import { useTheme, THEMES } from '../lib/themes';
-import { bokehCard, drawerPanel, drawerTab, bottomSheet, useIsMobile } from './styles';
+import { useTheme } from '../lib/themes';
+import { bokehCard, useIsMobile, Z, BLUR, ACTIVE_ALPHA } from './styles';
 import type { CometDef } from '../data/comets';
 import type { MeteorShower } from '../scene/Meteors';
 import type { SatellitePosition } from '../lib/satellites';
-import { MYTHOLOGY, CONSTELLATION_NAMES, seasonForMonth, type SeasonName } from '../data/mythology';
+import { MYTHOLOGY, CONSTELLATION_NAMES } from '../data/mythology';
 import { OBSERVATORY_MODE } from '../lib/mode';
 import { ASTERISMS } from '../data/asterisms';
+import type { NearStar, GalaxyMarker } from '../data/deepspace';
+
+/** Distance from top of viewport below notch / status bar (iOS safe area). */
+function safeAreaTop(extraPx: number): string {
+  return `calc(env(safe-area-inset-top, 0px) + ${extraPx}px)`;
+}
+
+/** Distance from bottom of viewport above home indicator (iOS safe area). */
+function safeAreaBottom(extraPx: number): string {
+  return `calc(env(safe-area-inset-bottom, 0px) + ${extraPx}px)`;
+}
+
+/** Distance from right viewport edge inside notch / rounded-corner inset. */
+function safeAreaRight(extraPx: number): string {
+  return `calc(env(safe-area-inset-right, 0px) + ${extraPx}px)`;
+}
+
+/** Distance from left viewport edge inside notch / rounded-corner inset. */
+function safeAreaLeft(extraPx: number): string {
+  return `calc(env(safe-area-inset-left, 0px) + ${extraPx}px)`;
+}
 
 // Group MYTHOLOGY entries into Northern-hemisphere season buckets. Constellations
 // whose season string is "Spring (S)" etc. fall back to their literal first word.
-const SEASON_ORDER: SeasonName[] = ['Spring', 'Summer', 'Autumn', 'Winter'];
-const CONSTELLATIONS_BY_SEASON: Record<SeasonName, { abbrev: string; suffix: string }[]> = (() => {
-  const groups: Record<SeasonName, { abbrev: string; suffix: string }[]> = {
-    Spring: [], Summer: [], Autumn: [], Winter: [],
-  };
-  for (const [abbrev, info] of Object.entries(MYTHOLOGY)) {
-    const word = info.season.split(' ')[0] as SeasonName;
-    if (groups[word]) {
-      const m = info.season.match(/\((S|N)\)/);
-      groups[word].push({ abbrev, suffix: m ? `(${m[1]})` : '' });
-    }
-  }
-  for (const s of SEASON_ORDER) {
-    groups[s].sort((a, b) =>
-      (CONSTELLATION_NAMES[a.abbrev] ?? a.abbrev).localeCompare(CONSTELLATION_NAMES[b.abbrev] ?? b.abbrev));
-  }
-  return groups;
-})();
-
 // ─── Tiny UI primitives ─────────────────────────────────────────────────────────
 
 function Btn({ children, onClick, style, label }: {
@@ -69,1075 +71,370 @@ function Stat({ label, val, c }: { label: string; val: string | number; c?: stri
   );
 }
 
-// ─── Speed label formatter ──────────────────────────────────────────────────────
+const EARTH_ORBITAL_PERIOD_DAYS = 365.25;
+const EARTH_GRAVITY_MPS2 = 9.80665;
 
-function speedLabel(s: number) {
-  if (s === 1) return 'Real-time';
-  if (s <= 60) return `${s}\u00d7`;
-  if (s < 3600) return `${Math.round(s / 60)} min/s`;
-  if (s < 86400) return `${(s / 3600).toFixed(1)} hr/s`;
-  if (s < 86400 * 30) return `${(s / 86400).toFixed(1)} day/s`;
-  if (s < 86400 * 365) return `${(s / (86400 * 30)).toFixed(1)} mo/s`;
-  if (s < 86400 * 365 * 100) return `${(s / (86400 * 365)).toFixed(1)} yr/s`;
-  return `${(s / (86400 * 365 * 100)).toFixed(0)} cent/s`;
+function formatEarthRelativePeriod(periodDays: number): string {
+  const earthYears = periodDays / EARTH_ORBITAL_PERIOD_DAYS;
+  if (!Number.isFinite(earthYears) || earthYears <= 0) return '—';
+  if (earthYears < 0.1) return `${earthYears.toFixed(2)}x Earth year`;
+  if (earthYears < 10) return `${earthYears.toFixed(1)}x Earth year`;
+  return `${earthYears.toFixed(0)}x Earth year`;
 }
 
-const SPEED_PRESETS = [
-  { label: '1\u00d7', value: 1 },
-  { label: '1 hr/s', value: 3600 },
-  { label: '1 day/s', value: 86400 },
-  { label: '1 mo/s', value: 86400 * 30 },
-  { label: '1 yr/s', value: 86400 * 365 },
-  { label: '10 yr/s', value: 86400 * 365 * 10 },
-  { label: '100 yr/s', value: 86400 * 365 * 100 },
-];
+function formatEarthRelativeGravity(gravity: string | undefined): string {
+  if (!gravity) return '—';
+  const match = gravity.match(/-?\d+(\.\d+)?/);
+  if (!match) return gravity;
+  const mps2 = Number(match[0]);
+  if (!Number.isFinite(mps2)) return gravity;
+  const g = mps2 / EARTH_GRAVITY_MPS2;
+  if (g < 0.1) return `${g.toFixed(2)}x Earth`;
+  if (g < 10) return `${g.toFixed(1)}x Earth`;
+  return `${g.toFixed(0)}x Earth`;
+}
 
-// ─── Zoom controls (dispatches wheel events on the canvas) ──────────────────────
+// ─── Zoom controls (jumps between camera scale-level presets) ───────────────────
 
-function ZoomControls() {
+const ZOOM_LEVEL_LABELS = ['Sun', 'Inner', 'System', 'Outer', 'Kuiper', 'Oort', 'Stellar'] as const;
+
+/** Dice icon used by the random-tour toggle. Shows the "five" face. */
+function DiceIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <rect
+        x="3.5" y="3.5" width="17" height="17" rx="3.6" ry="3.6"
+        stroke="currentColor" strokeWidth="1.4" fill="none"
+      />
+      <circle cx="8" cy="8" r="1.4" fill="currentColor" />
+      <circle cx="16" cy="8" r="1.4" fill="currentColor" />
+      <circle cx="12" cy="12" r="1.4" fill="currentColor" />
+      <circle cx="8" cy="16" r="1.4" fill="currentColor" />
+      <circle cx="16" cy="16" r="1.4" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** Compact constellation stick-figure icon for Sky mode toggle. */
+function ConstellationIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <circle cx="5" cy="6" r="1.4" fill="currentColor" />
+      <circle cx="12" cy="4" r="1.6" fill="currentColor" />
+      <circle cx="19" cy="8" r="1.4" fill="currentColor" />
+      <circle cx="8" cy="14" r="1.3" fill="currentColor" />
+      <circle cx="16" cy="17" r="1.5" fill="currentColor" />
+      <path
+        d="M5 6L12 4M12 4L19 8M5 6L8 14M19 8L16 17M8 14L16 17"
+        stroke="currentColor"
+        strokeWidth="1.1"
+        strokeLinecap="round"
+        opacity="0.85"
+      />
+    </svg>
+  );
+}
+
+function ZoomControls({ cams, cameraDistance, onPresetSelect }: {
+  cams: CamPreset[];
+  cameraDistance: number;
+  onPresetSelect: (i: number) => void;
+}) {
+  const levels = ZOOM_LEVEL_LABELS
+    .map(label => {
+      const idx = cams.findIndex(c => c.label === label);
+      if (idx < 0) return null;
+      const [x, y, z] = cams[idx].pos;
+      return { idx, dist: Math.sqrt(x * x + y * y + z * z) };
+    })
+    .filter((v): v is { idx: number; dist: number } => v !== null);
+
+  const currentLevel = levels.reduce((best, cur, i) => {
+    const diff = Math.abs(Math.log10(cur.dist) - Math.log10(Math.max(0.01, cameraDistance)));
+    return diff < best.diff ? { i, diff } : best;
+  }, { i: 0, diff: Infinity }).i;
+
   const zoom = useCallback((direction: number) => {
-    const canvas = document.querySelector('canvas');
-    if (!canvas) return;
-    canvas.dispatchEvent(new WheelEvent('wheel', {
-      deltaY: direction * 120,
-      bubbles: true,
-    }));
-  }, []);
+    const next = Math.max(0, Math.min(levels.length - 1, currentLevel + direction));
+    if (next !== currentLevel) onPresetSelect(levels[next].idx);
+  }, [currentLevel, levels, onPresetSelect]);
 
-  const btnStyle: React.CSSProperties = {
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.08)',
+  const atMin = currentLevel === 0;
+  const atMax = currentLevel === levels.length - 1;
+
+  const btnStyle = (disabled: boolean): React.CSSProperties => ({
+    background: 'rgba(0,0,0,0.35)',
+    border: '1px solid rgba(255,255,255,0.12)',
     borderRadius: 6,
-    color: 'rgba(255,255,255,0.7)',
-    width: 36, height: 36,
-    cursor: 'pointer',
+    color: disabled ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.7)',
+    width: 44,
+    height: 44,
+    cursor: disabled ? 'not-allowed' : 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     padding: 0,
     fontFamily: 'inherit',
-    backdropFilter: 'blur(8px)',
-  };
+    fontSize: 18,
+    fontWeight: 400,
+    backdropFilter: `blur(${BLUR.chip}px)`,
+    WebkitBackdropFilter: `blur(${BLUR.chip}px)`,
+    transition: 'color 0.18s ease, border-color 0.18s ease',
+    pointerEvents: 'auto',
+  });
 
+  // Top-right placement on every form factor: bottom-right used to be the
+  // tablet/desktop home, but the InfoPanel detail card pins itself to
+  // [bottom: 16, right: 16] with full-height width on iPad and was occluding
+  // the +/- buttons whenever a constellation/planet card was open. Sitting
+  // directly under the dice/sky chip cluster keeps the controls reachable and
+  // avoids the cinematic Sky toggle hint that hugs the upper-left.
   return (
     <div style={{
-      position: 'absolute', bottom: 20, right: 14,
+      position: 'fixed',
+      top: safeAreaTop(64),
+      right: safeAreaRight(12),
       display: 'flex', flexDirection: 'column', gap: 4,
-      zIndex: 5,
+      zIndex: Z.hud,
+      pointerEvents: 'none',
     }}>
-      <button onClick={() => zoom(-1)} aria-label="Zoom in" style={btnStyle}>
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-          <circle cx="7" cy="7" r="5" />
-          <line x1="7" y1="5" x2="7" y2="9" />
-          <line x1="5" y1="7" x2="9" y2="7" />
-          <line x1="10.5" y1="10.5" x2="14" y2="14" />
-        </svg>
+      <button onClick={() => zoom(-1)} disabled={atMin} aria-label="Zoom in to next scale level" style={btnStyle(atMin)}>
+        <span aria-hidden="true">+</span>
       </button>
-      <button onClick={() => zoom(1)} aria-label="Zoom out" style={btnStyle}>
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-          <circle cx="7" cy="7" r="5" />
-          <line x1="5" y1="7" x2="9" y2="7" />
-          <line x1="10.5" y1="10.5" x2="14" y2="14" />
-        </svg>
+      <button onClick={() => zoom(1)} disabled={atMax} aria-label="Zoom out to next scale level" style={btnStyle(atMax)}>
+        <span aria-hidden="true">−</span>
       </button>
     </div>
   );
 }
 
-// ─── Date formatter ─────────────────────────────────────────────────────────────
+// ─── About dialog (accessible modal) ────────────────────────────────────────────
 
-function fmtDate(d: Date) { return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }); }
-function fmtTime(d: Date) { return d.toLocaleTimeString('en-US', { hour12: false }); }
-
-// ─── Scale indicator labels ─────────────────────────────────────────────────────
-
-const SCALE_LANDMARKS = [
-  { dist: 2, label: 'Inner' },
-  { dist: 10, label: 'Outer' },
-  { dist: 50, label: 'Kuiper' },
-  { dist: 1500, label: 'Oort' },
-  { dist: 20000, label: 'Stellar' },
-];
-
-function ScaleIndicator({ cameraDistance }: { cameraDistance: number }) {
-  const minLog = Math.log10(0.1);
-  const maxLog = Math.log10(200000);
-  const range = maxLog - minLog;
-
-  return (
-    <div
-      aria-hidden="true"
-      style={{
-        position: 'absolute', left: 8, top: '20%', bottom: '20%',
-        width: 24, zIndex: 5, pointerEvents: 'none',
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
-      }}
-    >
-      <div style={{
-        position: 'absolute', left: 10, top: 0, bottom: 0, width: 1,
-        background: 'rgba(255,255,255,0.08)',
-      }} />
-      <div style={{
-        position: 'absolute', left: 6, width: 9, height: 2,
-        background: 'rgba(255,255,255,0.4)',
-        borderRadius: 1,
-        top: `${Math.max(0, Math.min(100, ((Math.log10(Math.max(0.1, cameraDistance)) - minLog) / range) * 100))}%`,
-        transition: 'top 0.3s ease-out',
-      }} />
-      {SCALE_LANDMARKS.map(lm => {
-        const pct = ((Math.log10(lm.dist) - minLog) / range) * 100;
-        return (
-          <div key={lm.label} style={{
-            position: 'absolute', left: 16, top: `${pct}%`,
-            transform: 'translateY(-50%)',
-            fontSize: 8, color: 'rgba(255,255,255,0.7)',
-            whiteSpace: 'nowrap', fontWeight: 300, letterSpacing: 0.5,
-          }}>
-            <span style={{
-              position: 'absolute', left: -8, top: '50%', width: 5, height: 1,
-              background: 'rgba(255,255,255,0.1)',
-            }} />
-            {lm.label}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ─── Info panel (shared by constellation & spacecraft detail views) ──────────────
-
-function InfoPanel({
-  sectionTitle, title, subtitle, description, accent, onClose, closeLabel, children,
-}: {
-  sectionTitle: string; title: string; subtitle: string; description: string;
-  accent: string; onClose: () => void; closeLabel: string;
-  children?: React.ReactNode;
-}) {
-  return (
-    <AccordionSection title={sectionTitle} accent={accent} defaultOpen>
-      <div style={{ padding: '0 16px 12px' }}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <button
-            onClick={onClose}
-            aria-label={closeLabel}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              color: 'rgba(255,255,255,0.7)', fontSize: 14, fontFamily: 'inherit',
-              padding: '0 0 4px', lineHeight: 1,
-            }}
-          >
-            {'\u00d7'}
-          </button>
-        </div>
-        <div style={{ color: accent, fontSize: 17, fontWeight: 500, letterSpacing: 1 }}>{title}</div>
-        <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 300, marginTop: 2, letterSpacing: 1 }}>{subtitle}</div>
-        <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 14, fontWeight: 300, marginTop: 10, lineHeight: 1.6, fontStyle: 'italic' }}>{description}</div>
-        {children}
-      </div>
-    </AccordionSection>
-  );
-}
-
-// ─── Body tree item (shared by planets and dwarfs) ──────────────────────────────
-
-function BodyTreeItem({
-  body, idx, selPlanet, accent, accentRgb, mobile,
-  setSelPlanet, onMoonSelect,
-}: {
-  body: { name: string; color: string }; idx: number; selPlanet: number | null;
-  accent: string; accentRgb: string; mobile: boolean;
-  setSelPlanet: (i: number | null) => void;
-  onMoonSelect?: (planetIdx: number, moonIdx: number) => void;
-}) {
-  const moons = getMoonsForPlanet(idx);
-  return (
-    <div role="treeitem">
-      <button
-        onClick={() => setSelPlanet(idx)}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-          padding: mobile ? '10px 16px' : '6px 16px',
-          background: selPlanet === idx ? `rgba(${accentRgb},0.08)` : 'transparent',
-          border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-          color: selPlanet === idx ? accent : 'rgba(255,255,255,0.7)',
-          fontSize: mobile ? 14 : 13, fontWeight: selPlanet === idx ? 500 : 300,
-          minHeight: mobile ? 44 : 'auto', textAlign: 'left',
-          transition: 'background 0.1s',
-        }}
-      >
-        <span style={{ width: 8, height: 8, borderRadius: '50%', background: body.color, flexShrink: 0 }} />
-        {body.name}
-      </button>
-      {moons.map((moon, mIdx) => (
-        <button
-          key={moon.name}
-          onClick={() => onMoonSelect?.(idx, mIdx)}
-          role="treeitem"
-          style={{
-            display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-            padding: mobile ? '8px 16px 8px 36px' : '4px 16px 4px 34px',
-            background: 'transparent', border: 'none', cursor: 'pointer',
-            fontFamily: 'inherit', color: 'rgba(255,255,255,0.65)',
-            fontSize: mobile ? 15 : 14, fontStyle: 'italic', fontWeight: 300,
-            minHeight: mobile ? 40 : 'auto', textAlign: 'left',
-          }}
-        >
-          <span style={{ width: 5, height: 5, borderRadius: '50%', background: moon.color, flexShrink: 0 }} />
-          {moon.name}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// ─── Section header (used in drawer) ────────────────────────────────────────────
-
-function SectionHeader({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{
-      color: 'rgba(255,255,255,0.65)', fontSize: 11, letterSpacing: 2,
-      textTransform: 'uppercase', fontWeight: 300,
-      padding: '12px 16px 6px',
-    }}>
-      {children}
-    </div>
-  );
-}
-
-const sectionDivider: React.CSSProperties = {
-  height: 1, background: 'rgba(255,255,255,0.06)', margin: '4px 0',
-};
-
-const PANEL_FONT_SCALE_KEY = 'orrery-panel-font-scale';
-
-function loadPanelFontScale() {
-  try {
-    const raw = localStorage.getItem(PANEL_FONT_SCALE_KEY);
-    const value = raw ? Number(raw) : 1;
-    if (Number.isFinite(value) && value >= 0.92 && value <= 1.12) return value;
-  } catch { /* ignore */ }
-  return 1;
-}
-
-function AccordionSection({
-  title,
-  accent,
-  defaultOpen = false,
-  children,
-}: {
-  title: React.ReactNode;
-  accent: string;
-  defaultOpen?: boolean;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-
-  return (
-    <>
-      <button
-        onClick={() => setOpen(p => !p)}
-        aria-expanded={open}
-        style={{
-          width: '100%',
-          background: 'transparent',
-          border: 'none',
-          padding: 0,
-          margin: 0,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          textAlign: 'left',
-          fontFamily: 'inherit',
-        }}
-      >
-        <SectionHeader>{title}</SectionHeader>
-        <span
-          aria-hidden="true"
-          style={{
-            paddingRight: 16,
-            color: open ? accent : 'rgba(255,255,255,0.32)',
-            fontSize: 14,
-            transform: open ? 'rotate(90deg)' : 'rotate(0deg)',
-            transition: 'transform 0.18s ease, color 0.18s ease',
-          }}
-        >
-          {'\u203a'}
-        </span>
-      </button>
-      {open && children}
-      <div style={sectionDivider} />
-    </>
-  );
-}
-
-function MiniAccordion({
-  title,
-  children,
-  defaultOpen = false,
-}: {
-  title: React.ReactNode;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-
-  return (
-    <div style={{ marginBottom: 6 }}>
-      <button
-        onClick={() => setOpen(p => !p)}
-        aria-expanded={open}
-        style={{
-          width: '100%',
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.06)',
-          borderRadius: 6,
-          padding: '7px 10px',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          textAlign: 'left',
-          fontFamily: 'inherit',
-          color: 'rgba(255,255,255,0.72)',
-          fontSize: 12,
-        }}
-      >
-        <span>{title}</span>
-        <span
-          aria-hidden="true"
-          style={{
-            color: 'rgba(255,255,255,0.72)',
-            transform: open ? 'rotate(90deg)' : 'rotate(0deg)',
-            transition: 'transform 0.18s ease',
-          }}
-        >
-          {'\u203a'}
-        </span>
-      </button>
-      {open && <div style={{ paddingTop: 8 }}>{children}</div>}
-    </div>
-  );
-}
-
-// ─── Deep Sky info popup (fetches deepsky.json on demand) ──────────────────
-
-interface DeepSkyEntry {
-  id: string; name: string; type: string; ra: number; dec: number;
-  mag: number; con: string; size: number;
-}
-
-let deepSkyCache: DeepSkyEntry[] | null = null;
-let deepSkyPromise: Promise<DeepSkyEntry[]> | null = null;
-
-function loadDeepSky(): Promise<DeepSkyEntry[]> {
-  if (deepSkyCache) return Promise.resolve(deepSkyCache);
-  if (deepSkyPromise) return deepSkyPromise;
-  deepSkyPromise = fetch(import.meta.env.BASE_URL + 'data/deepsky.json')
-    .then(r => r.json() as Promise<DeepSkyEntry[]>)
-    .then(d => { deepSkyCache = d; return d; });
-  return deepSkyPromise;
-}
-
-const DEEP_SKY_TYPE_LABEL: Record<string, string> = {
-  galaxy: 'Galaxy', globular: 'Globular cluster',
-  open: 'Open cluster', nebula: 'Nebula',
-};
-
-function DeepSkyInfo({ selDeepSky, accent, onClose }: {
-  selDeepSky: string; accent: string; onClose: () => void;
-}) {
-  const [obj, setObj] = useState<DeepSkyEntry | null>(null);
-  useEffect(() => {
-    let alive = true;
-    loadDeepSky().then(d => {
-      if (alive) setObj(d.find(o => o.id === selDeepSky) ?? null);
-    });
-    return () => { alive = false; };
-  }, [selDeepSky]);
-  if (!obj) return null;
-  const constellationName = CONSTELLATION_NAMES[obj.con] ?? obj.con;
-  const typeLabel = DEEP_SKY_TYPE_LABEL[obj.type] ?? obj.type;
-  return (
-    <InfoPanel
-      sectionTitle="Deep Sky"
-      title={obj.name || obj.id}
-      subtitle={`${typeLabel} · in ${constellationName}`}
-      description="" accent={accent}
-      onClose={onClose} closeLabel="Close deep sky info"
-    >
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px',
-        marginTop: 10, color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 300,
-      }}>
-        {obj.id !== obj.name && <div>Catalog <span style={{ color: '#fff' }}>{obj.id}</span></div>}
-        <div>Magnitude <span style={{ color: '#fff' }}>{obj.mag.toFixed(1)}</span></div>
-        {obj.size > 0 && <div>Size <span style={{ color: '#fff' }}>{obj.size.toFixed(1)}′</span></div>}
-      </div>
-    </InfoPanel>
-  );
-}
-
-// ─── Tonight's Sky (observatory-mode constellation index by season) ──────────
-
-function TonightsSky({
-  simTime, accent, accentRgb, mobile, selConstellation, setSelConstellation,
-}: {
-  simTime: Date; accent: string; accentRgb: string; mobile: boolean;
-  selConstellation: string | null;
-  setSelConstellation: (id: string | null) => void;
-}) {
-  const currentSeason = seasonForMonth(simTime.getMonth());
-  return (
-    <AccordionSection title="Tonight's Sky" accent={accent} defaultOpen>
-      <div style={{
-        padding: '0 16px 8px', color: 'rgba(255,255,255,0.6)',
-        fontSize: 11, fontStyle: 'italic', fontWeight: 300,
-      }}>
-        Best viewing by season · click a constellation to highlight it
-      </div>
-      {SEASON_ORDER.map(season => (
-        <MiniAccordion
-          key={season}
-          title={season === currentSeason ? `${season} · now` : season}
-          defaultOpen={season === currentSeason}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {CONSTELLATIONS_BY_SEASON[season].map(b => (
-              <button
-                key={b.abbrev}
-                onClick={() => setSelConstellation(b.abbrev)}
-                style={{
-                  background: selConstellation === b.abbrev ? `rgba(${accentRgb},0.16)` : 'transparent',
-                  border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                  color: selConstellation === b.abbrev ? accent : 'rgba(255,255,255,0.7)',
-                  padding: mobile ? '8px 16px' : '5px 16px',
-                  fontSize: mobile ? 14 : 13,
-                  fontWeight: selConstellation === b.abbrev ? 500 : 300,
-                  textAlign: 'left', width: '100%',
-                  minHeight: mobile ? 40 : 'auto',
-                  display: 'flex', justifyContent: 'space-between', gap: 6,
-                }}
-              >
-                <span>{CONSTELLATION_NAMES[b.abbrev] ?? b.abbrev}</span>
-                {b.suffix && (
-                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, alignSelf: 'center' }}>
-                    {b.suffix}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        </MiniAccordion>
-      ))}
-      <div style={{
-        padding: '8px 16px 0', color: 'rgba(255,255,255,0.5)',
-        fontSize: 10, fontWeight: 300, lineHeight: 1.5,
-      }}>
-        (S) marks constellations best seen from the southern hemisphere.
-      </div>
-    </AccordionSection>
-  );
-}
-
-// ─── Side Drawer ────────────────────────────────────────────────────────────────
-
-function SideDrawer({
-  open,
-  accent, accentRgb, mobile,
-  simTime, moon, solarWind, speed, setSpeed, playing, setPlaying,
-  cams, camIdx, onPresetSelect,
-  selPlanet, setSelPlanet, onMoonSelect,
-  neos, neoStatus, selNeo, setSelNeo,
-  showNeo, showStars, showConstellations, showDwarf,
-  showAsteroidBelt, showComets, showMeteors, showDeepSky,
-  showDeepSpace,
-  setShowNeo, setShowStars, setShowConstellations,
-  setShowDwarf, setShowAsteroidBelt, setShowComets, setShowMeteors, setShowDeepSky,
-  setShowDeepSpace,
-  selConstellation, setSelConstellation,
-  selAsterism, setSelAsterism,
-  selDeepSky, setSelDeepSky,
-  selSpacecraft, setSelSpacecraft,
-  onHoverStart,
-  onHoverEnd,
-  panelFontScale,
-}: {
+function AboutDialog({ open, onClose, accent, accentRgb }: {
   open: boolean;
+  onClose: () => void;
   accent: string;
   accentRgb: string;
-  mobile: boolean;
-  simTime: Date;
-  moon: { name: string; ill: number };
-  solarWind: string | null;
-  speed: number;
-  setSpeed: (fn: (s: number) => number) => void;
-  playing: boolean;
-  setPlaying: (fn: (p: boolean) => boolean) => void;
-  cams: CamPreset[];
-  camIdx: number;
-  onPresetSelect: (i: number) => void;
-  selPlanet: number | null;
-  setSelPlanet: (i: number | null) => void;
-  onMoonSelect?: (planetIdx: number, moonIdx: number) => void;
-  neos: NEO[];
-  neoStatus: 'loading' | 'loaded' | 'error';
-  selNeo: NEO | null;
-  setSelNeo: (n: NEO | null) => void;
-  showNeo: boolean; setShowNeo: (fn: (p: boolean) => boolean) => void;
-  showStars: boolean; setShowStars: (fn: (p: boolean) => boolean) => void;
-  showConstellations: boolean; setShowConstellations: (fn: (p: boolean) => boolean) => void;
-  showAsterisms: boolean; setShowAsterisms: (fn: (p: boolean) => boolean) => void;
-  constellationFocus: boolean; setConstellationFocus: (fn: (p: boolean) => boolean) => void;
-  showDwarf: boolean; setShowDwarf: (fn: (p: boolean) => boolean) => void;
-  showAsteroidBelt: boolean; setShowAsteroidBelt: (fn: (p: boolean) => boolean) => void;
-  showComets: boolean; setShowComets: (fn: (p: boolean) => boolean) => void;
-  showMeteors: boolean; setShowMeteors: (fn: (p: boolean) => boolean) => void;
-  showSatellites: boolean; setShowSatellites: (fn: (p: boolean) => boolean) => void;
-  showDeepSky: boolean; setShowDeepSky: (fn: (p: boolean) => boolean) => void;
-  showDeepSpace: boolean; setShowDeepSpace: (fn: (p: boolean) => boolean) => void;
-  selConstellation: string | null; setSelConstellation: (id: string | null) => void;
-  selAsterism: string | null; setSelAsterism: (name: string | null) => void;
-  selDeepSky: string | null; setSelDeepSky: (id: string | null) => void;
-  selSpacecraft: import('../data/deepspace').Spacecraft | null;
-  setSelSpacecraft: (s: import('../data/deepspace').Spacecraft | null) => void;
-  onHoverStart?: () => void;
-  onHoverEnd?: () => void;
-  panelFontScale: number;
 }) {
-  const { theme, setTheme } = useTheme();
-  const observatoryMode = OBSERVATORY_MODE;
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
 
-  const planets = ALL_BODIES.slice(0, 8);
-  const dwarfs = ALL_BODIES.slice(8);
+  useEffect(() => {
+    if (!open) return;
+    const prevFocus = document.activeElement as HTMLElement | null;
+    closeBtnRef.current?.focus();
 
-  const neoLabel = neoStatus === 'loaded' ? `NEO (${neos.length})` :
-                   neoStatus === 'error' ? 'NEO (unavailable)' : 'NEO (loading)';
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.preventDefault(); onClose(); return; }
+      if (e.key !== 'Tab') return;
+      const root = dialogRef.current;
+      if (!root) return;
+      const focusables = root.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault(); last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault(); first.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('keydown', handleKey);
+      prevFocus?.focus?.();
+    };
+  }, [open, onClose]);
 
-  const skyLayers = [
-    { label: 'Stars', key: 'S', on: showStars, fn: () => setShowStars(p => !p) },
-    { label: 'Constellations', key: 'L', on: showConstellations, fn: () => setShowConstellations(p => !p) },
-    { label: 'Deep Sky', key: 'K', on: showDeepSky || showDeepSpace, fn: () => { setShowDeepSky(p => !p); setShowDeepSpace(p => !p); } },
-  ];
-  const solarSystemLayers = [
-    { label: 'Dwarf Planets', key: 'D', on: showDwarf, fn: () => setShowDwarf(p => !p) },
-    { label: neoLabel, key: 'N', on: showNeo, fn: () => setShowNeo(p => !p) },
-    { label: 'Asteroid Belt', key: null, on: showAsteroidBelt, fn: () => setShowAsteroidBelt(p => !p) },
-    { label: 'Comets', key: 'C', on: showComets, fn: () => setShowComets(p => !p) },
-    { label: 'Meteor Showers', key: 'R', on: showMeteors, fn: () => setShowMeteors(p => !p) },
-  ];
-  const layers = observatoryMode ? skyLayers : [...skyLayers, ...solarSystemLayers];
+  if (!open) return null;
 
-  const sourceItem: React.CSSProperties = {
-    color: 'rgba(255,255,255,0.72)', fontSize: 13, lineHeight: 1.8, fontWeight: 300,
-  };
-
-  const kbdRow: React.CSSProperties = {
-    display: 'flex', gap: 12, fontSize: 13, color: 'rgba(255,255,255,0.7)',
-    fontWeight: 300, lineHeight: 1.8,
-  };
-
-  const kbd: React.CSSProperties = {
-    color: 'rgba(255,255,255,0.7)', fontWeight: 400, minWidth: 28, display: 'inline-block',
-  };
-  const openCore = !mobile;
-  const sourceLink: React.CSSProperties = {
-    color: accent,
+  const sourceLinkStyle: React.CSSProperties = {
+    color: 'rgba(255,255,255,0.74)',
+    fontSize: 14,
+    fontWeight: 300,
+    lineHeight: 1.8,
     textDecoration: 'none',
     borderBottom: `1px solid rgba(${accentRgb},0.24)`,
   };
-  const statusText: React.CSSProperties = {
-    color: 'rgba(255,255,255,0.75)', fontSize: 12, lineHeight: 1.65, fontWeight: 300,
+  const liveLinkStyle: React.CSSProperties = {
+    ...sourceLinkStyle,
+    color: `rgba(${accentRgb},0.78)`,
   };
-  const liveSources = [
-    { label: 'NOAA SWPC solar wind summary', url: 'https://services.swpc.noaa.gov/products/summary/solar-wind-speed.json', note: 'Live solar-wind speed in the HUD.' },
-    { label: 'NASA NeoWs API', url: 'https://api.nasa.gov/', note: 'Today’s near-Earth objects are fetched live by date.' },
-    { label: 'JPL SBDB API', url: 'https://ssd-api.jpl.nasa.gov/doc/sbdb.html', note: 'Asteroid orbit details are fetched on demand when you select an NEO.' },
-    { label: 'CelesTrak stations / GP elements', url: 'https://celestrak.org/NORAD/elements/', note: 'Current station TLEs are used when the remote fetch succeeds; otherwise the bundled local fallback is used.' },
-  ];
+
+  const licenseNotes = [
+    { label: 'HYG star catalog · CC BY-SA 4.0', href: 'https://creativecommons.org/licenses/by-sa/4.0/' },
+    { label: 'd3-celestial constellations · BSD-3-Clause', href: 'https://github.com/ofrohn/d3-celestial/blob/master/LICENSE' },
+    { label: 'Solar System Scope textures · CC BY 4.0', href: 'https://creativecommons.org/licenses/by/4.0/' },
+  ] as const;
+
   const catalogSources = [
-    { label: 'JPL Horizons', url: 'https://ssd.jpl.nasa.gov/horizons/' },
-    { label: 'Solar System Scope textures', url: 'https://www.solarsystemscope.com/textures/' },
-    { label: 'd3-celestial', url: 'https://github.com/ofrohn/d3-celestial' },
-    { label: 'HYG star database', url: 'https://astronexus.com/projects/hyg' },
-    { label: 'OpenNGC', url: 'https://github.com/mattiaverga/OpenNGC' },
-    { label: 'Minor Planet Center data', url: 'https://minorplanetcenter.net/data' },
-    { label: 'IAU Meteor Data Center', url: 'https://www.ta3.sk/IAUC22DB/MDC2007/' },
-  ];
+    { label: '41,119 stars · HYG Database', href: 'https://astronexus.com/projects/hyg' },
+    { label: '88 constellations · IAU / d3-celestial', href: 'https://github.com/ofrohn/d3-celestial' },
+    { label: '8 planets + 3 dwarf planets · JPL Horizons', href: 'https://ssd.jpl.nasa.gov/horizons/' },
+    { label: '32 moons · JPL Horizons', href: 'https://ssd.jpl.nasa.gov/horizons/' },
+    { label: '5,000 main-belt asteroids · synthetic Kirkwood model', href: 'https://en.wikipedia.org/wiki/Kirkwood_gap' },
+    { label: '2,000 distant objects · MPC Distant.txt', href: 'https://minorplanetcenter.net/iau/MPCORB.html' },
+    { label: '20+ comets · MPC CometEls.txt', href: 'https://minorplanetcenter.net/iau/Ephemerides/Comets/Soft03Cmt.txt' },
+    { label: '14 meteor showers · IAU Meteor Data Center', href: 'https://www.ta3.sk/IAUC22DB/MDC2007/' },
+    { label: '5 spacecraft · NASA/JPL mission tracking', href: 'https://eyes.nasa.gov/apps/solar-system/#/home' },
+    { label: '2K/4K textures · Solar System Scope (CC BY 4.0)', href: 'https://www.solarsystemscope.com/textures/' },
+  ] as const;
+  const liveSources = [
+    { label: 'Near-Earth objects · NASA NeoWs API', href: 'https://api.nasa.gov/' },
+    { label: 'Asteroid orbits · JPL Small-Body Database', href: 'https://ssd-api.jpl.nasa.gov/doc/sbdb.html' },
+    { label: 'Solar wind · NOAA SWPC', href: 'https://services.swpc.noaa.gov/' },
+    { label: 'Satellite TLEs · CelesTrak', href: 'https://celestrak.org/NORAD/elements/' },
+  ] as const;
 
   return (
     <div
-      role="complementary"
-      aria-label="Side panel"
-      aria-hidden={!open}
-      onMouseEnter={onHoverStart}
-      onMouseLeave={onHoverEnd}
-      style={mobile ? {
-        ...drawerPanel,
-        ...bottomSheet('70vh'),
-        background: `linear-gradient(180deg, rgba(${accentRgb},0.18) 0%, rgba(10,12,18,0.88) 22%, rgba(6,8,14,0.94) 100%)`,
-        maxHeight: '38vh',
-        overflowY: 'auto',
-        zIndex: 30,
-        padding: '8px 0 0',
-        borderRadius: '14px 14px 0 0',
-        borderLeft: 'none',
-        transform: open ? 'translateY(0)' : 'translateY(100%)',
-        transition: 'transform 0.25s ease',
-        ...({ zoom: panelFontScale } as React.CSSProperties),
-      } : {
-        ...drawerPanel,
-        background: `linear-gradient(180deg, rgba(${accentRgb},0.12) 0%, rgba(10,12,18,0.82) 14%, rgba(6,8,14,0.9) 100%)`,
-        position: 'fixed',
-        top: 12, right: 12, bottom: 12,
-        width: 320,
-        overflowY: 'auto',
-        zIndex: 30,
-        padding: '8px 0 0',
-        borderRadius: 12,
-        borderRight: `1px solid rgba(${accentRgb},0.24)`,
-        boxShadow: `0 18px 48px rgba(0,0,0,0.38), 0 0 0 1px rgba(${accentRgb},0.08)`,
-        transform: open ? 'translateX(0)' : 'translateX(calc(100% + 24px))',
-        transition: 'transform 0.25s ease',
-        ...({ zoom: panelFontScale } as React.CSSProperties),
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: Z.modal,
+        background: 'rgba(0,0,0,0.85)',
+        backdropFilter: `blur(${BLUR.card}px)`, WebkitBackdropFilter: `blur(${BLUR.card}px)`,
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        padding: 24, overflow: 'auto',
+        fontFamily: "'Cormorant Garamond','Garamond','Baskerville','Georgia',serif",
       }}
     >
-      {!mobile && <AccordionSection title="Status" accent={accent} defaultOpen>
-        <div style={{ padding: '0 16px 10px' }}>
-          <div style={{ color: '#fff', fontSize: mobile ? 22 : 26, fontWeight: 300, letterSpacing: 2, fontFamily: "'Cormorant', serif" }}>
-            {fmtTime(simTime)}
-          </div>
-          <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, fontStyle: 'italic', fontWeight: 300 }}>
-            {fmtDate(simTime)}
-          </div>
-          <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 14px' }}>
-            <Stat label="Moon" val={`${moon.name}, ${moon.ill}%`} c={accent} />
-            <Stat label="View" val={camIdx >= 0 && camIdx < cams.length ? cams[camIdx].label : 'Focused'} />
-            <Stat label="Rate" val={speedLabel(speed)} />
-            {solarWind ? <Stat label="Solar Wind" val={solarWind} /> : <Stat label="Solar Wind" val="Unavailable" />}
-          </div>
-        </div>
-      </AccordionSection>}
-
-      <AccordionSection title="Speed" accent={accent} defaultOpen={openCore}>
-        <div style={{ padding: '0 16px 8px' }}>
-          <button
-            onClick={() => setPlaying(p => !p)}
-            style={{
-              background: playing ? `rgba(${accentRgb},0.16)` : 'rgba(255,255,255,0.04)',
-              border: `1px solid ${playing ? `rgba(${accentRgb},0.35)` : 'rgba(255,255,255,0.08)'}`,
-              color: playing ? accent : 'rgba(255,255,255,0.65)',
-              fontSize: 12, fontFamily: 'inherit', fontWeight: 400,
-              padding: '6px 12px', borderRadius: 4, cursor: 'pointer', minHeight: mobile ? 38 : 30,
-            }}
-          >
-            {playing ? 'Pause' : 'Play'}
-          </button>
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '0 16px 8px' }}>
-          {SPEED_PRESETS.map(p => (
-            <button
-              key={p.value}
-              onClick={() => setSpeed(() => p.value)}
-              style={{
-                background: speed === p.value ? `rgba(${accentRgb},0.2)` : 'rgba(255,255,255,0.04)',
-                border: speed === p.value ? `1px solid rgba(${accentRgb},0.3)` : '1px solid rgba(255,255,255,0.08)',
-                color: speed === p.value ? accent : 'rgba(255,255,255,0.5)',
-                fontSize: 12, fontFamily: 'inherit', fontWeight: speed === p.value ? 500 : 300,
-                padding: '5px 10px', borderRadius: 4, cursor: 'pointer',
-                minHeight: mobile ? 36 : 28,
-              }}
-            >{p.label}</button>
-          ))}
-        </div>
-      </AccordionSection>
-
-      {observatoryMode && (
-        <TonightsSky
-          simTime={simTime} accent={accent} accentRgb={accentRgb} mobile={mobile}
-          selConstellation={selConstellation} setSelConstellation={setSelConstellation}
-        />
-      )}
-
-      {!observatoryMode && <AccordionSection title="Go To" accent={accent} defaultOpen={openCore}>
-        {(() => {
-        // Group presets logically: close → system → far → special
-        const groups: { title: string; items: { label: string; idx: number }[] }[] = [
-          { title: 'Close', items: ['Sun', 'Inner', 'Belt'].map(l => ({ label: l, idx: camIndex(l) })).filter(x => x.idx >= 0) },
-          { title: 'System', items: ['System', 'Top', 'Ecliptic'].map(l => ({ label: l, idx: camIndex(l) })).filter(x => x.idx >= 0) },
-          { title: 'Deep', items: (observatoryMode ? ['Outer', 'Kuiper'] : ['Outer', 'Kuiper', 'Oort', 'Stellar']).map(l => ({ label: l, idx: camIndex(l) })).filter(x => x.idx >= 0) },
-          { title: 'Views', items: ['Screensaver', 'Stargazer'].map(l => ({ label: l, idx: camIndex(l) })).filter(x => x.idx >= 0) },
-        ];
-        const btnStyle = {
-          background: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(255,255,255,0.08)',
-          color: 'rgba(255,255,255,0.6)',
-          fontSize: 12, fontFamily: 'inherit', fontWeight: 300,
-          padding: '5px 10px', borderRadius: 4, cursor: 'pointer',
-          minHeight: mobile ? 36 : 28,
-        };
-        return (
-          <div style={{ padding: '0 16px 6px' }}>
-            {groups.map(g => (
-              <MiniAccordion key={g.title} title={g.title} defaultOpen={!mobile && (g.title === 'Close' || g.title === 'Views')}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                  {g.items.map(item => (
-                    <button key={item.label} onClick={() => onPresetSelect(item.idx)} style={btnStyle}>{item.label}</button>
-                  ))}
-                </div>
-              </MiniAccordion>
-            ))}
-          </div>
-        );
-      })()}
-      </AccordionSection>}
-
-      {!observatoryMode && <AccordionSection title="Bodies" accent={accent} defaultOpen={false}>
-        <div role="tree" aria-label="Celestial bodies">
-        {/* Sun */}
-        <div role="treeitem">
-          <button
-            onClick={() => onPresetSelect(camIndex('Sun'))}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-              padding: mobile ? '10px 16px' : '6px 16px',
-              background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              color: 'rgba(255,220,160,0.9)', fontSize: mobile ? 14 : 13, fontWeight: 400,
-              minHeight: mobile ? 44 : 'auto', textAlign: 'left',
-            }}
-          >
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ffdd88', flexShrink: 0 }} />
-            Sol
-          </button>
-        </div>
-        {planets.map((body, idx) => (
-          <BodyTreeItem key={body.name} body={body} idx={idx} selPlanet={selPlanet}
-            accent={accent} accentRgb={accentRgb} mobile={mobile}
-            setSelPlanet={setSelPlanet} onMoonSelect={onMoonSelect} />
-        ))}
-
-        {/* Dwarf planets separator */}
-        <div style={{
-          padding: '8px 16px 4px', fontSize: 9, letterSpacing: 2,
-          color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', fontWeight: 300,
-        }}>
-          Dwarf Planets
-        </div>
-        {dwarfs.map((body, i) => (
-          <BodyTreeItem key={body.name} body={body} idx={8 + i} selPlanet={selPlanet}
-            accent={accent} accentRgb={accentRgb} mobile={mobile}
-            setSelPlanet={setSelPlanet} onMoonSelect={onMoonSelect} />
-        ))}
-        </div>
-      </AccordionSection>}
-
-      <AccordionSection title="Layers" accent={accent} defaultOpen={openCore}>
-        <div role="group" aria-label="Display layers">
-        {layers.filter(l => !mobile || ['Stars', 'Constellations', 'Deep Sky'].includes(l.label) || l.label.startsWith('NEO')).map(l => (
-          <button
-            key={l.label}
-            onClick={l.fn}
-            aria-pressed={l.on}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-              padding: mobile ? '10px 16px' : '6px 16px',
-              background: 'transparent', border: 'none', cursor: 'pointer',
-              fontFamily: 'inherit', fontSize: mobile ? 14 : 13,
-              color: l.on ? accent : 'rgba(255,255,255,0.5)',
-              fontWeight: l.on ? 400 : 300, textAlign: 'left',
-              minHeight: mobile ? 44 : 'auto',
-              transition: 'color 0.1s',
-            }}
-          >
-            <span style={{
-              width: 14, height: 14, borderRadius: 3, flexShrink: 0,
-              border: `1.5px solid ${l.on ? accent : 'rgba(255,255,255,0.2)'}`,
-              background: l.on ? `rgba(${accentRgb},0.15)` : 'transparent',
-            }} />
-            <span style={{ flex: 1 }}>{l.label}</span>
-            {l.key && !mobile && (
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: 300 }}>{l.key}</span>
-            )}
-          </button>
-        ))}
-        </div>
-      </AccordionSection>
-
-      {mobile ? (
-      <AccordionSection title="More" accent={accent} defaultOpen={false}>
-        <div style={{ padding: '0 16px 8px' }}>
-          <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>Status</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px', marginBottom: 12 }}>
-            <Stat label="Moon" val={`${moon.name}, ${moon.ill}%`} c={accent} />
-            <Stat label="Rate" val={speedLabel(speed)} />
-            {solarWind && <Stat label="Solar Wind" val={solarWind} />}
-          </div>
-          <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>Theme</div>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-            {THEMES.map(t => (
-              <button key={t.id} onClick={() => setTheme(t)} aria-label={t.name} style={{
-                width: 24, height: 24, borderRadius: '50%', background: t.uiAccent, border: theme.id === t.id ? '2px solid #fff' : '2px solid transparent',
-                cursor: 'pointer', padding: 0,
-              }} />
-            ))}
-          </div>
-          <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>All Layers</div>
-          {layers.filter(l => !['Stars', 'Constellations', 'Deep Sky'].includes(l.label) && !l.label.startsWith('NEO')).map(l => (
-            <button key={l.label} onClick={l.fn} style={{
-              display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-              padding: '8px 0', background: 'transparent', border: 'none', cursor: 'pointer',
-              fontFamily: 'inherit', fontSize: 13,
-              color: l.on ? accent : 'rgba(255,255,255,0.45)', fontWeight: l.on ? 400 : 300, textAlign: 'left',
-            }}>
-              <span style={{ width: 12, height: 12, borderRadius: 3, border: `1.5px solid ${l.on ? accent : 'rgba(255,255,255,0.2)'}`, background: l.on ? `rgba(${accentRgb},0.15)` : 'transparent' }} />
-              {l.label}
-            </button>
-          ))}
-        </div>
-      </AccordionSection>
-      ) : (
-      <>
-      <AccordionSection title="Theme" accent={accent} defaultOpen={false}>
-        <div role="radiogroup" aria-label="Color theme">
-        {THEMES.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setTheme(t)}
-            role="radio"
-            aria-checked={theme.id === t.id}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-              padding: mobile ? '10px 16px' : '6px 16px',
-              background: 'transparent', border: 'none', cursor: 'pointer',
-              fontFamily: 'inherit', fontSize: mobile ? 15 : 14,
-              color: theme.id === t.id ? t.uiAccent : 'rgba(255,255,255,0.5)',
-              fontWeight: theme.id === t.id ? 400 : 300, textAlign: 'left',
-              minHeight: mobile ? 44 : 'auto',
-            }}
-          >
-            <span style={{
-              width: 12, height: 12, borderRadius: '50%',
-              background: t.uiAccent, flexShrink: 0,
-              border: theme.id === t.id ? '2px solid #fff' : '2px solid transparent',
-            }} />
-            {t.name}
-          </button>
-        ))}
-        </div>
-      </AccordionSection>
-
-      <AccordionSection title="Settings" accent={accent} defaultOpen={false}>
-        <div style={{ padding: '0 16px 10px' }}>
-          <div style={{ color: 'rgba(255,255,255,0.28)', fontSize: 10, letterSpacing: 1.8, textTransform: 'uppercase', marginBottom: 8 }}>
-            Panel Text Size
-          </div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {[
-              { label: 'Small', value: 0.94 },
-              { label: 'Default', value: 1 },
-              { label: 'Large', value: 1.08 },
-            ].map(option => (
-              <button
-                key={option.label}
-                onClick={() => {
-                  try { localStorage.setItem(PANEL_FONT_SCALE_KEY, String(option.value)); } catch { /* ignore */ }
-                  window.dispatchEvent(new CustomEvent('orrery-panel-font-scale', { detail: option.value }));
-                }}
-                style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  color: 'rgba(255,255,255,0.72)',
-                  fontSize: 12,
-                  fontFamily: 'inherit',
-                  padding: '6px 10px',
-                  borderRadius: 4,
-                  cursor: 'pointer',
-                  minHeight: mobile ? 36 : 28,
-                }}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-          <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, lineHeight: 1.5, marginTop: 8 }}>
-            Keeps the panel denser on mobile without changing the 3D scene.
-          </div>
-        </div>
-      </AccordionSection>
-
-      {/* ── NEO (when layer is on) ── */}
-      {showNeo && (
-        <AccordionSection title="NEO Today" accent={accent} defaultOpen={false}>
-          <div style={{ padding: '0 16px' }}>
-            {neoStatus === 'loading' && (
-              <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, fontStyle: 'italic', padding: '8px 0' }}>Loading NASA data...</div>
-            )}
-            {neoStatus === 'error' && (
-              <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 11, fontStyle: 'italic', padding: '8px 0' }}>
-                NASA API rate limited -- try again later
-              </div>
-            )}
-            {neoStatus === 'loaded' && (
-              <div style={{ color: accent, fontSize: 10, marginBottom: 6 }}>{neos.length} today</div>
-            )}
-            {neos.map(neo => (
-              <div
-                key={neo.id}
-                role="button"
-                tabIndex={0}
-                aria-label={`${neo.name.replace(/[()]/g, '')}: ${neo.missLunar.toFixed(1)} lunar distances${neo.hazardous ? ', potentially hazardous' : ''}`}
-                onClick={() => setSelNeo(selNeo?.id === neo.id ? null : neo)}
-                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelNeo(selNeo?.id === neo.id ? null : neo); } }}
-                style={{
-                  padding: mobile ? '10px 0' : '5px 0', cursor: 'pointer',
-                  borderBottom: '1px solid rgba(255,255,255,0.04)',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  {neo.hazardous && <span style={{ color: '#ff4444', fontSize: 7 }} aria-label="Potentially hazardous">{'\u25cf'}</span>}
-                  <span style={{ color: '#fff', fontSize: mobile ? 14 : 13 }}>{neo.name.replace(/[()]/g, '')}</span>
-                  {neo.orbit?.loaded && <span style={{ color: accent, fontSize: 9, marginLeft: 'auto', fontStyle: 'italic' }}>orbit</span>}
-                </div>
-                <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 10, marginTop: 2, fontWeight: 300 }}>
-                  {neo.missLunar.toFixed(1)} LD {'\u00b7'} {neo.velKms.toFixed(1)} km/s {'\u00b7'} {Math.round(neo.dMin)}{'\u2013'}{Math.round(neo.dMax)} m
-                </div>
-              </div>
-            ))}
-            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 9, marginTop: 8, fontStyle: 'italic', fontWeight: 300 }}>Source: NASA JPL NeoWs / SBDB</div>
-          </div>
-        </AccordionSection>
-      )}
-
-      {/* ── Constellation Info (when selected) ── */}
-      {selConstellation && MYTHOLOGY[selConstellation] && (() => {
-        const info = MYTHOLOGY[selConstellation];
-        return (
-          <InfoPanel
-            sectionTitle="Constellation"
-            title={CONSTELLATION_NAMES[selConstellation] ?? selConstellation}
-            subtitle={`${info.origin} \u00b7 Best: ${info.season}`}
-            description="" accent={accent}
-            onClose={() => setSelConstellation(null)} closeLabel="Close constellation info"
-          >
-            {info.objects.length > 0 && (
-              <>
-                <div style={{
-                  color: 'rgba(255,255,255,0.7)', fontSize: 11, letterSpacing: 2,
-                  textTransform: 'uppercase', fontWeight: 300, marginTop: 12, marginBottom: 4,
-                }}>
-                  Notable Objects
-                </div>
-                {info.objects.map(obj => (
-                  <div key={obj} style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 300, lineHeight: 1.6 }}>
-                    {obj}
-                  </div>
-                ))}
-              </>
-            )}
-          </InfoPanel>
-        );
-      })()}
-
-      {/* ── Asterism Info (when selected) ── */}
-      {selAsterism && (() => {
-        const ast = ASTERISMS.find(a => a.name === selAsterism);
-        if (!ast) return null;
-        return (
-          <InfoPanel
-            sectionTitle="Asterism" title={ast.name}
-            subtitle={`${ast.stars.length} stars`}
-            description={ast.description} accent={accent}
-            onClose={() => setSelAsterism(null)} closeLabel="Close asterism info"
-          />
-        );
-      })()}
-
-      {/* ── Deep Sky Info (when selected) ── */}
-      {selDeepSky && (
-        <DeepSkyInfo selDeepSky={selDeepSky} accent={accent} onClose={() => setSelDeepSky(null)} />
-      )}
-
-      {/* ── Spacecraft Info (when selected) ── */}
-      {selSpacecraft && (
-        <InfoPanel
-          sectionTitle="Spacecraft" title={selSpacecraft.name}
-          subtitle={`${selSpacecraft.status === 'active' ? 'Active' : 'Inactive'} \u00b7 Launched ${selSpacecraft.launchYear}`}
-          description="" accent={accent}
-          onClose={() => setSelSpacecraft(null)} closeLabel="Close spacecraft info"
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="about-dialog-title"
+        onClick={e => e.stopPropagation()}
+        style={{ maxWidth: 360, width: '100%', position: 'relative' }}
+      >
+        <button
+          ref={closeBtnRef}
+          type="button"
+          onClick={onClose}
+          aria-label="Close about dialog"
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            background: 'none',
+            border: 'none',
+            color: 'rgba(255,255,255,0.7)',
+            fontSize: 22,
+            fontFamily: 'inherit',
+            padding: '4px 8px',
+            minWidth: 44,
+            minHeight: 44,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
         >
-          <div style={{
-            display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px',
-            marginTop: 12, color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 300,
-          }}>
-            <div>Distance <span style={{ color: '#fff', fontWeight: 400 }}>{selSpacecraft.distAU} AU</span></div>
-            <div>Speed <span style={{ color: '#fff', fontWeight: 400 }}>{selSpacecraft.speedAUyr} AU/yr</span></div>
-            <div>Light-hours <span style={{ color: '#fff', fontWeight: 400 }}>{(selSpacecraft.distAU / 7.2).toFixed(1)}</span></div>
-            <div>Light-years <span style={{ color: '#fff', fontWeight: 400 }}>{(selSpacecraft.distAU / 63241).toFixed(4)}</span></div>
+          <span aria-hidden="true">{'\u00d7'}</span>
+        </button>
+        <h2 id="about-dialog-title" style={{ color: '#fff', fontSize: 22, fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', textAlign: 'center', marginBottom: 16, margin: 0 }}>About</h2>
+        <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontStyle: 'italic', textAlign: 'center', marginTop: 16, marginBottom: 20 }}>Real data. Real time.</div>
+
+        <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>Catalog Data</div>
+        {catalogSources.map((source) => (
+          <div key={source.label}>
+            <a href={source.href} target="_blank" rel="noopener noreferrer" style={sourceLinkStyle}>
+              {source.label}
+            </a>
           </div>
-        </InfoPanel>
-      )}
+        ))}
 
-      <AccordionSection title="About" accent={accent} defaultOpen={false}>
-        <div style={{ padding: '0 16px 20px' }}>
-        <div style={{ color: '#fff', fontSize: 18, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase' }}>Orrery</div>
-        <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 13, fontStyle: 'italic', fontWeight: 300, marginTop: 2 }}>Interactive Solar System</div>
-
-        <MiniAccordion title="Data Status" defaultOpen={!mobile}>
-          <div style={statusText}>This scene uses real astronomical datasets throughout.</div>
-          <div style={{ ...statusText, marginTop: 8 }}>
-            Live/current where available: solar wind, today’s NASA NEO feed, on-demand JPL asteroid orbit details, and current station TLEs.
+        <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginTop: 16, marginBottom: 8 }}>Live Data</div>
+        {liveSources.map((source) => (
+          <div key={source.label}>
+            <a href={source.href} target="_blank" rel="noopener noreferrer" style={liveLinkStyle}>
+              {source.label}
+            </a>
           </div>
-          <div style={{ ...statusText, marginTop: 8 }}>
-            Catalog/prebaked but still real data: planetary elements, star catalogs, constellations, comets, meteor showers, and deep-sky objects.
+        ))}
+
+        <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginTop: 16, marginBottom: 8 }}>Licenses</div>
+        {licenseNotes.map((source) => (
+          <div key={source.label}>
+            <a href={source.href} target="_blank" rel="noopener noreferrer" style={sourceLinkStyle}>
+              {source.label}
+            </a>
           </div>
-        </MiniAccordion>
+        ))}
 
-        <MiniAccordion title="Live / Current Sources" defaultOpen={false}>
-          {liveSources.map(source => (
-            <div key={source.label} style={{ marginBottom: 10 }}>
-              <a href={source.url} target="_blank" rel="noreferrer" style={sourceLink}>{source.label}</a>
-              <div style={statusText}>{source.note}</div>
-            </div>
-          ))}
-        </MiniAccordion>
-
-        <MiniAccordion title="Catalog Sources" defaultOpen={false}>
-          {catalogSources.map(source => (
-            <div key={source.label} style={{ ...sourceItem, marginBottom: 8 }}>
-              <a href={source.url} target="_blank" rel="noreferrer" style={sourceLink}>{source.label}</a>
-            </div>
-          ))}
-        </MiniAccordion>
-
-        <MiniAccordion title="Technology" defaultOpen={false}>
-          <div style={sourceItem}>React {'\u00b7'} Three.js {'\u00b7'} TypeScript</div>
-        </MiniAccordion>
-
-        <MiniAccordion title="Keyboard Shortcuts" defaultOpen={false}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <div style={kbdRow}><span style={kbd}>1-0</span> Camera presets {'\u00b7'} <span style={kbd}>-</span> Stargazer</div>
-            <div style={kbdRow}><span style={kbd}>S</span> Stars {'\u00b7'} <span style={kbd}>L</span> Constellations</div>
-            <div style={kbdRow}><span style={kbd}>G</span> Stargazer {'\u00b7'} <span style={kbd}>D</span> Dwarf planets</div>
-            <div style={kbdRow}><span style={kbd}>K</span> Deep Sky {'\u00b7'} <span style={kbd}>N</span> NEO</div>
-            <div style={kbdRow}><span style={kbd}>C</span> Comets {'\u00b7'} <span style={kbd}>R</span> Radiants</div>
-            <div style={kbdRow}><span style={kbd}>I</span> Satellites {'\u00b7'} <span style={kbd}>O</span> Deep Space</div>
-            <div style={kbdRow}><span style={kbd}>F</span> Tour {'\u00b7'} <span style={kbd}>Space</span> Pause</div>
-            <div style={kbdRow}><span style={kbd}>Esc</span> Back/Deselect</div>
-          </div>
-        </MiniAccordion>
+        <div style={{ marginTop: 16, textAlign: 'center' }}>
+          <a href={`${import.meta.env.BASE_URL}privacy.html`} target="_blank" rel="noopener noreferrer" style={liveLinkStyle}>
+            Privacy policy
+          </a>
         </div>
-      </AccordionSection>
 
-      {/* Built By — always visible, not collapsible */}
-      <div style={{ padding: '12px 16px 6px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-        <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 400 }}>Luke Steuber</div>
-        <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
-          <a href="https://lukesteuber.com" target="_blank" rel="noopener noreferrer" style={{ color: accent, fontSize: 11, textDecoration: 'none', fontWeight: 300 }}>lukesteuber.com</a>
-          <a href="https://datapoems.io" target="_blank" rel="noopener noreferrer" style={{ color: accent, fontSize: 11, textDecoration: 'none', fontWeight: 300 }}>datapoems.io</a>
+        <div style={{ marginTop: 24, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <a href="https://lukesteuber.com" target="_blank" rel="noopener noreferrer" style={{ color: accent, fontSize: 14, textDecoration: 'none', fontWeight: 400 }}>lukesteuber.com</a>
+          <a href="https://datapoems.io" target="_blank" rel="noopener noreferrer" style={{ color: accent, fontSize: 14, textDecoration: 'none', fontWeight: 400 }}>datapoems.io</a>
         </div>
+
       </div>
+    </div>
+  );
+}
 
-      </>
+// ─── Info panel — floating bokehCard for clicked sky / spacecraft objects ──────
+
+function InfoPanel({
+  sectionTitle, title, subtitle, description, accent, accentRgb, mobile, onClose, closeLabel, placement = 'right', children,
+}: {
+  sectionTitle: string; title: string; subtitle: string; description: string;
+  accent: string; accentRgb: string; mobile: boolean;
+  onClose: () => void; closeLabel: string;
+  placement?: 'left' | 'right';
+  children?: React.ReactNode;
+}) {
+  return (
+    <div
+      onClick={e => e.stopPropagation()}
+      onTouchStart={e => e.stopPropagation()}
+      style={mobile ? {
+        position: 'fixed', left: 8, right: 8, bottom: 12, top: 'auto',
+        maxHeight: '40vh', borderRadius: 12, overflowY: 'auto',
+        ...bokehCard, padding: '14px 18px', zIndex: Z.dialog,
+        pointerEvents: 'auto', touchAction: 'manipulation',
+      } : {
+        position: 'absolute', bottom: 16, [placement]: 16,
+        maxWidth: 360, width: '30vw', minWidth: 280,
+        maxHeight: 'calc(100vh - 32px)', overflowY: 'auto',
+        ...bokehCard, padding: '14px 20px', zIndex: Z.dialog,
+        pointerEvents: 'auto',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+        <div style={{
+          color: `rgba(${accentRgb},0.8)`, fontSize: 10, letterSpacing: 2,
+          textTransform: 'uppercase', fontWeight: 400,
+        }}>{sectionTitle}</div>
+        <Btn onClick={onClose} label={closeLabel}>{'\u00d7'}</Btn>
+      </div>
+      <div style={{ color: accent, fontSize: 18, fontWeight: 500, letterSpacing: 1 }}>{title}</div>
+      {subtitle && (
+        <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 300, marginTop: 2, letterSpacing: 1 }}>{subtitle}</div>
       )}
+      {description && (
+        <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 300, marginTop: 10, lineHeight: 1.5, fontStyle: 'italic' }}>{description}</div>
+      )}
+      {children}
     </div>
   );
 }
@@ -1162,12 +459,11 @@ export interface PanelProps {
   showComets: boolean; setShowComets: (fn: (p: boolean) => boolean) => void;
   showMeteors: boolean; setShowMeteors: (fn: (p: boolean) => boolean) => void;
   showSatellites: boolean; setShowSatellites: (fn: (p: boolean) => boolean) => void;
-  showDeepSky: boolean; setShowDeepSky: (fn: (p: boolean) => boolean) => void;
   selConstellation: string | null; setSelConstellation: (id: string | null) => void;
   selAsterism: string | null; setSelAsterism: (name: string | null) => void;
-  selDeepSky: string | null; setSelDeepSky: (id: string | null) => void;
   panelOpen: boolean; setPanelOpen: (fn: boolean | ((p: boolean) => boolean)) => void;
   cinematic: boolean;
+  pulseSkyToggle?: boolean;
   navStack: string[];
   navigateBack: () => void;
   navigateToLevel: (level: number) => void;
@@ -1181,89 +477,119 @@ export interface PanelProps {
   selMeteor: MeteorShower | null; setSelMeteor: (m: MeteorShower | null) => void;
   selSatellite: SatellitePosition | null; setSelSatellite: (s: SatellitePosition | null) => void;
   showDeepSpace: boolean; setShowDeepSpace: (fn: (p: boolean) => boolean) => void;
+  selSun: boolean;
   selSpacecraft: import('../data/deepspace').Spacecraft | null;
   setSelSpacecraft: (s: import('../data/deepspace').Spacecraft | null) => void;
+  selNearStar: NearStar | null;
+  setSelNearStar: (s: NearStar | null) => void;
+  selGalaxy: GalaxyMarker | null;
+  setSelGalaxy: (g: GalaxyMarker | null) => void;
+  currentAreaLabel: string;
+  onRandomJump: () => void;
 }
 
 export default function Panels(props: PanelProps) {
   const {
-    simTime, moon, solarWind, speed,
-    selPlanet, setSelPlanet, neos, neoStatus, selNeo, setSelNeo,
-    showNeo, setShowNeo,
-    showDwarf, setShowDwarf,
-    showStars, setShowStars,
-    showConstellations, setShowConstellations,
-    showAsterisms, setShowAsterisms,
+    simTime: _simTime, moon, solarWind, speed: _speed,
+    selPlanet, setSelPlanet: _setSelPlanet, neos: _neos, neoStatus, selNeo, setSelNeo,
+    showNeo,
+    setShowNeo: _setShowNeo,
+    setShowDwarf: _setShowDwarf,
+    showStars: _showStars, setShowStars,
+    showConstellations: _showConstellations, setShowConstellations,
+    setShowAsterisms: _setShowAsterisms,
     constellationFocus, setConstellationFocus,
-    showAsteroidBelt, setShowAsteroidBelt,
-    showComets, setShowComets,
-    showMeteors, setShowMeteors,
-    showSatellites, setShowSatellites,
-    showDeepSky, setShowDeepSky,
+    setShowAsteroidBelt: _setShowAsteroidBelt,
+    setShowComets: _setShowComets,
+    setShowMeteors: _setShowMeteors,
+    setShowSatellites: _setShowSatellites,
     selConstellation, setSelConstellation,
     selAsterism, setSelAsterism,
-    selDeepSky, setSelDeepSky,
-    panelOpen, setPanelOpen,
+    panelOpen: _panelOpen, setPanelOpen: _setPanelOpen,
     cinematic,
+    pulseSkyToggle = false,
     navStack,
     selMoonIdx, cameraDistance,
-    cams, camIdx, onPresetSelect,
-    onMoonSelect,
+    cams, onPresetSelect,
     selComet, selMeteor, selSatellite,
-    showDeepSpace, setShowDeepSpace,
+    setShowDeepSpace: _setShowDeepSpace,
+    selSun,
     selSpacecraft, setSelSpacecraft,
+    selNearStar, setSelNearStar,
+    selGalaxy, setSelGalaxy,
+    currentAreaLabel,
+    onRandomJump,
   } = props;
+  void _setShowNeo; void _simTime; void _speed; void _setSelPlanet; void _neos; void _setShowDwarf; void _showStars; void _showConstellations;
+  void _setShowAsterisms; void _setShowAsteroidBelt; void _setShowComets;
+  void _setShowMeteors; void _setShowSatellites;
+  void _panelOpen; void _setPanelOpen; void _setShowDeepSpace;
 
   const observatoryMode = OBSERVATORY_MODE;
   const { theme } = useTheme();
   const accent = theme.uiAccent;
   const accentRgb = theme.uiAccentRgb;
   const mobile = useIsMobile();
-  const [panelPeek, setPanelPeek] = useState(false);
-  const peekTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const startPeek = useCallback(() => { if (peekTimeout.current) clearTimeout(peekTimeout.current); setPanelPeek(true); }, []);
-  const endPeek = useCallback(() => { peekTimeout.current = setTimeout(() => setPanelPeek(false), 400); }, []);
   const [cardMinimized, setCardMinimized] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
-  const [panelNudge, setPanelNudge] = useState(false);
-  const [panelFontScale, setPanelFontScale] = useState(loadPanelFontScale);
   const sp = selPlanet !== null ? ALL_BODIES[selPlanet] : null;
-  const mobilePanelHeight = '38vh';
   const mobilePanelOffset = '12px';
-  const panelVisible = panelOpen || (!mobile && panelPeek);
-  const showPanelNudge = panelNudge && !mobile && !panelVisible;
+  const detailsBodyId = 'planet-details-card-body';
+  const controlChipStyle: React.CSSProperties = {
+    width: 44,
+    height: 44,
+    borderRadius: 6,
+    border: '1px solid rgba(255,255,255,0.12)',
+    background: 'rgba(0,0,0,0.35)',
+    color: 'rgba(255,255,255,0.58)',
+    fontFamily: 'inherit',
+    fontSize: 16,
+    fontWeight: 300,
+    cursor: 'pointer',
+    backdropFilter: `blur(${BLUR.chip}px)`,
+    WebkitBackdropFilter: `blur(${BLUR.chip}px)`,
+    transition: 'border-color 0.18s ease, color 0.18s ease, background 0.18s ease',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 0,
+  };
 
-  useEffect(() => {
-    if (mobile || panelOpen || panelPeek) return;
-    const start = window.setTimeout(() => setPanelNudge(true), 1600);
-    const stop = window.setTimeout(() => setPanelNudge(false), 2600);
-    return () => {
-      window.clearTimeout(start);
-      window.clearTimeout(stop);
-    };
-  }, [mobile, panelOpen, panelPeek]);
-
-  useEffect(() => {
-    const handleScale = (event: Event) => {
-      const detail = (event as CustomEvent<number>).detail;
-      if (typeof detail === 'number') setPanelFontScale(detail);
-    };
-    window.addEventListener('orrery-panel-font-scale', handleScale as EventListener);
-    return () => window.removeEventListener('orrery-panel-font-scale', handleScale as EventListener);
-  }, []);
+  const toggleStargazer = useCallback(() => {
+    setConstellationFocus((prev) => {
+      const next = !prev;
+      if (next) {
+        setShowStars(() => true);
+        setShowConstellations(() => true);
+        // Entering sky mode should reset single-object selection so the full sky can glow.
+        setSelConstellation(null);
+        setSelAsterism(null);
+      }
+      return next;
+    });
+  }, [setConstellationFocus, setShowStars, setShowConstellations, setSelConstellation, setSelAsterism]);
 
   // Selected moon info
   const selectedMoon = selPlanet !== null && selMoonIdx !== null
     ? getMoonsForPlanet(selPlanet)[selMoonIdx]
     : null;
+  const planetStats = !selectedMoon && sp ? [
+    { label: 'Type', value: sp.type },
+    { label: 'Moons', value: String(sp.moons) },
+    { label: 'Period', value: formatEarthRelativePeriod(sp.period) },
+    { label: 'Gravity', value: formatEarthRelativeGravity(sp.gravity) },
+    sp.surfaceTemp ? { label: 'Temp', value: sp.surfaceTemp } : null,
+    // Distance kept in the least-prominent slot per UX request.
+    { label: 'Distance', value: `${sp.distAU} AU` },
+  ].filter((item): item is { label: string; value: string } => item !== null) : [];
+  const moonStats = selectedMoon ? [
+    { label: 'Orbital period', value: selectedMoon.period < 1 ? `${(selectedMoon.period * 24).toFixed(1)} hours` : `${selectedMoon.period.toFixed(1)} days` },
+    { label: 'Parent', value: sp!.name },
+  ] : [];
 
   // ─── Cinematic mode overlay ─────────────────────────────────────────────────
   // Current body label from nav stack
   const cinematicLabel = navStack[navStack.length - 1] || '';
-
-  useEffect(() => {
-    if (!cinematic) return;
-  }, [cinematic]);
 
   // ─── Cinematic overlay (rendered above main UI when active) ──────────────────
   const cinematicOverlay = cinematic ? (() => {
@@ -1274,7 +600,7 @@ export default function Panels(props: PanelProps) {
     return (
       <div
         style={{
-          position: 'absolute', inset: 0, zIndex: 20,
+          position: 'absolute', inset: 0, zIndex: Z.controls,
           display: 'flex', flexDirection: 'column',
           alignItems: 'center',
           cursor: 'pointer',
@@ -1283,27 +609,13 @@ export default function Panels(props: PanelProps) {
           pointerEvents: 'none',
         }}
       >
-        {/* Top cluster: time, date, celestial data */}
         <div style={{
-          marginTop: mobile ? 20 : 32,
+          marginTop: mobile ? safeAreaTop(20) : safeAreaTop(32),
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
         }}>
-          <span style={{
-            fontSize: mobile ? 42 : 56, fontWeight: 300, letterSpacing: 8,
-            color: 'rgba(255,255,255,0.85)',
-            fontFamily: "'Cormorant Garamond','Garamond','Baskerville','Georgia',serif",
-          }}>
-            {fmtTime(simTime)}
-          </span>
-          <span style={{
-            fontSize: mobile ? 18 : 22, fontWeight: 300, letterSpacing: 3,
-            color: 'rgba(255,255,255,0.72)', fontStyle: 'italic',
-          }}>
-            {fmtDate(simTime)}
-          </span>
           <div style={{
             display: 'flex', alignItems: 'center', gap: mobile ? 8 : 12,
-            marginTop: 4, opacity: 0.4,
+            opacity: 0.45,
           }}>
             <span style={{ ...dim, fontSize: mobile ? 11 : 12 }}>{moon.name}, {moon.ill}%</span>
             {solarWind && (
@@ -1313,7 +625,6 @@ export default function Panels(props: PanelProps) {
               </>
             )}
           </div>
-          {/* Current zoom label -- below time cluster */}
           <div style={{
             marginTop: mobile ? 10 : 14,
             fontSize: mobile ? 18 : 22, fontWeight: 300, letterSpacing: 5,
@@ -1326,130 +637,138 @@ export default function Panels(props: PanelProps) {
 
         {/* Exit hint */}
         <div style={{
-          position: 'absolute', bottom: mobile ? 48 : 56,
+          position: 'absolute', bottom: mobile ? safeAreaBottom(48) : safeAreaBottom(56),
           color: 'rgba(255,255,255,0.72)', fontSize: mobile ? 16 : 18,
           letterSpacing: 3, fontWeight: 300, fontStyle: 'italic',
-        }}>
+        }}        >
           {mobile ? 'tap' : 'click'} to explore
-        </div>
-        {/* Watermark */}
-        <div style={{
-          position: 'absolute', bottom: mobile ? 20 : 28,
-          color: 'rgba(255,255,255,0.12)', fontSize: mobile ? 14 : 16,
-          letterSpacing: 8, textTransform: 'uppercase', fontWeight: 300,
-        }}>
-          {observatoryMode ? 'Observatory' : 'Orrery'}
         </div>
       </div>
     );
   })() : null;
 
-  const observatorySpotlightActive = observatoryMode && (selConstellation !== null || selAsterism !== null || selDeepSky !== null);
+  const observatorySpotlightActive = observatoryMode && selConstellation !== null;
 
   return (
     <>
       {cinematicOverlay}
-      {/* Observatory spotlight vignette: dim the sky edges when a sky element is selected, focusing attention on the selection */}
+      {/* Observatory spotlight vignette: dim the sky edges when a constellation is selected, focusing attention on the selection */}
       {observatoryMode && (
         <div
           aria-hidden="true"
           style={{
-            position: 'absolute', inset: 0, zIndex: 4, pointerEvents: 'none',
+            position: 'absolute', inset: 0, zIndex: Z.canvasOverlay - 1, pointerEvents: 'none',
             background: 'radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.32) 78%, rgba(0,0,0,0.55) 100%)',
             opacity: observatorySpotlightActive ? 1 : 0,
             transition: 'opacity 0.45s ease',
           }}
         />
       )}
-      {/* Panel drawer tab (desktop only — mobile uses bottom toolbar gear; hidden in observatory) */}
-      {!mobile && !observatoryMode && <button
-        onClick={() => setPanelOpen((p: boolean) => !p)}
-        onMouseEnter={() => { if (!mobile) startPeek(); }}
-        onMouseLeave={() => { if (!mobile && !panelOpen) endPeek(); }}
-        aria-label={panelOpen ? 'Collapse panel' : 'Open panel'}
-        aria-expanded={panelOpen}
-        style={{
-          ...drawerTab,
-          top: '50%',
-          right: 0,
-          transform: `translateY(-50%) translateX(${showPanelNudge ? -8 : 0}px)`,
-          width: 36,
-          height: 76,
-          borderRadius: '12px 0 0 12px',
-          color: panelVisible ? accent : 'rgba(255,255,255,0.72)',
-          background: panelVisible
-            ? `linear-gradient(180deg, rgba(${accentRgb},0.18) 0%, rgba(0,0,0,0.78) 100%)`
-            : `linear-gradient(180deg, rgba(${accentRgb},0.12) 0%, rgba(0,0,0,0.66) 100%)`,
-          backdropFilter: 'blur(14px)',
-          WebkitBackdropFilter: 'blur(14px)',
-          border: `1px solid rgba(${accentRgb},${panelVisible ? '0.26' : '0.14'})`,
-          borderRight: 'none',
-          zIndex: 31,
-          transition: 'transform 0.28s ease, background 0.2s ease, color 0.2s ease, border-color 0.2s ease',
-        }}
-      >
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 18 18"
-          aria-hidden="true"
-          style={{ display: 'block' }}
-        >
-          <g fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-            <path d="M3 4.5h12" />
-            <path d="M3 9h12" />
-            <path d="M3 13.5h12" />
-            <circle cx="6" cy="4.5" r="1.5" fill="currentColor" stroke="none" />
-            <circle cx="12" cy="9" r="1.5" fill="currentColor" stroke="none" />
-            <circle cx="8" cy="13.5" r="1.5" fill="currentColor" stroke="none" />
-          </g>
-        </svg>
-      </button>}
-      {!observatoryMode && <SideDrawer
-        open={panelVisible && !mobile}
-        accent={accent}
-        accentRgb={accentRgb}
-        mobile={mobile}
-        simTime={simTime}
-        moon={moon}
-        solarWind={solarWind}
-        speed={speed}
-        setSpeed={props.setSpeed}
-        playing={props.playing}
-        setPlaying={props.setPlaying}
-        cams={cams}
-        camIdx={camIdx}
-        onPresetSelect={onPresetSelect}
-        selPlanet={selPlanet}
-        setSelPlanet={setSelPlanet}
-        onMoonSelect={onMoonSelect}
-        neos={neos}
-        neoStatus={neoStatus}
-        selNeo={selNeo}
-        setSelNeo={setSelNeo}
-        showNeo={showNeo} setShowNeo={setShowNeo}
-        showStars={showStars} setShowStars={setShowStars}
-        showConstellations={showConstellations} setShowConstellations={setShowConstellations}
-        showAsterisms={showAsterisms} setShowAsterisms={setShowAsterisms}
-        constellationFocus={constellationFocus} setConstellationFocus={setConstellationFocus}
-        showDwarf={showDwarf} setShowDwarf={setShowDwarf}
-        showAsteroidBelt={showAsteroidBelt} setShowAsteroidBelt={setShowAsteroidBelt}
-        showComets={showComets} setShowComets={setShowComets}
-        showMeteors={showMeteors} setShowMeteors={setShowMeteors}
-        showSatellites={showSatellites} setShowSatellites={setShowSatellites}
-        showDeepSky={showDeepSky} setShowDeepSky={setShowDeepSky}
-        showDeepSpace={showDeepSpace} setShowDeepSpace={setShowDeepSpace}
-        selConstellation={selConstellation} setSelConstellation={setSelConstellation}
-        selAsterism={selAsterism} setSelAsterism={setSelAsterism}
-        selDeepSky={selDeepSky} setSelDeepSky={setSelDeepSky}
-        selSpacecraft={selSpacecraft} setSelSpacecraft={setSelSpacecraft}
-        onHoverStart={() => { if (!mobile) startPeek(); }}
-        onHoverEnd={() => { if (!mobile && !panelOpen) endPeek(); }}
-        panelFontScale={panelFontScale}
-      />}
+      {/* ── Sky-object info cards (rendered as floating bokehCards) ── */}
+      {selConstellation && MYTHOLOGY[selConstellation] && !cinematic && (() => {
+        const info = MYTHOLOGY[selConstellation];
+        return (
+          <InfoPanel
+            sectionTitle="Constellation"
+            title={CONSTELLATION_NAMES[selConstellation] ?? selConstellation}
+            subtitle={`${info.origin} \u00b7 Best: ${info.season}`}
+            description="" accent={accent} accentRgb={accentRgb} mobile={mobile}
+            onClose={() => setSelConstellation(null)} closeLabel="Close constellation info"
+          >
+            {info.objects.length > 0 && (
+              <>
+                <div style={{
+                  color: 'rgba(255,255,255,0.7)', fontSize: 11, letterSpacing: 2,
+                  textTransform: 'uppercase', fontWeight: 300, marginTop: 14, marginBottom: 4,
+                }}>
+                  Notable Objects
+                </div>
+                {info.objects.map(obj => (
+                  <div key={obj} style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 300, lineHeight: 1.6 }}>
+                    {obj}
+                  </div>
+                ))}
+              </>
+            )}
+          </InfoPanel>
+        );
+      })()}
 
-      {/* ── Background blur overlay when body selected (hidden in observatory mode) ── */}
-      {sp && !observatoryMode && (
+      {selAsterism && !cinematic && (() => {
+        const ast = ASTERISMS.find(a => a.name === selAsterism);
+        if (!ast) return null;
+        return (
+          <InfoPanel
+            sectionTitle="Asterism" title={ast.name}
+            subtitle={`${ast.stars.length} stars`}
+            description={ast.description} accent={accent} accentRgb={accentRgb} mobile={mobile}
+            onClose={() => setSelAsterism(null)} closeLabel="Close asterism info"
+          />
+        );
+      })()}
+
+      {selSpacecraft && !cinematic && (
+        <InfoPanel
+          sectionTitle="Spacecraft" title={selSpacecraft.name}
+          subtitle={`${selSpacecraft.status === 'active' ? 'Active' : 'Inactive'} \u00b7 Launched ${selSpacecraft.launchYear}`}
+          description="" accent={accent} accentRgb={accentRgb} mobile={mobile}
+          onClose={() => setSelSpacecraft(null)} closeLabel="Close spacecraft info"
+          placement="left"
+        >
+          <div style={{
+            display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px',
+            marginTop: 12, color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 300,
+          }}>
+            <div>Distance <span style={{ color: '#fff', fontWeight: 400 }}>{selSpacecraft.distAU} AU</span></div>
+            <div>Speed <span style={{ color: '#fff', fontWeight: 400 }}>{selSpacecraft.speedAUyr} AU/yr</span></div>
+            <div>Light-hours <span style={{ color: '#fff', fontWeight: 400 }}>{(selSpacecraft.distAU / 7.2).toFixed(1)}</span></div>
+            <div>Light-years <span style={{ color: '#fff', fontWeight: 400 }}>{(selSpacecraft.distAU / 63241).toFixed(4)}</span></div>
+          </div>
+        </InfoPanel>
+      )}
+
+      {selNearStar && !cinematic && (
+        <InfoPanel
+          sectionTitle="Nearby Star"
+          title={selNearStar.name}
+          subtitle={`${(selNearStar.distPC * 3.262).toFixed(1)} ly \u00b7 ${selNearStar.spectral}`}
+          description=""
+          accent={accent}
+          accentRgb={accentRgb}
+          mobile={mobile}
+          onClose={() => setSelNearStar(null)}
+          closeLabel="Close nearby star info"
+          placement="left"
+        >
+          <div style={{ marginTop: 10, color: 'rgba(255,255,255,0.72)', fontSize: 13 }}>
+            Apparent magnitude <span style={{ color: '#fff' }}>{selNearStar.mag.toFixed(2)}</span>
+          </div>
+        </InfoPanel>
+      )}
+
+      {selGalaxy && !cinematic && (
+        <InfoPanel
+          sectionTitle="Galaxy Marker"
+          title={selGalaxy.name}
+          subtitle={`${selGalaxy.type} \u00b7 ${selGalaxy.distKpc >= 100 ? `${(selGalaxy.distKpc / 1000).toFixed(1)} Mpc` : `${selGalaxy.distKpc} kpc`}`}
+          description=""
+          accent={accent}
+          accentRgb={accentRgb}
+          mobile={mobile}
+          onClose={() => setSelGalaxy(null)}
+          closeLabel="Close galaxy info"
+          placement="left"
+        >
+          {selGalaxy.mag !== null && (
+            <div style={{ marginTop: 10, color: 'rgba(255,255,255,0.72)', fontSize: 13 }}>
+              Apparent magnitude <span style={{ color: '#fff' }}>{selGalaxy.mag.toFixed(1)}</span>
+            </div>
+          )}
+        </InfoPanel>
+      )}
+
+      {/* ── Background blur overlay when body selected (hidden in observatory / cinematic) ── */}
+      {sp && !observatoryMode && !cinematic && (
         <div
           aria-hidden="true"
           style={{
@@ -1460,69 +779,77 @@ export default function Panels(props: PanelProps) {
             backdropFilter: 'blur(0.5px)',
             WebkitBackdropFilter: 'blur(0.5px)',
             pointerEvents: 'none',
-            zIndex: 19,
+            zIndex: Z.hud,
             transition: 'opacity 0.3s',
           }}
         />
       )}
 
-      {/* ── Planet/Moon info card (hidden in observatory mode for a clean sky view) ── */}
-      {!observatoryMode && (sp || selectedMoon) && (
+      {/* ── Planet/Moon info card (hidden in observatory / cinematic — tour sets selPlanet for camera) ── */}
+      {!cinematic && !observatoryMode && (selSun || sp || selectedMoon) && (
         <div
           role="dialog"
-          aria-label={selectedMoon ? `${selectedMoon.name} details` : `${sp!.name} details`}
+          aria-label={selectedMoon ? `${selectedMoon.name} details` : selSun ? 'Sun details' : `${sp!.name} details`}
+          onPointerDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
           style={mobile ? {
             position: 'fixed',
             left: 8, right: 8, bottom: mobilePanelOffset, top: 'auto',
-            maxHeight: '30vh',
+            maxHeight: '28vh',
             borderRadius: 12,
             overflowY: 'auto',
             ...bokehCard,
-            padding: '16px 20px',
-            paddingBottom: '20px',
-            zIndex: 20,
+            padding: '12px 14px 14px',
+            zIndex: Z.dialog,
+            pointerEvents: 'auto',
+            touchAction: 'manipulation',
           } : {
             position: 'absolute',
             bottom: 16, left: 16,
-            maxWidth: 340, width: '30vw', minWidth: 260,
+            maxWidth: 400, width: '36vw', minWidth: 300,
             ...bokehCard,
-            padding: '14px 20px',
-            zIndex: 20,
+            padding: '12px 14px',
+            zIndex: Z.dialog,
+            pointerEvents: 'auto',
           }}
         >
-          {/* Header with back button */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div
-              style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', flex: 1 }}
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+            <button
+              type="button"
+              aria-label="Toggle details visibility"
+              aria-expanded={!cardMinimized}
+              aria-controls={detailsBodyId}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', flex: 1, background: 'none', border: 'none', padding: 0, textAlign: 'left' }}
               onClick={(e) => { e.stopPropagation(); setCardMinimized(m => !m); }}
             >
               <span style={{
                 width: 12, height: 12, borderRadius: '50%',
-                background: selectedMoon ? selectedMoon.color : sp!.color,
-                boxShadow: `0 0 8px ${selectedMoon ? selectedMoon.color : sp!.color}`,
+                background: selectedMoon ? selectedMoon.color : selSun ? '#ffca74' : sp!.color,
+                boxShadow: `0 0 8px ${selectedMoon ? selectedMoon.color : selSun ? '#ffca74' : sp!.color}`,
                 flexShrink: 0,
               }} />
               <div>
                 <div style={{ color: '#fff', fontSize: 16, fontWeight: 600, letterSpacing: 1 }}>
-                  {selectedMoon ? selectedMoon.name : sp!.name}
+                  {selectedMoon ? selectedMoon.name : selSun ? 'Sun' : sp!.name}
                 </div>
-                {!cardMinimized && (
-                  <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 10, fontWeight: 300, fontStyle: 'italic', letterSpacing: 0.5 }}>
-                    {selectedMoon ? `Moon of ${sp!.name}` : sp!.type}
-                  </div>
-                )}
+                <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 10, fontWeight: 300, fontStyle: 'italic', letterSpacing: 0.5 }}>
+                  {selectedMoon ? `Moon of ${sp!.name}` : selSun ? 'G-type main-sequence star (Sol)' : sp!.type}
+                </div>
               </div>
-            </div>
+            </button>
             <button
-              onClick={(e) => { e.stopPropagation(); props.navigateBack(); }}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); props.navigateBack(); }}
+              onPointerUp={(e) => { e.preventDefault(); e.stopPropagation(); props.navigateBack(); }}
+              onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); props.navigateBack(); }}
               style={{
                 background: `rgba(${accentRgb},0.12)`,
-                border: `1px solid rgba(${accentRgb},0.25)`,
-                borderRadius: 4, padding: mobile ? '8px 14px' : '6px 12px',
-                color: accent, fontSize: mobile ? 13 : 12,
+                border: `1px solid rgba(${accentRgb},0.3)`,
+                borderRadius: 4, padding: mobile ? '7px 12px' : '6px 10px',
+                color: accent, fontSize: mobile ? 12 : 11,
                 fontFamily: 'inherit', fontWeight: 400, letterSpacing: 0.5,
                 cursor: 'pointer', whiteSpace: 'nowrap',
-                minHeight: mobile ? 40 : 32,
+                minHeight: mobile ? 36 : 30,
               }}
             >
               {'\u2190'} Back
@@ -1531,26 +858,51 @@ export default function Panels(props: PanelProps) {
 
           {/* Collapsible body */}
           {!cardMinimized && (
-            <>
+            <div id={detailsBodyId}>
               {/* Stats grid */}
-              {!selectedMoon && sp && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px' }}>
-                  <Stat label="Distance" val={`${sp.distAU} AU`} />
-                  <Stat label="Period" val={sp.period < 365 ? `${sp.period.toFixed(0)} days` : `${(sp.period / 365.25).toFixed(1)} years`} />
-                  {sp.surfaceTemp && <Stat label="Surface temp" val={sp.surfaceTemp} />}
-                  {sp.gravity && <Stat label="Gravity" val={sp.gravity} />}
-                  <Stat label="Moons" val={sp.moons} />
+              {!selectedMoon && !selSun && planetStats.length > 0 && (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: mobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(3, minmax(0, 1fr))',
+                  gap: 6,
+                  marginTop: 8,
+                }}>
+                  {planetStats.map((item) => (
+                    <div key={item.label} style={{ padding: '6px 7px', borderRadius: 6, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div style={{ color: 'rgba(255,255,255,0.68)', fontSize: 9, letterSpacing: 1.1, textTransform: 'uppercase' }}>{item.label}</div>
+                      <div style={{ color: '#fff', fontSize: 13, marginTop: 2, lineHeight: 1.1 }}>{item.value}</div>
+                    </div>
+                  ))}
                 </div>
               )}
               {selectedMoon && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px' }}>
-                  <Stat label="Orbital period" val={selectedMoon.period < 1 ? `${(selectedMoon.period * 24).toFixed(1)} hours` : `${selectedMoon.period.toFixed(1)} days`} />
-                  <Stat label="Parent" val={sp!.name} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 8 }}>
+                  {moonStats.map((item) => (
+                    <div key={item.label} style={{ padding: '6px 7px', borderRadius: 6, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div style={{ color: 'rgba(255,255,255,0.68)', fontSize: 9, letterSpacing: 1.1, textTransform: 'uppercase' }}>{item.label}</div>
+                      <div style={{ color: '#fff', fontSize: 13, marginTop: 2, lineHeight: 1.1 }}>{item.value}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {selSun && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 8 }}>
+                  {[
+                    ['Type', 'G2V'],
+                    ['Radius', '695,700 km'],
+                    ['Mass', '1.989e30 kg'],
+                    ['Surface', '5,778 K'],
+                  ].map(([label, value]) => (
+                    <div key={label} style={{ padding: '6px 7px', borderRadius: 6, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div style={{ color: 'rgba(255,255,255,0.68)', fontSize: 9, letterSpacing: 1.1, textTransform: 'uppercase' }}>{label}</div>
+                      <div style={{ color: '#fff', fontSize: 13, marginTop: 2, lineHeight: 1.1 }}>{value}</div>
+                    </div>
+                  ))}
                 </div>
               )}
 
               {/* Breadcrumb nav */}
-              <div style={{ display: 'flex', gap: 4, marginTop: 10, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 4, marginTop: 8, overflowX: 'auto', paddingBottom: 2 }}>
                 {navStack.map((crumb, i) => (
                   <span key={i} style={{ fontSize: 9, color: 'rgba(255,255,255,0.65)', fontWeight: 300 }}>
                     {i > 0 && <span style={{ margin: '0 4px' }}>{'\u203a'}</span>}
@@ -1558,52 +910,47 @@ export default function Panels(props: PanelProps) {
                       role="button"
                       tabIndex={0}
                       onClick={(e) => { e.stopPropagation(); props.navigateToLevel(i); }}
-                      onKeyDown={e => { if (e.key === 'Enter') props.navigateToLevel(i); }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          props.navigateToLevel(i);
+                        }
+                      }}
                       style={{ cursor: i < navStack.length - 1 ? 'pointer' : 'default', color: i === navStack.length - 1 ? accent : 'rgba(255,255,255,0.25)' }}
                     >{crumb}</span>
                   </span>
                 ))}
               </div>
-              {/* Stargazer toggle in card */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setConstellationFocus(p => !p);
-                    if (!constellationFocus) {
-                      setShowStars(() => true);
-                      setShowConstellations(() => true);
-                      setShowDeepSky(() => true);
-                    }
-                  }}
-                  style={{
-                    background: constellationFocus ? `rgba(${accentRgb},0.15)` : 'transparent',
-                    border: `1px solid ${constellationFocus ? `rgba(${accentRgb},0.3)` : 'rgba(255,255,255,0.1)'}`,
-                    borderRadius: 4, padding: '4px 10px',
-                    color: constellationFocus ? accent : 'rgba(255,255,255,0.5)',
-                    fontSize: 11, fontFamily: 'inherit', fontWeight: 300,
-                    cursor: 'pointer',
-                  }}
-                >{'\u2726'} Stargazer</button>
-              </div>
-            </>
+            </div>
           )}
         </div>
       )}
 
-      {/* ── Scale indicator ── */}
-      {!mobile && !observatoryMode && <ScaleIndicator cameraDistance={cameraDistance} />}
+      {showNeo && neoStatus === 'error' && !cinematic && (
+        <div
+          role="status"
+          style={{
+            position: 'absolute', bottom: mobile ? 120 : 108, left: '50%', transform: 'translateX(-50%)',
+            ...bokehCard, padding: '10px 16px', zIndex: Z.controls, maxWidth: 360, textAlign: 'center',
+          }}
+        >
+          <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, fontWeight: 300 }}>
+            Near-Earth object feed unavailable. Check your connection or try again later.
+          </div>
+        </div>
+      )}
 
-      {/* ── Selected NEO detail ── */}
-      {selNeo && (
+      {/* ── Selected NEO detail (hidden during cinematic tour) ── */}
+      {selNeo && !cinematic && (
         <div
           role="dialog"
           aria-label={`${selNeo.name} details`}
           style={{
-            position: 'absolute', bottom: mobile ? (panelOpen ? `calc(${mobilePanelHeight} + 16px)` : 64) : 56,
+            position: 'absolute', bottom: mobile ? 64 : 56,
             left: '50%', transform: 'translateX(-50%)',
             ...bokehCard, padding: '12px 18px', maxWidth: 420,
-            width: mobile ? 'calc(100vw - 16px)' : '90%', zIndex: 20,
+            width: mobile ? 'calc(100vw - 16px)' : '90%', zIndex: Z.controls,
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1618,13 +965,18 @@ export default function Panels(props: PanelProps) {
             <Stat label="Miss distance" val={`${selNeo.missLunar.toFixed(1)} LD`} />
             <Stat label="Velocity" val={`${selNeo.velKms.toFixed(1)} km/s`} />
             <Stat label="Close approach" val={selNeo.date} />
-            {selNeo.orbit?.loaded && (
+            {selNeo.orbit?.loaded && !selNeo.orbit.synthetic && (
               <>
                 <Stat label="Semi-major axis" val={`${selNeo.orbit.a.toFixed(3)} AU`} c={accent} />
                 <Stat label="Eccentricity" val={selNeo.orbit.e.toFixed(4)} c={accent} />
                 <Stat label="Inclination" val={`${selNeo.orbit.i.toFixed(2)}\u00b0`} c={accent} />
                 <Stat label="Orbit shown" val="in scene" c={accent} />
               </>
+            )}
+            {selNeo.orbit?.loaded && selNeo.orbit.synthetic && (
+              <div style={{ gridColumn: '1/-1', color: 'rgba(255,200,120,0.9)', fontSize: 11, fontStyle: 'italic', lineHeight: 1.4 }}>
+                Approximate orbit — JPL SBDB unavailable
+              </div>
             )}
             {selNeo.orbit && !selNeo.orbit.loaded && (
               <div style={{ gridColumn: '1/-1', color: 'rgba(255,255,255,0.7)', fontSize: 9 }}>Loading orbital elements...</div>
@@ -1641,154 +993,119 @@ export default function Panels(props: PanelProps) {
         </div>
       )}
 
-
-      {/* ── Title watermark (clickable → info overlay) ── */}
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={() => setShowInfo(p => !p)}
-        onKeyDown={e => { if (e.key === 'Enter') setShowInfo(p => !p); }}
-        style={{ position: 'absolute', top: 14, left: 14, color: 'rgba(255,255,255,0.7)', fontSize: mobile ? 14 : 15, letterSpacing: 5, textTransform: 'uppercase', zIndex: 5, fontWeight: 300, cursor: 'pointer' }}
-      >
-        {observatoryMode ? 'Observatory' : 'Orrery'}
-      </div>
-
-      {/* ── Zoom controls + stargazer toggle (desktop only) ── */}
-      {!mobile && !observatoryMode && <ZoomControls />}
-      {!mobile && !observatoryMode && !cinematic && (
-        <button
-          onClick={() => {
-            setConstellationFocus(p => !p);
-            if (!constellationFocus) {
-              setShowStars(() => true);
-              setShowConstellations(() => true);
-              setShowDeepSky(() => true);
-            }
-          }}
-          aria-label="Stargazer mode"
-          aria-pressed={constellationFocus}
-          style={{
-            position: 'absolute', bottom: 108, right: 14,
-            background: constellationFocus ? `rgba(${accentRgb},0.15)` : 'rgba(255,255,255,0.06)',
-            border: `1px solid ${constellationFocus ? `rgba(${accentRgb},0.3)` : 'rgba(255,255,255,0.08)'}`,
-            borderRadius: 6, width: 44, height: 44,
-            color: constellationFocus ? accent : 'rgba(255,255,255,0.6)',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: 'inherit', fontSize: 18, zIndex: 5,
-            backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-          }}
-        >{'\u2726'}</button>
-      )}
-
-      {/* ── Mobile floating top controls (hidden in observatory — no solar-system presets to surface) ── */}
-      {mobile && !cinematic && !observatoryMode && (
-        <div style={{
-          position: 'fixed', top: 32, left: 10, right: 10,
-          display: 'flex', alignItems: 'center', gap: 4,
-          zIndex: 15,
-        }}>
-          {(observatoryMode ? ['Inner', 'System', 'Outer'] : ['Inner', 'System', 'Outer', 'Oort']).map(label => {
-            const idx = camIndex(label);
-            if (idx < 0) return null;
-            const active = camIdx === idx;
-            return (
-              <button key={label} onClick={() => onPresetSelect(idx)} style={{
-                padding: '6px 0', flex: 1,
-                fontSize: 10, fontFamily: 'inherit', fontWeight: active ? 600 : 400,
-                letterSpacing: 1, textTransform: 'uppercase',
-                color: active ? accent : 'rgba(255,255,255,0.7)',
-                background: active ? `rgba(${accentRgb},0.15)` : 'rgba(0,0,0,0.4)',
-                border: `1px solid ${active ? `rgba(${accentRgb},0.3)` : 'rgba(255,255,255,0.1)'}`,
-                borderRadius: 3, cursor: 'pointer',
-                backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-              }}>{label}</button>
-            );
-          })}
-          <button
-            onClick={() => {
-              setConstellationFocus(p => !p);
-              if (!constellationFocus) {
-                setShowStars(() => true);
-                setShowConstellations(() => true);
-                setShowDeepSky(() => true);
-              }
-            }}
-            aria-label="Stargazer mode"
-            aria-pressed={constellationFocus}
-            style={{
-              padding: '6px 10px',
-              fontSize: 12, fontFamily: 'inherit', fontWeight: constellationFocus ? 600 : 400,
-              color: constellationFocus ? accent : 'rgba(255,255,255,0.7)',
-              background: constellationFocus ? `rgba(${accentRgb},0.15)` : 'rgba(0,0,0,0.4)',
-              border: `1px solid ${constellationFocus ? `rgba(${accentRgb},0.3)` : 'rgba(255,255,255,0.1)'}`,
-              borderRadius: 3, cursor: 'pointer',
-              backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-            }}
-          >{'\u2726'}</button>
-        </div>
-      )}
-
-      {/* ── Info overlay (mobile ? button) ── */}
-      {showInfo && (
+      {!cinematic && currentAreaLabel && (
         <div
-          onClick={() => setShowInfo(false)}
+          aria-live="polite"
           style={{
-            position: 'fixed', inset: 0, zIndex: 40,
-            background: 'rgba(0,0,0,0.85)',
-            backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-            display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center',
-            padding: 24, overflow: 'auto',
-            fontFamily: "'Cormorant Garamond','Garamond','Baskerville','Georgia',serif",
+            position: 'absolute',
+            top: safeAreaTop(18),
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: Z.hud,
+            pointerEvents: 'none',
+            color: 'rgba(255,255,255,0.66)',
+            fontSize: mobile ? 11 : 12,
+            letterSpacing: 2.6,
+            textTransform: 'uppercase',
+            fontStyle: 'italic',
+            whiteSpace: 'nowrap',
+            textShadow: '0 0 8px rgba(0,0,0,0.65)',
           }}
         >
-          <div onClick={e => e.stopPropagation()} style={{ maxWidth: 360, width: '100%' }}>
-            <div style={{ color: '#fff', fontSize: 22, fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', textAlign: 'center', marginBottom: 16 }}>Orrery</div>
-            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontStyle: 'italic', textAlign: 'center', marginBottom: 20 }}>Real data. Real time.</div>
-
-            <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>Catalog Data</div>
-            {[
-              '41,119 stars \u00b7 HYG Database',
-              '88 constellations \u00b7 IAU / d3-celestial',
-              '8 planets + 3 dwarf planets \u00b7 JPL Horizons',
-              '32 moons \u00b7 JPL Horizons',
-              '3,000 main-belt asteroids \u00b7 Minor Planet Center',
-              '110+ deep sky objects \u00b7 OpenNGC',
-              '20+ comets \u00b7 Minor Planet Center',
-              '14 meteor showers \u00b7 IAU Meteor Data Center',
-              '5 spacecraft \u00b7 NASA/JPL',
-              '2K/4K textures \u00b7 Solar System Scope (CC BY 4.0)',
-            ].map(s => (
-              <div key={s} style={{ color: 'rgba(255,255,255,0.72)', fontSize: 14, fontWeight: 300, lineHeight: 1.8 }}>{s}</div>
-            ))}
-
-            <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginTop: 16, marginBottom: 8 }}>Live Data</div>
-            {[
-              'Near-Earth objects \u00b7 NASA NeoWs API',
-              'Asteroid orbits \u00b7 JPL Small-Body Database',
-              'Solar wind \u00b7 NOAA SWPC',
-              'Satellite TLEs \u00b7 CelesTrak',
-            ].map(s => (
-              <div key={s} style={{ color: `rgba(${accentRgb},0.7)`, fontSize: 14, fontWeight: 300, lineHeight: 1.8 }}>{s}</div>
-            ))}
-
-            <div style={{ marginTop: 24, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <a href="https://lukesteuber.com" target="_blank" rel="noopener noreferrer" style={{ color: accent, fontSize: 14, textDecoration: 'none', fontWeight: 400 }}>lukesteuber.com</a>
-              <a href="https://datapoems.io" target="_blank" rel="noopener noreferrer" style={{ color: accent, fontSize: 14, textDecoration: 'none', fontWeight: 400 }}>datapoems.io</a>
-            </div>
-
-            <div style={{ marginTop: 20, textAlign: 'center' }}>
-              <button onClick={() => setShowInfo(false)} style={{
-                background: 'none', border: `1px solid rgba(${accentRgb},0.2)`, color: 'rgba(255,255,255,0.6)',
-                fontSize: 12, fontFamily: 'inherit', padding: '8px 20px', borderRadius: 4, cursor: 'pointer',
-              }}>Close</button>
-            </div>
-          </div>
+          {currentAreaLabel}
         </div>
       )}
 
+      {/* ── About / info (subtle; replaces duplicate top title watermark) ── */}
+      {!cinematic && (
+        <div
+          style={{
+            position: 'absolute',
+            top: safeAreaTop(12),
+            left: safeAreaLeft(12),
+            zIndex: Z.hud,
+            display: 'flex',
+            gap: 8,
+            alignItems: 'center',
+          }}
+        >
+          <button
+            type="button"
+            aria-label="About and data sources"
+            onClick={() => setShowInfo(true)}
+            style={controlChipStyle}
+          >
+            i
+          </button>
+        </div>
+      )}
+
+      {!cinematic && !observatoryMode && (
+        <div
+          style={{
+            position: 'absolute',
+            top: safeAreaTop(12),
+            right: safeAreaRight(12),
+            zIndex: Z.hud,
+            display: 'flex',
+            gap: 8,
+            alignItems: 'center',
+          }}
+        >
+          <button
+            type="button"
+            onClick={onRandomJump}
+            aria-label="Roll for a random destination"
+            title="Roll the dice"
+            style={{
+              ...controlChipStyle,
+              color: 'rgba(255,255,255,0.58)',
+              fontSize: 15,
+              fontWeight: 400,
+            }}
+          >
+            <DiceIcon size={18} />
+          </button>
+          <button
+            className={pulseSkyToggle ? 'sky-toggle-blink' : undefined}
+            onClick={toggleStargazer}
+            aria-label="Sky mode"
+            aria-pressed={constellationFocus}
+            aria-keyshortcuts="g"
+            title="Sky mode (G)"
+            style={{
+              ...controlChipStyle,
+              background: constellationFocus ? `rgba(${accentRgb},${ACTIVE_ALPHA.bg})` : controlChipStyle.background,
+              border: `1px solid ${constellationFocus ? `rgba(${accentRgb},${ACTIVE_ALPHA.border})` : 'rgba(255,255,255,0.12)'}`,
+              color: constellationFocus ? accent : 'rgba(255,255,255,0.58)',
+              fontSize: 15,
+              fontWeight: 400,
+            }}
+          >
+            <ConstellationIcon size={18} />
+          </button>
+        </div>
+      )}
+
+      {/* ── Zoom controls ── */}
+      {!cinematic && (
+        <ZoomControls
+          cams={cams}
+          cameraDistance={cameraDistance}
+          onPresetSelect={onPresetSelect}
+        />
+      )}
+
+      {/* ── About dialog ── */}
+      <AboutDialog
+        open={showInfo}
+        onClose={() => setShowInfo(false)}
+        accent={accent}
+        accentRgb={accentRgb}
+      />
       {/* ── Screen reader announcements ── */}
       <div aria-live="polite" className="sr-only" role="status">
+        {selSun ? 'Selected Sun.' : ''}
         {sp ? `Selected ${sp.name}, ${sp.type}.` : ''}
         {selectedMoon ? `Selected moon ${selectedMoon.name}.` : ''}
         {selNeo ? `Selected asteroid ${selNeo.name}. Miss distance: ${selNeo.missLunar.toFixed(1)} lunar distances.` : ''}
@@ -1796,6 +1113,8 @@ export default function Panels(props: PanelProps) {
         {selMeteor ? `Selected meteor shower ${selMeteor.name}. Velocity: ${selMeteor.vg.toFixed(1)} km per second.` : ''}
         {selSatellite ? `Selected satellite ${selSatellite.name}. Altitude: ${selSatellite.alt.toFixed(0)} km.` : ''}
         {selSpacecraft ? `Selected spacecraft ${selSpacecraft.name}. Distance: ${selSpacecraft.distAU} AU.` : ''}
+        {selNearStar ? `Selected nearby star ${selNearStar.name}.` : ''}
+        {selGalaxy ? `Selected galaxy marker ${selGalaxy.name}.` : ''}
         {navStack.length > 1 ? `Navigated to ${navStack[navStack.length - 1]}` : ''}
       </div>
     </>

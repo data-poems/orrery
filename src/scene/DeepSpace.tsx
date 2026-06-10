@@ -5,18 +5,17 @@
  * that doesn't fit a sky-and-inner-planets framing).
  */
 
-import { useMemo, useRef, useState, useEffect } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
+import { Billboard, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import {
   OORT_CLOUD, SPACECRAFT, NEARBY_STARS, LOCAL_GROUP,
   PC_TO_AU, STAR_DISPLAY_CAP_AU,
   heliocentricXYZ, raDecToSphere,
 } from '../data/deepspace';
-import { ECLIPTIC_TILT } from '../lib/kepler';
 import { OBSERVATORY_MODE } from '../lib/mode';
-import type { Spacecraft } from '../data/deepspace';
+import type { Spacecraft, NearStar, GalaxyMarker } from '../data/deepspace';
 
 // Simple additive-blended glow sphere used throughout deep space markers
 function GlowSphere({ color, opacity, position, scale }: {
@@ -38,119 +37,6 @@ function GlowSphere({ color, opacity, position, scale }: {
 }
 
 const DEEP_SPACE_SPHERE_RADIUS = 920;
-const MW_DATA_PATH = import.meta.env.BASE_URL + 'data/mw.json';
-
-interface MwGeoJson {
-  features: {
-    geometry: {
-      type: 'MultiPolygon';
-      coordinates: [number, number][][][];
-    };
-  }[];
-}
-
-function MilkyWayBackdrop() {
-  const [geometry, setGeometry] = useState<THREE.BufferGeometry | null>(null);
-  const materialRef = useRef<THREE.ShaderMaterial | null>(null);
-
-  useEffect(() => {
-    // Observatory mode opens with deep-space layer on, but the 187KB MW backdrop
-    // shouldn't compete with critical-path catalogs for first-paint bandwidth.
-    // Delay the fetch so stars/constellations/DSO finish first.
-    const delay = OBSERVATORY_MODE ? 1200 : 0;
-    let cancelled = false;
-    const timer = setTimeout(() => {
-      if (cancelled) return;
-      fetch(MW_DATA_PATH)
-        .then(r => r.json())
-        .then((data: MwGeoJson) => {
-        const positions: number[] = [];
-        const opacities: number[] = [];
-
-        data.features.forEach((feature) => {
-          feature.geometry.coordinates.forEach((polygon) => {
-            polygon.forEach((ring) => {
-              if (ring.length < 3) return;
-              const centerRa = ring.reduce((sum, p) => sum + p[0], 0) / ring.length;
-              const centerDec = ring.reduce((sum, p) => sum + p[1], 0) / ring.length;
-              const centerPos = raDecToSphere(centerRa, centerDec, DEEP_SPACE_SPHERE_RADIUS);
-
-              for (let i = 0; i < ring.length - 1; i++) {
-                const p1 = raDecToSphere(ring[i][0], ring[i][1], DEEP_SPACE_SPHERE_RADIUS);
-                const p2 = raDecToSphere(ring[i + 1][0], ring[i + 1][1], DEEP_SPACE_SPHERE_RADIUS);
-
-                positions.push(...centerPos, ...p1, ...p2);
-                // Uniform opacity across all vertices — no gradient = no seam lines
-                opacities.push(0.15, 0.15, 0.15);
-              }
-            });
-          });
-        });
-
-        const geo = new THREE.BufferGeometry();
-        geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
-        geo.setAttribute('opacity', new THREE.BufferAttribute(new Float32Array(opacities), 1));
-        if (!cancelled) setGeometry(geo);
-      });
-    }, delay);
-    return () => { cancelled = true; clearTimeout(timer); };
-  }, []);
-
-  const uniforms = useMemo(() => ({
-    time: { value: 0 },
-    globalOpacity: { value: 0.18 },
-  }), []);
-
-  useFrame((state) => {
-    if (materialRef.current) {
-      materialRef.current.uniforms.time.value = state.clock.elapsedTime;
-    }
-  });
-
-  if (!geometry) return null;
-
-  return (
-    <group rotation={[ECLIPTIC_TILT, 0, 0]}>
-      <mesh geometry={geometry}>
-        <shaderMaterial
-          ref={materialRef}
-          transparent
-          depthWrite={false}
-          blending={THREE.NormalBlending}
-          side={THREE.FrontSide}
-          uniforms={uniforms}
-          vertexShader={`
-            attribute float opacity;
-            varying float vOpacity;
-            varying vec3 vNormal;
-            void main() {
-              vOpacity = opacity;
-              vNormal = normalize(position);
-              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }
-          `}
-          fragmentShader={`
-            varying float vOpacity;
-            varying vec3 vNormal;
-            uniform float time;
-            uniform float globalOpacity;
-
-            float noise(vec3 p) {
-              return fract(sin(dot(p, vec3(12.9898, 78.233, 45.164))) * 43758.5453);
-            }
-
-            void main() {
-              float n = noise(vNormal * 100.0 + time * 0.05);
-              float finalAlpha = vOpacity * globalOpacity * (0.8 + 0.2 * n);
-              vec3 color = mix(vec3(0.05, 0.08, 0.15), vec3(0.85, 0.9, 1.0), vOpacity * 1.5);
-              gl_FragColor = vec4(color, finalAlpha);
-            }
-          `}
-        />
-      </mesh>
-    </group>
-  );
-}
 
 // ─── Oort Cloud (instanced particle shell) ──────────────────────────────────
 
@@ -237,6 +123,13 @@ function SpacecraftDot({ craft, selected, onSelect }: {
             <meshBasicMaterial color={color} toneMapped={false} side={THREE.DoubleSide} transparent opacity={0.9} depthWrite={false} />
           </mesh>
         ))}
+        {/* Billboard proxy keeps spacecraft easy to tap in deep-space views. */}
+        <Billboard>
+          <mesh onClick={(e) => { e.stopPropagation(); onSelect(); }}>
+            <planeGeometry args={[12, 12]} />
+            <meshBasicMaterial visible={false} />
+          </mesh>
+        </Billboard>
       </group>
       {/* Label */}
       <Html position={[pos[0], pos[1] + 3, pos[2]]} center distanceFactor={50} style={{ pointerEvents: 'none' }} zIndexRange={[1, 0]}>
@@ -279,7 +172,10 @@ function SpacecraftMarkers({ selSpacecraft, setSelSpacecraft }: {
 
 // ─── Nearby star markers ────────────────────────────────────────────────────
 
-function NearStarMarkers() {
+function NearStarMarkers({ selNearStar, setSelNearStar }: {
+  selNearStar: NearStar | null;
+  setSelNearStar: (s: NearStar | null) => void;
+}) {
   return (
     <group>
       {NEARBY_STARS.map(star => {
@@ -294,6 +190,7 @@ function NearStarMarkers() {
         const size = isAType ? 2.5 : isMDwarf ? 1.2 : 1.8;
         const ly = (star.distPC * 3.262).toFixed(1);
 
+        const selected = selNearStar?.name === star.name;
         return (
           <group key={star.name}>
             <mesh position={pos}>
@@ -301,13 +198,19 @@ function NearStarMarkers() {
               <meshBasicMaterial color={color} toneMapped={false} />
             </mesh>
             {/* Glow sprite */}
-            <GlowSphere color={color} opacity={0.25} position={pos} scale={[size * 6, size * 6, 1]} />
+            <GlowSphere color={color} opacity={0.45} position={pos} scale={[size * 9, size * 9, 1]} />
+            <Billboard position={pos}>
+              <mesh onClick={(e) => { e.stopPropagation(); setSelNearStar(selected ? null : star); }}>
+                <planeGeometry args={[18, 18]} />
+                <meshBasicMaterial visible={false} />
+              </mesh>
+            </Billboard>
             <Html position={[pos[0], pos[1] + 4, pos[2]]} center distanceFactor={200} style={{ pointerEvents: 'none' }} zIndexRange={[1, 0]}>
               <div style={{
-                color: 'rgba(255,255,255,0.7)',
+                color: selected ? '#ffffff' : 'rgba(255,255,255,0.7)',
                 fontSize: 8,
                 fontFamily: "'Cormorant Garamond', serif",
-                fontWeight: 400,
+                fontWeight: selected ? 600 : 400,
                 letterSpacing: 0.5,
                 whiteSpace: 'nowrap',
                 userSelect: 'none',
@@ -327,7 +230,10 @@ function NearStarMarkers() {
 
 // ─── Galaxy markers (on celestial sphere) ───────────────────────────────────
 
-function GalaxyMarkers() {
+function GalaxyMarkers({ selGalaxy, setSelGalaxy }: {
+  selGalaxy: GalaxyMarker | null;
+  setSelGalaxy: (g: GalaxyMarker | null) => void;
+}) {
   return (
     <group>
       {LOCAL_GROUP.map(gal => {
@@ -339,6 +245,7 @@ function GalaxyMarkers() {
           ? `${(gal.distKpc / 1000).toFixed(1)} Mpc`
           : `${gal.distKpc} kpc`;
 
+        const selected = selGalaxy?.name === gal.name;
         return (
           <group key={gal.name}>
             {/* Galaxy dot */}
@@ -347,13 +254,19 @@ function GalaxyMarkers() {
               <meshBasicMaterial color={color} toneMapped={false} />
             </mesh>
             {/* Diffuse glow */}
-            <GlowSphere color={color} opacity={0.15} position={pos} scale={[size * 8, size * 5, 1]} />
+            <GlowSphere color={color} opacity={0.3} position={pos} scale={[size * 12, size * 8, 1]} />
+            <Billboard position={pos}>
+              <mesh onClick={(e) => { e.stopPropagation(); setSelGalaxy(selected ? null : gal); }}>
+                <planeGeometry args={[20, 20]} />
+                <meshBasicMaterial visible={false} />
+              </mesh>
+            </Billboard>
             <Html position={[pos[0], pos[1] + 5, pos[2]]} center distanceFactor={200} style={{ pointerEvents: 'none' }} zIndexRange={[1, 0]}>
               <div style={{
-                color: 'rgba(200,180,255,0.7)',
+                color: selected ? '#ffffff' : 'rgba(200,180,255,0.7)',
                 fontSize: 8,
                 fontFamily: "'Cormorant Garamond', serif",
-                fontWeight: 400,
+                fontWeight: selected ? 600 : 400,
                 fontStyle: 'italic',
                 letterSpacing: 0.5,
                 whiteSpace: 'nowrap',
@@ -378,17 +291,29 @@ export interface DeepSpaceProps {
   visible: boolean;
   selSpacecraft: Spacecraft | null;
   setSelSpacecraft: (s: Spacecraft | null) => void;
+  selNearStar: NearStar | null;
+  setSelNearStar: (s: NearStar | null) => void;
+  selGalaxy: GalaxyMarker | null;
+  setSelGalaxy: (g: GalaxyMarker | null) => void;
 }
 
-export function DeepSpaceField({ visible, selSpacecraft, setSelSpacecraft }: DeepSpaceProps) {
+export function DeepSpaceField({
+  visible,
+  selSpacecraft,
+  setSelSpacecraft,
+  selNearStar,
+  setSelNearStar,
+  selGalaxy,
+  setSelGalaxy,
+}: DeepSpaceProps) {
   if (!visible) return null;
   return (
     <group>
-      <MilkyWayBackdrop />
+      {/* Disabled for launch: spherical fan triangulation in mw.json can produce streak artifacts. */}
       {!OBSERVATORY_MODE && <OortCloud />}
       {!OBSERVATORY_MODE && <SpacecraftMarkers selSpacecraft={selSpacecraft} setSelSpacecraft={setSelSpacecraft} />}
-      <NearStarMarkers />
-      <GalaxyMarkers />
+      <NearStarMarkers selNearStar={selNearStar} setSelNearStar={setSelNearStar} />
+      <GalaxyMarkers selGalaxy={selGalaxy} setSelGalaxy={setSelGalaxy} />
     </group>
   );
 }

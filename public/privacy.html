@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Orrery — Privacy</title>
+  <style>
+    body { font-family: Georgia, serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; color: #111; }
+    h1 { font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase; font-size: 1.5rem; }
+    h2 { font-size: 1rem; margin-top: 1.5rem; }
+    a { color: #224; }
+  </style>
+</head>
+<body>
+  <h1>Orrery Privacy</h1>
+  <p>Orrery does not collect, store, or sell personal information. There is no account system and no analytics SDK in the app.</p>
+
+  <h2>Network requests</h2>
+  <p>When you enable live layers, the app may contact these public services from your device:</p>
+  <ul>
+    <li>NASA NeoWs — near-Earth object feed</li>
+    <li>JPL Small-Body Database — asteroid orbital elements when you select a NEO</li>
+    <li>NOAA Space Weather Prediction Center — solar wind summary</li>
+    <li>CelesTrak — satellite two-line element sets</li>
+  </ul>
+  <p>Static star, constellation, and deep-sky catalogs ship with the app bundle.</p>
+
+  <h2>Local storage</h2>
+  <p>Today's NEO list may be cached in <code>sessionStorage</code> for the current day only. Theme preference may be stored in <code>localStorage</code>.</p>
+
+  <h2>Contact</h2>
+  <p><a href="https://lukesteuber.com">Luke Steuber</a> — <a href="mailto:luke@lukesteuber.com">luke@lukesteuber.com</a></p>
+  <p><a href="/">Back to Orrery</a></p>
+</body>
+</html>

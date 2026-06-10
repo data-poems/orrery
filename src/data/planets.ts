@@ -13,22 +13,31 @@ import type { PlanetDef, TexKey, CamPreset } from '../lib/kepler';
 
 const B = import.meta.env.BASE_URL + 'textures/';
 const CDN = 'https://d2xsxph8kpxj0f.cloudfront.net/310419663029916604/boBVkWMKnM6d26ztuVrLrs/';
-const IS_MOBILE = typeof window !== 'undefined' && window.innerWidth < 768;
-const RES = IS_MOBILE ? '2k' : '4k';
 
-export const TEX: Record<string, string> = {
-  sun:        B + `sun_${RES}.jpg`,
-  mercury:    B + `mercury_${RES}.jpg`,
-  venus:      B + `venus_${RES}.jpg`,
-  earth:      B + `earth_daymap_${RES}.jpg`,
-  earthClouds: B + `earth_clouds_${RES}.jpg`,
-  mars:       B + `mars_${RES}.jpg`,
-  jupiter:    B + `jupiter_${RES}.jpg`,
-  saturn:     B + `saturn_${RES}.jpg`,
-  uranus:     CDN + '2k_uranus_a5872335.jpg',
-  neptune:    CDN + '2k_neptune_d38c09d9.jpg',
-  moon:       B + `moon_${RES}.jpg`,
-};
+/** Reactive texture tier — call from components (not at module load). */
+export function textureResolutionTier(isMobile: boolean): '2k' | '4k' {
+  return isMobile ? '2k' : '4k';
+}
+
+export function buildTextureUrls(isMobile: boolean): Record<string, string> {
+  const RES = textureResolutionTier(isMobile);
+  return {
+    sun:        B + `sun_${RES}.jpg`,
+    mercury:    B + `mercury_${RES}.jpg`,
+    venus:      B + `venus_${RES}.jpg`,
+    earth:      B + `earth_daymap_${RES}.jpg`,
+    earthClouds: B + `earth_clouds_${RES}.jpg`,
+    mars:       B + `mars_${RES}.jpg`,
+    jupiter:    B + `jupiter_${RES}.jpg`,
+    saturn:     B + `saturn_${RES}.jpg`,
+    uranus:     CDN + '2k_uranus_a5872335.jpg',
+    neptune:    CDN + '2k_neptune_d38c09d9.jpg',
+    moon:       B + `moon_${RES}.jpg`,
+  };
+}
+
+const DEFAULT_MOBILE = typeof window !== 'undefined' && window.innerWidth < 768;
+export const TEX: Record<string, string> = buildTextureUrls(DEFAULT_MOBILE);
 
 // ─── Planets (JPL J2000 + secular rates per century) ────────────────────────────
 
@@ -97,3 +106,24 @@ const CAM_INDEX: Record<string, number> = Object.fromEntries(CAMS.map((c, i) => 
 export function camIndex(label: string): number {
   return CAM_INDEX[label] ?? -1;
 }
+
+/** Layer toggles applied when entering a camera preset (declarative; no fragile index). */
+export interface CamPresetLayerEffects {
+  stars?: boolean;
+  constellations?: boolean;
+  deepSpace?: boolean;
+  dwarf?: boolean;
+  asteroidBelt?: boolean;
+  constellationFocus?: boolean;
+}
+
+export const CAM_PRESET_LAYER_EFFECTS: Partial<Record<string, CamPresetLayerEffects>> = {
+  Stargazer: { stars: true, constellations: true, constellationFocus: true },
+  Oort: { deepSpace: true, dwarf: true },
+  Kuiper: { dwarf: true },
+  Outer: { dwarf: true },
+  Belt: { asteroidBelt: true },
+  Stellar: { deepSpace: true, dwarf: true, stars: true },
+};
+
+export const CAM_LABEL_ORDER = CAMS.map(c => c.label);

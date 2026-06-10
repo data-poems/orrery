@@ -25,21 +25,18 @@ const LOCAL_TLE = import.meta.env.BASE_URL + 'data/stations.tle';
 const CELESTRAK_URL = 'https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle';
 
 /**
- * Fetch TLE data — local bundled file first, CelesTrak fallback.
+ * Fetch TLE data — CelesTrak first (fresh), bundled `stations.tle` fallback.
  */
 export async function fetchTLEs(): Promise<SatelliteRecord[]> {
   let text: string;
   try {
-    const local = await fetch(LOCAL_TLE);
-    if (local.ok) {
-      text = await local.text();
-    } else {
-      throw new Error('local unavailable');
-    }
-  } catch {
     const resp = await fetch(CELESTRAK_URL);
     if (!resp.ok) throw new Error(`CelesTrak: ${resp.status}`);
     text = await resp.text();
+  } catch {
+    const local = await fetch(LOCAL_TLE);
+    if (!local.ok) throw new Error('TLE unavailable');
+    text = await local.text();
   }
 
   const lines = text.trim().split('\n').map(l => l.trim());

@@ -31,6 +31,8 @@ export interface NEO {
     a: number; e: number; i: number; om: number; w: number;
     ma: number; epoch: number;
     loaded: boolean;
+    /** True when JPL SBDB was unavailable and a placeholder orbit is shown. */
+    synthetic?: boolean;
   };
 }
 

@@ -14,9 +14,11 @@
     "lint": "eslint .",
     "test": "vitest run",
     "preview": "vite preview",
-    "prebake": "tsx scripts/prebake.ts"
+    "prebake": "tsx scripts/prebake.ts",
+    "build:mobile": "tsc -b && vite build"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.1",
     "@capacitor/core": "^8.3.1",
     "@capacitor/splash-screen": "^8.0.1",
     "@capacitor/status-bar": "^8.0.1",

@@ -9,6 +9,14 @@
   "orientation": "any",
   "background_color": "#000000",
   "theme_color": "#000000",
+  "prefer_related_applications": false,
+  "related_applications": [
+    {
+      "platform": "itunes",
+      "url": "https://apps.apple.com/us/app/solar-orrery/id6768309076",
+      "id": "6768309076"
+    }
+  ],
   "icons": [
     {
       "src": "/icon-192.png",

@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "solar.orrery",
+      "sha256_cert_fingerprints": [
+        "E1:FA:A2:35:DB:DD:13:2A:C8:68:56:63:9B:60:B1:2A:D9:F9:B6:58:FC:92:1F:D8:16:0D:B8:4E:D8:DF:A2:8D"
+      ]
+    }
+  }
+]

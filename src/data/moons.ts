@@ -18,7 +18,7 @@ export interface MoonDef {
 // Parent indices in ALL_BODIES: Mercury=0, Venus=1, Earth=2, Mars=3,
 // Jupiter=4, Saturn=5, Uranus=6, Neptune=7, Ceres=8, Pluto=9, Eris=10
 
-export const MOONS: MoonDef[] = [
+const MOONS: MoonDef[] = [
   // Earth (2) — radius 0.06
   { name: 'Moon', parent: 2, a: 0.10, period: 27.322, radius: 0.015, color: '#c0c0c0' },
 

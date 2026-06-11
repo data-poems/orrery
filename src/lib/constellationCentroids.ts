@@ -145,10 +145,6 @@ export function getConstellationCentroidCached(id: string): [number, number, num
   return cachedPositions?.get(id) ?? null;
 }
 
-export async function getConstellationRaDec(id: string): Promise<[number, number] | null> {
-  await ensureLoaded();
-  return cachedRaDec?.get(id) ?? null;
-}
 
 /** Pre-warm cache (e.g. during app load) so random-tour aiming has zero latency. */
 export function prefetchConstellationCentroids(): void {

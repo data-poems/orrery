@@ -18,7 +18,7 @@ export interface OrreryTheme {
   selectedRing: string;         // planet selection ring color
 }
 
-export const THEMES: OrreryTheme[] = [
+const THEMES: OrreryTheme[] = [
   {
     id: 'brass',
     name: 'Brass',

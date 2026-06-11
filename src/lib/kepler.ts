@@ -70,7 +70,7 @@ export function julianDate(date: Date): number {
 
 // ─── Kepler's equation (Newton-Raphson) ─────────────────────────────────────────
 
-export function solveKepler(M_deg: number, e: number): number {
+function solveKepler(M_deg: number, e: number): number {
   const M = norm(M_deg) * DEG;
   let E = M;
   for (let i = 0; i < 30; i++) {

@@ -40,28 +40,10 @@ export const BLUR = {
 } as const;
 
 /** White-on-dark alpha tiers for foreground text and dividers. */
-export const ALPHA = {
-  textPrimary: 1,
-  textSecondary: 0.7,
-  textTertiary: 0.5,
-  textDisabled: 0.32,
-  borderStrong: 0.2,
-  borderSubtle: 0.08,
-  dividerFaint: 0.04,
-} as const;
-
 /** Accent overlay alphas for selected/active states. */
 export const ACTIVE_ALPHA = {
   border: 0.3,
   bg: 0.15,
-} as const;
-
-/** Transition timings: feedback for instant state, state for UI toggles,
- *  transform for layout-affecting movement. */
-export const TIMING = {
-  feedback: '0.1s',
-  state: '0.18s',
-  transform: '0.25s',
 } as const;
 
 // ─── Responsive hook ────────────────────────────────────────────────────────────

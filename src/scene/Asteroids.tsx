@@ -3,84 +3,10 @@
  */
 
 import { useRef, useEffect, useMemo, useState } from 'react';
-import { useFrame } from '@react-three/fiber';
 import { Line } from '@react-three/drei';
 import * as THREE from 'three';
 import type { NEO } from '../lib/kepler';
 import { DEG, asteroidOrbitPath, neoXYZ } from '../lib/kepler';
-
-// ─── Asteroid Belt (instanced particles, 2.2–3.2 AU) ───────────────────────────
-
-const BELT_COUNT = 3000;
-
-// Kirkwood gap centers (AU) — resonances with Jupiter
-const KIRKWOOD = [2.502, 2.825, 2.958]; // 3:1, 5:2, 7:3
-const GAP_WIDTH = 0.04;
-
-function isInGap(a: number): boolean {
-  for (const k of KIRKWOOD) {
-    if (Math.abs(a - k) < GAP_WIDTH) return true;
-  }
-  return false;
-}
-
-export function AsteroidBelt() {
-  const meshRef = useRef<THREE.InstancedMesh>(null);
-
-  const [matrices] = useState(() => {
-    const dummy = new THREE.Object3D();
-    const arr = new Float32Array(BELT_COUNT * 16);
-    let placed = 0;
-    while (placed < BELT_COUNT) {
-      // Semi-major axis peaked around 2.7 AU
-      const a = 1.8 + Math.pow(Math.random(), 0.6) * 2.4;
-      if (a < 2.0 || a > 3.6) continue;
-      if (isInGap(a)) continue;
-
-      const angle = Math.random() * Math.PI * 2;
-      const ecc = Math.random() * 0.25;
-      const r = a * (1 - ecc * ecc) / (1 + ecc * Math.cos(angle));
-      const incl = (Math.random() - 0.5) * 16 * DEG; // +/- 8 deg
-      const x = r * Math.cos(angle);
-      const z = r * Math.sin(angle);
-      const y = r * Math.sin(incl) * Math.sin(angle);
-      const scale = 0.002 + Math.random() * 0.005;
-
-      dummy.position.set(x, y, z);
-      dummy.scale.setScalar(scale);
-      dummy.rotation.set(Math.random() * 6, Math.random() * 6, 0);
-      dummy.updateMatrix();
-      dummy.matrix.toArray(arr, placed * 16);
-      placed++;
-    }
-    return arr;
-  });
-
-  useEffect(() => {
-    if (!meshRef.current) return;
-    const m = new THREE.Matrix4();
-    for (let i = 0; i < BELT_COUNT; i++) {
-      m.fromArray(matrices, i * 16);
-      meshRef.current.setMatrixAt(i, m);
-    }
-    meshRef.current.instanceMatrix.needsUpdate = true;
-  }, [matrices]);
-
-  // Gentle rotation for orbital motion feel
-  const groupRef = useRef<THREE.Group>(null);
-  useFrame((_, dt) => {
-    if (groupRef.current) groupRef.current.rotation.y += dt * 0.003;
-  });
-
-  return (
-    <group ref={groupRef}>
-      <instancedMesh ref={meshRef} args={[undefined, undefined, BELT_COUNT]}>
-        <sphereGeometry args={[1, 8, 8]} />
-        <meshStandardMaterial color="#887766" roughness={0.9} />
-      </instancedMesh>
-    </group>
-  );
-}
 
 // ─── Real Asteroid Belt (from prebaked data) ────────────────────────────────────
 

@@ -28,4 +28,3 @@ export const ZODIAC_UNICODE: Record<string, string> = {
   Psc: '♓',
 };
 
-export const isZodiac = (id: string): boolean => id in ZODIAC_UNICODE;

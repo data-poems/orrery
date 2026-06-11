@@ -33,19 +33,6 @@ export const CONSTELLATION_NAMES: Record<string, string> = {
   Vol: 'Volans', Vul: 'Vulpecula',
 };
 
-export type SeasonName = 'Spring' | 'Summer' | 'Autumn' | 'Winter';
-
-/**
- * Northern-hemisphere season for a given month (0-11).
- * Spring: Mar–May, Summer: Jun–Aug, Autumn: Sep–Nov, Winter: Dec–Feb.
- */
-export function seasonForMonth(month: number): SeasonName {
-  if (month >= 2 && month <= 4) return 'Spring';
-  if (month >= 5 && month <= 7) return 'Summer';
-  if (month >= 8 && month <= 10) return 'Autumn';
-  return 'Winter';
-}
-
 export const MYTHOLOGY: Record<string, ConstellationInfo> = {
   And: { origin: 'Greek', myth: 'Princess Andromeda, chained to a rock as sacrifice to Cetus, rescued by Perseus.', season: 'Autumn', objects: ['M31 Andromeda Galaxy'] },
   Ant: { origin: 'Lacaille 1756', myth: 'The Air Pump, honoring Robert Boyle\'s vacuum pump.', season: 'Spring', objects: [] },

@@ -15,7 +15,7 @@ const B = import.meta.env.BASE_URL + 'textures/';
 const CDN = 'https://d2xsxph8kpxj0f.cloudfront.net/310419663029916604/boBVkWMKnM6d26ztuVrLrs/';
 
 /** Reactive texture tier — call from components (not at module load). */
-export function textureResolutionTier(isMobile: boolean): '2k' | '4k' {
+function textureResolutionTier(isMobile: boolean): '2k' | '4k' {
   return isMobile ? '2k' : '4k';
 }
 
@@ -36,12 +36,10 @@ export function buildTextureUrls(isMobile: boolean): Record<string, string> {
   };
 }
 
-const DEFAULT_MOBILE = typeof window !== 'undefined' && window.innerWidth < 768;
-export const TEX: Record<string, string> = buildTextureUrls(DEFAULT_MOBILE);
 
 // ─── Planets (JPL J2000 + secular rates per century) ────────────────────────────
 
-export const PLANETS: PlanetDef[] = [
+const PLANETS: PlanetDef[] = [
   { name: 'Mercury', a: 0.38710, e: 0.20564, I: 7.005, L: 252.250, wBar: 77.458, omega: 48.331, aR: 0.0000004, eR: 0.00002, IR: -0.0059, LR: 149472.674, wR: 0.160, oR: -0.125, radius: 0.035, tex: 'mercury' as TexKey, color: '#b0a090', period: 87.97, distAU: '0.39', moons: 0, type: 'Terrestrial', surfaceTemp: '-180 to 430\u00b0C', gravity: '3.7 m/s\u00b2' },
   { name: 'Venus', a: 0.72334, e: 0.00678, I: 3.395, L: 181.979, wBar: 131.602, omega: 76.680, aR: 0.0000039, eR: -0.00004, IR: -0.0008, LR: 58517.815, wR: 0.003, oR: -0.278, radius: 0.055, tex: 'venus' as TexKey, color: '#e8c870', period: 224.7, distAU: '0.72', moons: 0, type: 'Terrestrial', surfaceTemp: '465\u00b0C', gravity: '8.87 m/s\u00b2' },
   { name: 'Earth', a: 1.00000, e: 0.01671, I: 0.000, L: 100.465, wBar: 102.938, omega: 0.0, aR: 0.0000056, eR: -0.00004, IR: -0.013, LR: 35999.372, wR: 0.323, oR: 0.0, radius: 0.06, tex: 'earth' as TexKey, color: '#4488cc', period: 365.25, distAU: '1.00', moons: 1, type: 'Terrestrial', surfaceTemp: '-89 to 58\u00b0C', gravity: '9.81 m/s\u00b2' },
@@ -56,7 +54,7 @@ export const PLANETS: PlanetDef[] = [
 // Secular rates set to zero (not published for minor bodies).
 // LR derived from Kepler's third law: LR = 36000 / a^1.5 deg/century.
 
-export const DWARF_PLANETS: PlanetDef[] = [
+const DWARF_PLANETS: PlanetDef[] = [
   {
     name: 'Ceres', a: 2.7658, e: 0.0756, I: 10.594, L: 230.20, wBar: 152.83, omega: 80.31,
     aR: 0, eR: 0, IR: 0, LR: 7829.5, wR: 0, oR: 0,

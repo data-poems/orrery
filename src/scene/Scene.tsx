@@ -108,7 +108,11 @@ export default function Scene({
   const [hovMoon, setHovMoon] = useState<number | null>(null);
 
   const positionsRef = useRef(new Map<number, [number, number, number]>());
-  const lastNotifyTRef = useRef(T);
+  // Must start at -Infinity so the first effect run always notifies the parent.
+  // Initializing to T left Orrery's positionsRef empty until a full simulated
+  // day elapsed — at real-time speed that's never, and planet clicks could not
+  // focus the camera (focusTarget needs a position from that map).
+  const lastNotifyTRef = useRef(Number.NEGATIVE_INFINITY);
 
   const positions = useMemo(() => {
     const m = new Map<number, [number, number, number]>();

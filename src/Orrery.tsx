@@ -28,6 +28,7 @@ import LoadingScreen from './ui/LoadingScreen';
 import OrreryDiagOverlay from './ui/OrreryDiagOverlay';
 import { neoFeedUrlForDay } from './lib/neoFeed';
 import { OBSERVATORY_MODE } from './lib/mode';
+import { IS_ANDROID } from './lib/platform';
 
 /** Curated iconic constellations used by the random-tour dice. The full IAU
  *  list is 88 entries — picking uniformly across that bag drowned every other
@@ -198,6 +199,7 @@ function OrreryInner() {
   const [focusTarget, setFocusTarget] = useState<FocusTarget | null>(null);
   const [canvasCreated, setCanvasCreated] = useState(false);
   const [canvasKey, setCanvasKey] = useState(0);
+  const lastCanvasRemountRef = useRef(-Infinity);
   const glCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const tabHiddenRef = useRef(false);
   const [loadingTasks, setLoadingTasks] = useState<Record<string, boolean>>({
@@ -996,7 +998,15 @@ function OrreryInner() {
     };
     const onRestored = () => {
       reloadLoadingTasks();
-      setCanvasKey(k => k + 1);
+      // Backoff: remounting the Canvas rebuilds every GPU resource. If the
+      // device is dropping contexts under memory pressure (common on Android),
+      // remounting in a tight loop makes the thrash worse — let three.js reuse
+      // the restored context when the last remount was recent.
+      const now = performance.now();
+      if (now - lastCanvasRemountRef.current > 30000) {
+        lastCanvasRemountRef.current = now;
+        setCanvasKey(k => k + 1);
+      }
     };
     canvas.addEventListener('webglcontextlost', onLost);
     canvas.addEventListener('webglcontextrestored', onRestored);
@@ -1023,7 +1033,7 @@ function OrreryInner() {
     >
       <Canvas
         key={canvasKey}
-        dpr={[1, 1.5]}
+        dpr={IS_ANDROID ? [1, 1.25] : [1, 1.5]}
         camera={{
           position: OBSERVATORY_MODE ? [1, 0.001, 0] : [0, 3, 4],
           fov: 55,
@@ -1031,7 +1041,9 @@ function OrreryInner() {
           far: 250000,
         }}
         style={{ position: 'absolute', inset: 0 }}
-        gl={{ antialias: true, logarithmicDepthBuffer: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.2 }}
+        // Android profile: skip MSAA — multisampling multiplies tile-memory
+        // traffic on Adreno/Mali and the scene is mostly points/lines anyway.
+        gl={{ antialias: !IS_ANDROID, logarithmicDepthBuffer: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.2 }}
         onCreated={({ gl }) => {
           glCanvasRef.current = gl.domElement;
           setCanvasCreated(true);

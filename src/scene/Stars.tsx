@@ -14,6 +14,7 @@ import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { ZODIAC_UNICODE } from '../data/constellation-symbols';
 import { OBSERVATORY_MODE } from '../lib/mode';
+import { IS_ANDROID } from '../lib/platform';
 import { useIsMobile } from '../ui/styles';
 import { raDecTo3D, ECLIPTIC_TILT, DEG } from '../lib/kepler';
 
@@ -274,6 +275,8 @@ const starVertexShader = `
   uniform vec3 accentColor;
   uniform float hasSelection;
   uniform float immersive;
+  uniform float sizeScale;
+  uniform float sizeBoostScale;
   varying vec3 vColor;
   varying float vImmersive;
   void main() {
@@ -283,7 +286,7 @@ const starVertexShader = `
     vColor = mix(color, accentColor, boost * 0.58);
     vImmersive = immersiveBoost;
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-    gl_PointSize = size * 1.2 * (1.0 + boost * 0.9);
+    gl_PointSize = size * sizeScale * (1.0 + boost * sizeBoostScale);
     gl_Position = projectionMatrix * mvPosition;
   }
 `;
@@ -315,6 +318,11 @@ export function StarField({ visible, showDesignations, onLoad, selectedConstella
     hasSelection: { value: 0 },
     immersive: { value: 0 },
     alphaScale: { value: 0.62 },
+    // Android profile: old-build point scale and a tame immersive boost.
+    // Tiled GPUs (Adreno/Mali) pay per-tile for blended point overdraw, so the
+    // 1.2x base + 0.9 boost that Apple GPUs absorb tanks frame rate there.
+    sizeScale: { value: IS_ANDROID ? 1.0 : 1.2 },
+    sizeBoostScale: { value: IS_ANDROID ? 0.3 : 0.9 },
   }), []);
 
   useEffect(() => {

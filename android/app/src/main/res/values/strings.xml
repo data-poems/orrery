@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Orrery</string>
-    <string name="title_activity_main">Orrery</string>
+    <string name="app_name">Solar Orrery</string>
+    <string name="title_activity_main">Solar Orrery</string>
     <string name="package_name">solar.orrery</string>
     <string name="custom_url_scheme">solar.orrery</string>
 </resources>

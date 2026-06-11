@@ -12,7 +12,7 @@ const DEST = 'dist/observatory.html';
 
 const REPLACEMENTS = [
   // <title>
-  [/<title>Orrery<\/title>/, '<title>Observatory · Orrery</title>'],
+  [/<title>Solar Orrery<\/title>/, '<title>Observatory · Solar Orrery</title>'],
 
   // <meta name="description"> + og:description / twitter:description
   [
@@ -29,8 +29,8 @@ const REPLACEMENTS = [
   ],
 
   // og:title / twitter:title
-  [/<meta property="og:title" content="Orrery" \/>/, '<meta property="og:title" content="Observatory" />'],
-  [/<meta name="twitter:title" content="Orrery" \/>/, '<meta name="twitter:title" content="Observatory" />'],
+  [/<meta property="og:title" content="Solar Orrery" \/>/, '<meta property="og:title" content="Observatory" />'],
+  [/<meta name="twitter:title" content="Solar Orrery" \/>/, '<meta name="twitter:title" content="Observatory" />'],
 
   // og:image / twitter:image — point at observatory variant
   [

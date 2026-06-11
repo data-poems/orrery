@@ -1,6 +1,6 @@
 {
-  "name": "Orrery",
-  "short_name": "Orrery",
+  "name": "Solar Orrery",
+  "short_name": "Solar Orrery",
   "description": "From Earth to the Oort Cloud. Interactive, 41,000 stars, 88 constellations, real data, mostly live. Fake scales.",
   "id": "/",
   "start_url": "/",

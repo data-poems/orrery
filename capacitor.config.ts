@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'solar.orrery',
-  appName: 'Orrery',
+  appName: 'Solar Orrery',
   webDir: 'dist',
   loggingBehavior: 'production',
   ios: {

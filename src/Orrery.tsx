@@ -1344,6 +1344,27 @@ function OrreryInner() {
         />
       )}
 
+      {/* Sim clock + date — shown during the cinematic tour. */}
+      {cinematic && !OBSERVATORY_MODE && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'fixed', top: 'calc(env(safe-area-inset-top, 0px) + 16px)',
+            right: 'calc(env(safe-area-inset-right, 0px) + 20px)',
+            zIndex: 20, pointerEvents: 'none', textAlign: 'right',
+            color: 'rgba(255,255,255,0.5)', fontFamily: 'inherit',
+            textShadow: '0 1px 10px rgba(0,0,0,0.85)',
+          }}
+        >
+          <div style={{ fontSize: 15, letterSpacing: 1, fontWeight: 300 }}>
+            {simTime.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}
+          </div>
+          <div style={{ fontSize: 12, letterSpacing: 2.5, opacity: 0.75, fontVariantNumeric: 'tabular-nums' }}>
+            {simTime.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+          </div>
+        </div>
+      )}
+
       {showSkyModeHint && !OBSERVATORY_MODE && (
         <div
           aria-live="polite"

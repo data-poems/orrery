@@ -35,8 +35,14 @@ export default function BodyStats({ name, subtitle, color, stats, accent, accent
         top: mobile ? 'calc(env(safe-area-inset-top,0px) + 64px)' : '50%',
         transform: mobile ? 'none' : 'translateY(-50%)',
         zIndex: 28,
-        maxWidth: mobile ? '64vw' : 280,
+        maxWidth: mobile ? '70vw' : 280,
         pointerEvents: 'auto',
+        // Subtle transparent container — readable, but the scene shows through.
+        padding: mobile ? '14px 16px' : '18px 20px',
+        background: 'rgba(8,11,22,0.42)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: 14,
+        backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
         fontFamily: "'Cormorant Garamond','Garamond','Georgia',serif",
         animation: PREFERS_REDUCED_MOTION ? undefined : 'orrery-fade-in 0.5s ease both',
       }}

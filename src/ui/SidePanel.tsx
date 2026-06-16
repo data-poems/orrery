@@ -35,18 +35,20 @@ export default function SidePanel({ visible, accent, accentRgb, onAction, layerS
     color: 'rgba(255,255,255,0.45)', fontSize: 10, letterSpacing: 2,
     textTransform: 'uppercase', margin: '18px 0 8px',
   };
+  // Minimal rows: transparent at rest, hairline separators, accent only when
+  // active. Avoids the heavy "menu of boxes" look.
   const rowBtn = (active: boolean): React.CSSProperties => ({
     display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
-    padding: '9px 12px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
+    padding: '9px 2px', cursor: 'pointer', fontFamily: 'inherit',
     fontSize: 14, letterSpacing: 0.4, textAlign: 'left',
-    background: active ? `rgba(${accentRgb},0.22)` : 'rgba(255,255,255,0.05)',
-    border: `1px solid ${active ? accent : 'rgba(255,255,255,0.12)'}`,
-    color: active ? accent : '#eaf0ff',
-    transition: PREFERS_REDUCED_MOTION ? 'none' : 'background 0.18s, border-color 0.18s, color 0.18s',
+    background: 'transparent', border: 'none',
+    borderBottom: '1px solid rgba(255,255,255,0.07)',
+    color: active ? accent : 'rgba(255,255,255,0.82)',
+    transition: PREFERS_REDUCED_MOTION ? 'none' : 'color 0.18s',
   });
   const iconBtn: React.CSSProperties = {
-    width: 44, height: 44, borderRadius: 8, cursor: 'pointer', display: 'grid', placeItems: 'center',
-    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', color: '#eaf0ff',
+    width: 40, height: 40, borderRadius: 8, cursor: 'pointer', display: 'grid', placeItems: 'center',
+    background: 'transparent', border: '1px solid rgba(255,255,255,0.16)', color: 'rgba(255,255,255,0.85)',
     fontFamily: 'inherit', fontSize: 18,
   };
 

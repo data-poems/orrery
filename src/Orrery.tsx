@@ -24,7 +24,7 @@ import { CONSTELLATION_NAMES } from './data/mythology';
 import { getConstellationCentroid, getConstellationCentroidCached, prefetchConstellationCentroids } from './lib/constellationCentroids';
 import Scene from './scene/Scene';
 import Panels from './ui/Panels';
-import ControlBar from './ui/ControlBar';
+import SidePanel from './ui/SidePanel';
 import LoadingScreen from './ui/LoadingScreen';
 import OrreryDiagOverlay from './ui/OrreryDiagOverlay';
 import { neoFeedUrlForDay } from './lib/neoFeed';
@@ -1335,7 +1335,7 @@ function OrreryInner() {
       />
 
       {!OBSERVATORY_MODE && (
-        <ControlBar
+        <SidePanel
           visible={hudActive}
           accent={theme.uiAccent}
           accentRgb={accentRgb}

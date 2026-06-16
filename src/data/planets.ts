@@ -8,15 +8,18 @@
  */
 
 import type { PlanetDef, TexKey, CamPreset } from '../lib/kepler';
+import { IS_ANDROID, IS_IOS } from '../lib/platform';
 
 // ─── CDN texture URLs ───────────────────────────────────────────────────────────
 
 const B = import.meta.env.BASE_URL + 'textures/';
 const CDN = 'https://d2xsxph8kpxj0f.cloudfront.net/310419663029916604/boBVkWMKnM6d26ztuVrLrs/';
 
-/** Reactive texture tier — call from components (not at module load). */
+/** Reactive texture tier — call from components (not at module load).
+ *  iOS/Android always get 2K regardless of viewport: iPad reads as a desktop
+ *  width but shares GPU memory, and 4K textures there risk Safari OOM kills. */
 function textureResolutionTier(isMobile: boolean): '2k' | '4k' {
-  return isMobile ? '2k' : '4k';
+  return (isMobile || IS_ANDROID || IS_IOS) ? '2k' : '4k';
 }
 
 export function buildTextureUrls(isMobile: boolean): Record<string, string> {

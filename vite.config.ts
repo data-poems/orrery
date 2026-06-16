@@ -12,6 +12,19 @@ export default defineConfig({
   },
   plugins: [react()],
   base: '/orrery/',
+  build: {
+    rollupOptions: {
+      output: {
+        // Peel satellite.js (only the Satellites layer needs it) into its own
+        // chunk. NOTE: do not manualChunk @react-three/xr — it shares the three.js
+        // graph, so grouping it drags all of three into the chunk rather than
+        // isolating XR. Deferring XR needs a lazy import boundary, not a chunk.
+        manualChunks(id: string) {
+          if (id.includes('node_modules/satellite.js')) return 'satellite';
+        },
+      },
+    },
+  },
   server: {
     allowedHosts: true,
     host: true,

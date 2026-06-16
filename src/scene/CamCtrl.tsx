@@ -6,11 +6,13 @@
 import { useEffect, useRef, useCallback, type ElementRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
+import { useXR } from '@react-three/xr';
 import * as THREE from 'three';
 import { ALL_BODIES } from '../data/planets';
 import { getMoonsForPlanet } from '../data/moons';
 import type { CamPreset, FocusTarget } from '../lib/kepler';
 import { OBSERVATORY_MODE } from '../lib/mode';
+import { PREFERS_REDUCED_MOTION } from '../lib/motion';
 import {
   getPositionsUpdatesPerSec,
   isOrreryDiagEnabled,
@@ -44,6 +46,9 @@ export default function CamCtrl({
   onUserGrabDuringCinematic,
 }: CamCtrlProps) {
   const { camera } = useThree();
+  // During an immersive WebXR session the headset is the sole driver of the
+  // camera. Yield to it: stop writing camera.position and disable OrbitControls.
+  const inXR = useXR((s) => s.session != null);
   const ctrlRef = useRef<ElementRef<typeof OrbitControls> | null>(null);
   const interactiveFreePreset = camPreset?.label === 'Stargazer';
   const tPos = useRef(new THREE.Vector3(...HOME_POS));
@@ -195,6 +200,8 @@ export default function CamCtrl({
   useFrame((_, dt) => {
     const ctrl = ctrlRef.current;
     if (!ctrl) return;
+    // In XR the headset owns the camera; don't fight it.
+    if (inXR) return;
 
     frameSinceTargetRef.current += 1;
     diagFramesRef.current += 1;
@@ -229,11 +236,12 @@ export default function CamCtrl({
       : observeMode
         ? 0
         : (remainDist > 10000 ? 0.8 : remainDist > 1000 ? 0.5 : remainDist > 100 ? 0.2 : 0);
-    const posAlpha = 1 - Math.exp(-(smoothBase + smoothBoost) * dt);
+    // Reduced motion: snap to the destination instead of easing toward it.
+    const posAlpha = PREFERS_REDUCED_MOTION ? 1 : 1 - Math.exp(-(smoothBase + smoothBoost) * dt);
     // Look-at converges ~5x faster than position so the camera always faces
     // its destination during the travel — pan/tilt finishes long before the
     // dolly does. Without this the camera arrives "from the side" of the target.
-    const lookAlpha = 1 - Math.exp(-(smoothBase + smoothBoost) * 5 * dt);
+    const lookAlpha = PREFERS_REDUCED_MOTION ? 1 : 1 - Math.exp(-(smoothBase + smoothBoost) * 5 * dt);
     const settleThreshold = remainDist > 10000 ? 120 : remainDist > 1000 ? 32 : remainDist > 100 ? 3 : 0.035;
 
     const dampingWhileSettling = settling.current || cinematic || (observeMode && !observeUserTook.current);
@@ -328,11 +336,12 @@ export default function CamCtrl({
   return (
     <OrbitControls
       ref={ctrlRef}
+      enabled={!inXR}
       enableDamping
       dampingFactor={0.08}
       minDistance={0.05}
       maxDistance={200000}
-      autoRotate={cinematic || camPreset?.autoRotate || false}
+      autoRotate={!inXR && !PREFERS_REDUCED_MOTION && (cinematic || camPreset?.autoRotate || false)}
       autoRotateSpeed={cinematic ? cinematicRotateSpeed * 0.78 : camPreset?.autoRotate ? 0.1 : 0}
       rotateSpeed={OBSERVATORY_MODE ? -1 : 1}
     />

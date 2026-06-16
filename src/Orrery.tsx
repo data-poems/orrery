@@ -29,6 +29,9 @@ import OrreryDiagOverlay from './ui/OrreryDiagOverlay';
 import { neoFeedUrlForDay } from './lib/neoFeed';
 import { OBSERVATORY_MODE } from './lib/mode';
 import { IS_ANDROID } from './lib/platform';
+import { PREFERS_REDUCED_MOTION } from './lib/motion';
+import { XR, XROrigin } from '@react-three/xr';
+import { xrStore, useImmersiveVrSupported } from './lib/xr';
 
 /** Curated iconic constellations used by the random-tour dice. The full IAU
  *  list is 88 entries — picking uniformly across that bag drowned every other
@@ -156,6 +159,9 @@ const CINEMATIC_DEFAULTS: Omit<CinematicStep, 'duration' | 'label'> = {
 
 function OrreryInner() {
   const { theme } = useTheme();
+  // Only true in a real WebXR browser on a headset (Vision Pro Safari, Quest);
+  // always false on phone/desktop/iOS shell, so the entry point stays hidden.
+  const vrSupported = useImmersiveVrSupported();
   const neoCacheKey = useMemo(() => getTodayNeoCacheKey(), []);
   const initialNeoCache = useMemo(() => readNeoCache(neoCacheKey), [neoCacheKey]);
   const [neos, setNeos] = useState<NEO[]>(() => initialNeoCache ?? []);
@@ -228,7 +234,9 @@ function OrreryInner() {
   const sceneReady = useMemo(() => {
     return Object.values(loadingTasks).every(v => v) && canvasCreated;
   }, [loadingTasks, canvasCreated]);
-  const [cinematic, setCinematic] = useState(!OBSERVATORY_MODE);
+  // Don't auto-play the sweeping tour for users who asked for reduced motion;
+  // they land directly in the interactive view. They can still start it manually.
+  const [cinematic, setCinematic] = useState(!OBSERVATORY_MODE && !PREFERS_REDUCED_MOTION);
   const [navStack, setNavStack] = useState<string[]>(['Solar System']);
   const [selMoonIdx, setSelMoonIdx] = useState<number | null>(null);
   const [cameraDistance, setCameraDistance] = useState(50);
@@ -887,6 +895,13 @@ function OrreryInner() {
         return;
       }
 
+      if (e.key === '?') {
+        // Shortcuts sheet lives in Panels; nudge it via a window event so we
+        // don't thread its open-state back up here.
+        window.dispatchEvent(new CustomEvent('orrery:toggle-shortcuts'));
+        return;
+      }
+
       if (cinematic) {
         exitCinematic();
         if (!isInteractiveShortcut || k === 'escape') {
@@ -1033,6 +1048,8 @@ function OrreryInner() {
     >
       <Canvas
         key={canvasKey}
+        aria-label="Interactive 3D solar system. Select bodies with the on-screen controls or keyboard shortcuts."
+        role="img"
         dpr={IS_ANDROID ? [1, 1.25] : [1, 1.5]}
         camera={{
           position: OBSERVATORY_MODE ? [1, 0.001, 0] : [0, 3, 4],
@@ -1059,9 +1076,20 @@ function OrreryInner() {
           setSelSpacecraft(null);
           setSelNearStar(null);
           setSelGalaxy(null);
+          // Clicking empty space backs out of a focused body — the previously
+          // only exits were the small Back button and Escape.
+          if (!cinematic && (selPlanet !== null || selSun || selMoonIdx !== null)) {
+            navigateBack();
+          }
         }}
       >
         <Suspense fallback={null}>
+         <XR store={xrStore}>
+          {/* Seat the immersive viewer at the default 'Inner' vantage so an
+              entering headset frames the system, not the inside of the Sun.
+              Comfort scale/placement is intentionally first-guess — tune on a
+              real Vision Pro. No effect outside an XR session. */}
+          <XROrigin position={[0, 3, 4]} />
           <Scene
             jd={jd} T={T} simTime={simTime}
             onLoadComplete={completeLoadingTask}
@@ -1102,8 +1130,45 @@ function OrreryInner() {
             onSunSelect={handleSunSelect}
             onUserGrabDuringCinematic={handleUserGrabDuringCinematic}
           />
+         </XR>
         </Suspense>
       </Canvas>
+
+      {vrSupported && (
+        <button
+          type="button"
+          onClick={() => {
+            // Leave the auto-tour before handing the camera to the headset —
+            // otherwise the cinematic keeps driving presets the XR camera
+            // ignores, and the view looks frozen.
+            setCinematic(false);
+            setPanelOpen(false);
+            void xrStore.enterVR();
+          }}
+          aria-label="Enter immersive VR"
+          style={{
+            position: 'fixed',
+            bottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 30,
+            padding: '10px 22px',
+            background: `rgba(${accentRgb},0.16)`,
+            border: `1px solid rgba(${accentRgb},0.4)`,
+            borderRadius: 8,
+            color: theme.uiAccent,
+            fontFamily: 'inherit',
+            fontSize: 14,
+            letterSpacing: 1.6,
+            textTransform: 'uppercase',
+            cursor: 'pointer',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+          }}
+        >
+          Enter VR
+        </button>
+      )}
 
       <OrreryDiagOverlay />
 
@@ -1155,6 +1220,7 @@ function OrreryInner() {
         selSun={selSun}
         currentAreaLabel={currentAreaLabel}
         onRandomJump={triggerRandomJump}
+        onStartCinematic={startCinematicTour}
       />
 
       {showSkyModeHint && !OBSERVATORY_MODE && (

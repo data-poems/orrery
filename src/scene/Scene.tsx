@@ -2,7 +2,7 @@
  * Scene composition — camera, lighting, all 3D elements
  */
 
-import { useState, useEffect, useMemo, useRef, Suspense } from 'react';
+import { useState, useEffect, useMemo, useRef, Suspense, lazy } from 'react';
 import * as THREE from 'three';
 import { ALL_BODIES } from '../data/planets';
 import { getMoonsForPlanet } from '../data/moons';
@@ -16,7 +16,9 @@ import { OBSERVATORY_MODE } from '../lib/mode';
 import { CometField } from './Comets';
 import { MeteorField } from './Meteors';
 import { SatelliteField } from './Satellites';
-import { DeepSpaceField } from './DeepSpace';
+// DeepSpace (spacecraft, near-stars, galaxies) is off by default and renders
+// nothing until toggled — lazy-load it so its module stays out of first paint.
+const DeepSpaceField = lazy(() => import('./DeepSpace').then(m => ({ default: m.DeepSpaceField })));
 import CamCtrl from './CamCtrl';
 import { bumpPositionsUpdateCounter } from '../lib/orreryDiag';
 import type { CometDef } from '../data/comets';
@@ -234,17 +236,19 @@ export default function Scene({
         setSelSatellite={setSelSatellite}
         onLoad={() => onLoadComplete?.('satellites')}
       />
-      <Suspense fallback={null}>
-        <DeepSpaceField
-          visible={showDeepSpace}
-          selSpacecraft={selSpacecraft}
-          setSelSpacecraft={setSelSpacecraft}
-          selNearStar={selNearStar}
-          setSelNearStar={setSelNearStar}
-          selGalaxy={selGalaxy}
-          setSelGalaxy={setSelGalaxy}
-        />
-      </Suspense>
+      {showDeepSpace && (
+        <Suspense fallback={null}>
+          <DeepSpaceField
+            visible={showDeepSpace}
+            selSpacecraft={selSpacecraft}
+            setSelSpacecraft={setSelSpacecraft}
+            selNearStar={selNearStar}
+            setSelNearStar={setSelNearStar}
+            selGalaxy={selGalaxy}
+            setSelGalaxy={setSelGalaxy}
+          />
+        </Suspense>
+      )}
       <CamCtrl
         focusTarget={focusTarget}
         positions={positions}

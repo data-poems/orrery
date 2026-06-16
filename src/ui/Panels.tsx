@@ -8,12 +8,13 @@
  * No emoji anywhere.
  */
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, Fragment } from 'react';
 import type { NEO, CamPreset } from '../lib/kepler';
 import { ALL_BODIES } from '../data/planets';
 import { getMoonsForPlanet } from '../data/moons';
 import { useTheme } from '../lib/themes';
 import { bokehCard, useIsMobile, Z, BLUR, ACTIVE_ALPHA } from './styles';
+import { PREFERS_REDUCED_MOTION } from '../lib/motion';
 import type { CometDef } from '../data/comets';
 import type { MeteorShower } from '../scene/Meteors';
 import type { SatellitePosition } from '../lib/satellites';
@@ -392,6 +393,111 @@ function AboutDialog({ open, onClose, accent, accentRgb }: {
   );
 }
 
+// ─── Keyboard shortcuts sheet ──────────────────────────────────────────────────
+
+const SHORTCUTS: ReadonlyArray<{ keys: string; label: string }> = [
+  { keys: 'F', label: 'Cinematic tour' },
+  { keys: 'G', label: 'Sky / constellation mode' },
+  { keys: 'Space', label: 'Play / pause time' },
+  { keys: '1 – =', label: 'Jump to a scale preset' },
+  { keys: 'M', label: 'Toggle the side drawer' },
+  { keys: 'Esc', label: 'Back / clear selection' },
+  { keys: 'N · D', label: 'Near-Earth objects · dwarf planets' },
+  { keys: 'S · L · A', label: 'Stars · constellation lines · asterisms' },
+  { keys: 'C · R · I', label: 'Comets · meteor showers · satellites' },
+  { keys: 'O', label: 'Deep space (spacecraft, galaxies)' },
+];
+
+function ShortcutsSheet({ open, onClose, accent, accentRgb }: {
+  open: boolean;
+  onClose: () => void;
+  accent: string;
+  accentRgb: string;
+}) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const prevFocus = document.activeElement as HTMLElement | null;
+    closeBtnRef.current?.focus();
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.preventDefault(); onClose(); return; }
+      if (e.key !== 'Tab') return;
+      const focusables = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (!focusables || focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => { document.removeEventListener('keydown', handleKey); prevFocus?.focus?.(); };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: Z.modal,
+        background: 'rgba(0,0,0,0.85)',
+        backdropFilter: `blur(${BLUR.card}px)`, WebkitBackdropFilter: `blur(${BLUR.card}px)`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 24, overflow: 'auto',
+        fontFamily: "'Cormorant Garamond','Garamond','Baskerville','Georgia',serif",
+      }}
+    >
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="shortcuts-dialog-title"
+        onClick={e => e.stopPropagation()}
+        style={{ ...bokehCard, maxWidth: 380, width: '100%', position: 'relative', padding: '24px 26px' }}
+      >
+        <button
+          ref={closeBtnRef}
+          type="button"
+          onClick={onClose}
+          aria-label="Close keyboard shortcuts"
+          style={{
+            position: 'absolute', top: 14, right: 16,
+            background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)',
+            fontSize: 22, lineHeight: 1, cursor: 'pointer',
+          }}
+        >
+          ×
+        </button>
+        <h2
+          id="shortcuts-dialog-title"
+          style={{ margin: '0 0 16px', color: accent, fontSize: 20, fontWeight: 500, letterSpacing: 1 }}
+        >
+          Keyboard shortcuts
+        </h2>
+        <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: 16, rowGap: 9 }}>
+          {SHORTCUTS.map(s => (
+            <Fragment key={s.keys}>
+              <dt style={{
+                color: `rgba(${accentRgb},0.92)`, fontSize: 14, fontWeight: 500,
+                whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums',
+              }}>
+                {s.keys}
+              </dt>
+              <dd style={{ margin: 0, color: 'rgba(255,255,255,0.74)', fontSize: 14, fontWeight: 300 }}>
+                {s.label}
+              </dd>
+            </Fragment>
+          ))}
+        </dl>
+      </div>
+    </div>
+  );
+}
+
 // ─── Info panel — floating bokehCard for clicked sky / spacecraft objects ──────
 
 function InfoPanel({
@@ -486,6 +592,7 @@ export interface PanelProps {
   setSelGalaxy: (g: GalaxyMarker | null) => void;
   currentAreaLabel: string;
   onRandomJump: () => void;
+  onStartCinematic: () => void;
 }
 
 export default function Panels(props: PanelProps) {
@@ -519,6 +626,7 @@ export default function Panels(props: PanelProps) {
     selGalaxy, setSelGalaxy,
     currentAreaLabel,
     onRandomJump,
+    onStartCinematic,
   } = props;
   void _setShowNeo; void _simTime; void _speed; void _setSelPlanet; void _neos; void _setShowDwarf; void _showStars; void _showConstellations;
   void _setShowAsterisms; void _setShowAsteroidBelt; void _setShowComets;
@@ -532,6 +640,27 @@ export default function Panels(props: PanelProps) {
   const mobile = useIsMobile();
   const [cardMinimized, setCardMinimized] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  // Pale Blue Dot: a single quiet Sagan caption the first time you pull the
+  // camera far enough out that the planets become a speck. Earned, not nagged —
+  // fires once per session, auto-dismisses, never blocks input.
+  const [paleBlueDot, setPaleBlueDot] = useState(false);
+  const paleBlueShownRef = useRef(false);
+  useEffect(() => {
+    if (paleBlueShownRef.current || observatoryMode || cameraDistance <= 5000) return;
+    paleBlueShownRef.current = true;
+    // Defer past the synchronous effect body (avoids cascading-render lint and
+    // lets the fade-in animation mount cleanly).
+    const show = window.setTimeout(() => setPaleBlueDot(true), 0);
+    const hide = window.setTimeout(() => setPaleBlueDot(false), 9000);
+    return () => { window.clearTimeout(show); window.clearTimeout(hide); };
+  }, [cameraDistance, observatoryMode]);
+  // The '?' keyboard shortcut is handled in Orrery; it pings us via this event.
+  useEffect(() => {
+    const toggle = () => setShowShortcuts(s => !s);
+    window.addEventListener('orrery:toggle-shortcuts', toggle);
+    return () => window.removeEventListener('orrery:toggle-shortcuts', toggle);
+  }, []);
   const sp = selPlanet !== null ? ALL_BODIES[selPlanet] : null;
   const mobilePanelOffset = '12px';
   const detailsBodyId = 'planet-details-card-body';
@@ -1037,6 +1166,15 @@ export default function Panels(props: PanelProps) {
           >
             i
           </button>
+          <button
+            type="button"
+            aria-label="Keyboard shortcuts"
+            title="Keyboard shortcuts (?)"
+            onClick={() => setShowShortcuts(true)}
+            style={controlChipStyle}
+          >
+            ?
+          </button>
         </div>
       )}
 
@@ -1052,6 +1190,24 @@ export default function Panels(props: PanelProps) {
             alignItems: 'center',
           }}
         >
+          <button
+            type="button"
+            onClick={onStartCinematic}
+            aria-label="Play the cinematic tour"
+            aria-keyshortcuts="f"
+            title="Cinematic tour (F)"
+            style={{
+              ...controlChipStyle,
+              color: 'rgba(255,255,255,0.58)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <path d="M4 2.5v11l9-5.5z" fill="currentColor" />
+            </svg>
+          </button>
           <button
             type="button"
             onClick={onRandomJump}
@@ -1103,6 +1259,38 @@ export default function Panels(props: PanelProps) {
         accent={accent}
         accentRgb={accentRgb}
       />
+      <ShortcutsSheet
+        open={showShortcuts}
+        onClose={() => setShowShortcuts(false)}
+        accent={accent}
+        accentRgb={accentRgb}
+      />
+      {/* ── Pale Blue Dot (deep zoom-out reward) ── */}
+      {paleBlueDot && (
+        <div
+          style={{
+            position: 'fixed',
+            left: '50%',
+            bottom: 'calc(env(safe-area-inset-bottom, 0px) + 64px)',
+            transform: 'translateX(-50%)',
+            zIndex: Z.controls,
+            maxWidth: 'min(78vw, 520px)',
+            textAlign: 'center',
+            pointerEvents: 'none',
+            color: 'rgba(255,255,255,0.82)',
+            textShadow: '0 0 12px rgba(0,0,0,0.8)',
+            animation: PREFERS_REDUCED_MOTION ? undefined : 'orrery-fade-in 1.4s ease both',
+          }}
+        >
+          <p style={{ margin: 0, fontSize: mobile ? 16 : 19, fontStyle: 'italic', lineHeight: 1.5 }}>
+            That&rsquo;s here. That&rsquo;s home. A mote of dust suspended in a sunbeam.
+          </p>
+          <p style={{ margin: '6px 0 0', fontSize: 12, letterSpacing: 1.4, textTransform: 'uppercase', color: `rgba(${accentRgb},0.7)` }}>
+            Carl Sagan · Pale Blue Dot
+          </p>
+        </div>
+      )}
+
       {/* ── Screen reader announcements ── */}
       <div aria-live="polite" className="sr-only" role="status">
         {selSun ? 'Selected Sun.' : ''}

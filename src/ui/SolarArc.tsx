@@ -51,8 +51,7 @@ const PRIMARIES: ReadonlyArray<Primary> = [
   ] },
 ];
 
-const R = 150;            // arc radius, px
-const SPAN = 150;         // arc angular span, degrees (bows upward over the hub)
+const R = 150;            // ring radius, px
 
 export default function SolarArc({ open, onDismiss, accent, accentRgb, onAction, layerState }: SolarArcProps) {
   // level: null = primaries; otherwise the key of the open primary.
@@ -105,9 +104,9 @@ export default function SolarArc({ open, onDismiss, accent, accentRgb, onAction,
   if (!open) return null;
 
   const n = items.length;
-  // Spread items across an upward-bowing arc centered on straight-up (-90deg).
-  const startDeg = -90 - SPAN / 2;
-  const step = n > 1 ? SPAN / (n - 1) : 0;
+  // Full ring around a centered hub — clearest to see and hit, and handles a
+  // variable count of sub-items cleanly. Top slot is straight up (-90deg).
+  const step = 360 / n;
 
   return (
     <div
@@ -115,46 +114,38 @@ export default function SolarArc({ open, onDismiss, accent, accentRgb, onAction,
       aria-label="Solar System controls"
       onClick={onDismiss}
       style={{
-        position: 'fixed', inset: 0, zIndex: 40,
-        background: 'rgba(2,3,8,0.32)',
-        backdropFilter: 'blur(1.5px)', WebkitBackdropFilter: 'blur(1.5px)',
+        position: 'fixed', inset: 0, zIndex: 60,
+        // Heavy dim: this is a modal control surface, so the scene recedes and
+        // the menu reads clearly regardless of constellation clutter behind it.
+        background: 'rgba(2,3,8,0.78)',
+        backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)',
+        display: 'grid', placeItems: 'center',
         fontFamily: "'Cormorant Garamond','Garamond','Georgia',serif",
       }}
     >
-      {/* anchor: lower-center; the arc bows up from here */}
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{
-          position: 'absolute', left: '50%',
-          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)',
-          width: 0, height: 0,
-        }}
-      >
-        {/* hub: sun glow; acts as Back (in a submenu) or Close (top level) */}
+      <div onClick={e => e.stopPropagation()} style={{ position: 'relative', width: 0, height: 0 }}>
+        {/* hub: Back (in a submenu) or Close (top level), with a persistent label */}
         <button
           type="button"
           onClick={back}
           aria-label={level ? 'Back' : 'Close controls'}
           style={{
             position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)',
-            width: 58, height: 58, borderRadius: '50%', border: 'none', cursor: 'pointer',
+            width: 72, height: 72, borderRadius: '50%', border: 'none', cursor: 'pointer',
             background: 'radial-gradient(circle at 38% 34%, #ffe9b8, #f0a338 60%, #c8761b)',
-            boxShadow: '0 0 22px rgba(240,163,56,0.5), 0 0 52px rgba(240,163,56,0.22)',
-            display: 'grid', placeItems: 'center', color: '#3a2406', fontSize: 18,
+            boxShadow: '0 0 26px rgba(240,163,56,0.55), 0 0 60px rgba(240,163,56,0.25)',
+            display: 'grid', placeItems: 'center', color: '#3a2406', fontSize: 26, fontWeight: 400,
           }}
         >
-          <span aria-hidden="true">{level ? '‹' : ''}</span>
+          <span aria-hidden="true">{level ? '‹' : '×'}</span>
         </button>
-        {/* breadcrumb label for the open submenu */}
-        {activePrimary && (
-          <div style={{
-            position: 'absolute', left: '50%', top: 'calc(50% + 40px)', transform: 'translateX(-50%)',
-            fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', whiteSpace: 'nowrap',
-            color: `rgba(${accentRgb},0.85)`,
-          }}>{activePrimary.label}</div>
-        )}
+        <div style={{
+          position: 'absolute', left: '50%', top: 'calc(50% + 50px)', transform: 'translateX(-50%)',
+          fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', whiteSpace: 'nowrap',
+          color: level ? `rgba(${accentRgb},0.9)` : 'rgba(255,255,255,0.5)',
+        }}>{level ? `‹ ${activePrimary?.label ?? ''}` : 'Close'}</div>
         {items.map((it, i) => {
-          const ang = (startDeg + step * i) * Math.PI / 180;
+          const ang = (-90 + step * i) * Math.PI / 180;
           const x = Math.cos(ang) * R;
           const y = Math.sin(ang) * R;
           const focused = i === focus;
@@ -169,26 +160,24 @@ export default function SolarArc({ open, onDismiss, accent, accentRgb, onAction,
               style={{
                 position: 'absolute', left: '50%', top: '50%',
                 transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
-                width: 54, height: 54, borderRadius: '50%', cursor: 'pointer',
+                width: 66, height: 66, borderRadius: '50%', cursor: 'pointer',
                 display: 'grid', placeItems: 'center',
-                background: it.lit ? `rgba(${accentRgb},0.26)` : 'rgba(255,255,255,0.06)',
-                border: `1px solid ${focused || it.lit ? accent : 'rgba(255,255,255,0.18)'}`,
-                boxShadow: focused ? `0 0 0 2px rgba(${accentRgb},0.5), 0 0 20px rgba(${accentRgb},0.45)` : 'none',
-                color: it.lit ? accent : '#eaf0ff',
-                backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-                fontSize: it.icon ? 19 : 12, fontFamily: 'inherit',
-                letterSpacing: it.icon ? 0 : 0.5,
-                transition: PREFERS_REDUCED_MOTION ? 'none' : 'box-shadow 0.2s, border-color 0.2s, background 0.2s',
+                background: it.lit ? `rgba(${accentRgb},0.3)` : 'rgba(255,255,255,0.12)',
+                border: `2px solid ${focused ? accent : it.lit ? `rgba(${accentRgb},0.7)` : 'rgba(255,255,255,0.3)'}`,
+                boxShadow: focused ? `0 0 0 3px rgba(${accentRgb},0.5), 0 0 22px rgba(${accentRgb},0.5)` : '0 2px 10px rgba(0,0,0,0.4)',
+                color: it.lit ? accent : '#f3f7ff',
+                fontSize: it.icon ? 22 : 12, fontFamily: 'inherit',
+                transition: PREFERS_REDUCED_MOTION ? 'none' : 'box-shadow 0.2s, border-color 0.2s, background 0.2s, transform 0.2s',
               }}
             >
-              <span aria-hidden={it.icon ? 'true' : undefined} style={it.icon ? undefined : { padding: '0 4px', textAlign: 'center', lineHeight: 1.05, fontSize: 11 }}>
+              <span aria-hidden={it.icon ? 'true' : undefined} style={it.icon ? undefined : { padding: '0 4px', textAlign: 'center', lineHeight: 1.05, fontSize: 12 }}>
                 {it.icon ?? it.label}
               </span>
               {it.icon && (
                 <span style={{
-                  position: 'absolute', top: 'calc(100% + 4px)', left: '50%', transform: 'translateX(-50%)',
-                  fontSize: 11, letterSpacing: 1.4, textTransform: 'uppercase', whiteSpace: 'nowrap',
-                  color: 'rgba(255,255,255,0.55)', opacity: focused ? 1 : 0, transition: 'opacity 0.2s',
+                  position: 'absolute', top: 'calc(100% + 5px)', left: '50%', transform: 'translateX(-50%)',
+                  fontSize: 11, letterSpacing: 1.2, textTransform: 'uppercase', whiteSpace: 'nowrap',
+                  color: focused ? accent : 'rgba(255,255,255,0.7)',
                 }}>{it.label}</span>
               )}
             </button>

@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>orrery controls · bottom bloom</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --accent: #86b8ff; --accent-rgb: 134, 184, 255;
+    --ink: #eaf0ff;
+    --glass: rgba(255,255,255,0.05); --glass-hi: rgba(255,255,255,0.12);
+    --stroke: rgba(255,255,255,0.16);
+    --chip: 46px;
+    --ease: cubic-bezier(0.34, 1.56, 0.64, 1); /* spring-like overshoot */
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background:
+      radial-gradient(ellipse at 70% 25%, rgba(20,28,60,0.45), transparent 60%),
+      radial-gradient(ellipse at 25% 85%, rgba(40,20,55,0.35), transparent 55%),
+      #04050c;
+    color: var(--ink); font-family: 'Cormorant Garamond', Georgia, serif;
+    overflow: hidden; height: 100dvh;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none;
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, #fff8, transparent),
+      radial-gradient(1px 1px at 80% 60%, #fff6, transparent),
+      radial-gradient(1px 1px at 50% 80%, #fff5, transparent),
+      radial-gradient(1px 1px at 65% 15%, #fff7, transparent),
+      radial-gradient(1px 1px at 35% 55%, #fff5, transparent);
+  }
+  .caption { position: fixed; top: 28px; left: 0; right: 0; text-align: center;
+    color: rgba(255,255,255,0.5); font-size: 15px; letter-spacing: 3px;
+    text-transform: uppercase; font-weight: 300; }
+  .hint { position: fixed; bottom: 14px; left: 0; right: 0; text-align: center;
+    color: rgba(255,255,255,0.32); font-size: 14px; font-style: italic;
+    padding-bottom: env(safe-area-inset-bottom); }
+
+  /* ─── bottom-center bloom stage ───────────────────────────── */
+  .stage {
+    position: fixed; left: 50%; bottom: calc(36px + env(safe-area-inset-bottom));
+    width: 0; height: 0;
+  }
+  /* the hub anchor sits at the stage origin; bloom fans upward */
+  .hub {
+    position: absolute; left: 0; top: 0;
+    width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%;
+    background: radial-gradient(circle at 38% 34%, #ffe9b8, #f0a338 60%, #c8761b);
+    box-shadow: 0 0 22px rgba(240,163,56,0.5), 0 0 52px rgba(240,163,56,0.22);
+    border: none; cursor: pointer; z-index: 6;
+    animation: pulse 6s ease-in-out infinite;
+    transition: transform 0.5s var(--ease), box-shadow 0.5s var(--ease);
+  }
+  @keyframes pulse { 50% { box-shadow: 0 0 30px rgba(240,163,56,0.7), 0 0 78px rgba(240,163,56,0.32); } }
+  .hub.flash { box-shadow: 0 0 48px rgba(255,220,150,0.95), 0 0 130px rgba(240,163,56,0.55); transform: scale(1.16); }
+  .hub.remote-focus { outline: 2px solid var(--accent); outline-offset: 6px; }
+
+  /* a control node (primary or sub) blooms from the hub origin */
+  .node {
+    position: absolute; left: 0; top: 0;
+    width: var(--chip); height: var(--chip); margin: calc(var(--chip)/-2);
+    transform: translate(0, 0) scale(0); opacity: 0;
+    transition: transform 0.6s var(--ease), opacity 0.4s ease;
+    transition-delay: var(--delay, 0s);
+    pointer-events: none;
+  }
+  .node.shown {
+    transform: translate(var(--x), var(--y)) scale(1); opacity: 1;
+    pointer-events: auto;
+  }
+  .node.dim { opacity: 0.18; filter: saturate(0.4); pointer-events: none; }
+  .node .ico {
+    width: 100%; height: 100%; border-radius: 50%;
+    display: grid; place-items: center; cursor: pointer;
+    background: var(--glass); border: 1px solid var(--stroke); color: var(--ink);
+    backdrop-filter: blur(12px) saturate(1.4); -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    transition: background 0.25s, border-color 0.25s, box-shadow 0.4s, transform 0.25s var(--ease);
+  }
+  .node .ico:hover { background: var(--glass-hi); border-color: rgba(var(--accent-rgb),0.55); transform: scale(1.12); }
+  .node svg { width: 21px; height: 21px; }
+  .node.has-sub .ico::after {
+    content: ''; position: absolute; right: -2px; bottom: -2px;
+    width: 9px; height: 9px; border-radius: 50%;
+    background: rgba(var(--accent-rgb),0.7); box-shadow: 0 0 6px rgba(var(--accent-rgb),0.6);
+  }
+
+  /* Apple-TV style accent focus ring */
+  .node.remote-focus .ico {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.55), 0 0 22px rgba(var(--accent-rgb),0.5);
+    transform: scale(1.16);
+  }
+
+  .node .lbl {
+    position: absolute; bottom: calc(100% + 5px); left: 50%; transform: translateX(-50%);
+    font-size: 10px; letter-spacing: 1.4px; text-transform: uppercase;
+    color: rgba(255,255,255,0.55); white-space: nowrap; opacity: 0; transition: opacity 0.2s;
+  }
+  .node .ico:hover ~ .lbl, .node.remote-focus .lbl { opacity: 1; }
+
+  /* secondary tier = labeled glass chips */
+  .node.sub { width: auto; height: auto; margin: 0; }
+  .node.sub .ico {
+    width: auto; height: auto; padding: 9px 14px; border-radius: 22px;
+    gap: 7px; grid-auto-flow: column; place-items: center;
+    font-size: 13px; letter-spacing: 0.5px; white-space: nowrap;
+  }
+  .node.sub .ico .sub-txt { font-size: 13px; line-height: 1; }
+  .node.sub svg { width: 16px; height: 16px; }
+
+  /* sky control lit */
+  .ico.lit { background: rgba(var(--accent-rgb),0.26); border-color: rgba(var(--accent-rgb),0.75);
+    box-shadow: 0 0 14px rgba(var(--accent-rgb),0.55), 0 0 32px rgba(var(--accent-rgb),0.3); }
+  .ico.lit svg { color: var(--accent); filter: drop-shadow(0 0 4px rgba(var(--accent-rgb),0.9)); }
+  .sky-lines { stroke-dasharray: 60; stroke-dashoffset: 60; transition: stroke-dashoffset 0.7s var(--ease); }
+  .ico.lit .sky-lines { stroke-dashoffset: 0; }
+
+  .shimmer { position: fixed; inset: 0; pointer-events: none; opacity: 0; z-index: 1;
+    background: linear-gradient(115deg, transparent 35%, rgba(var(--accent-rgb),0.16) 50%, transparent 65%);
+    background-size: 250% 100%; }
+  .shimmer.run { animation: sweep 1.1s var(--ease) forwards; }
+  @keyframes sweep { 0% { opacity:0; background-position:120% 0; } 25% { opacity:1; } 100% { opacity:0; background-position:-40% 0; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hub { animation: none !important; }
+    .node, .hub { transition: none !important; }
+    .sky-lines { transition: none; }
+    .shimmer.run { animation: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="caption">Bottom bloom</div>
+  <div class="shimmer" id="shimmer"></div>
+
+  <div class="stage" id="stage">
+    <button class="hub" id="hub" aria-label="Bloom or collapse the controls" aria-expanded="false"></button>
+  </div>
+
+  <div class="hint">Tap the hub to bloom · Remote: arrows move · select opens/activates · back collapses</div>
+
+<script>
+  const ICONS = {
+    tour: '<svg viewBox="0 0 24 24"><path d="M7 4v16l13-8z" fill="currentColor"/></svg>',
+    dice: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="8.5" cy="8.5" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="8.5" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="8.5" cy="15.5" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="15.5" r="1" fill="currentColor" stroke="none"/></svg>',
+    sky: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline class="sky-lines" points="4,15 9,7 14,13 20,5"/><circle cx="4" cy="15" r="1.4" fill="currentColor" stroke="none"/><circle cx="9" cy="7" r="1.4" fill="currentColor" stroke="none"/><circle cx="14" cy="13" r="1.4" fill="currentColor" stroke="none"/><circle cx="20" cy="5" r="1.4" fill="currentColor" stroke="none"/></svg>',
+    zin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg>',
+    info: '<span style="font-size:18px;font-style:italic;">i</span>',
+    layers: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="5" y1="8" x2="19" y2="8"/><line x1="5" y1="12" x2="19" y2="12"/><line x1="5" y1="16" x2="19" y2="16"/></svg>',
+  };
+
+  // primary controls (level 1) — each may carry subs (level 2)
+  const PRIMARY = [
+    { k: 'tour',   label: 'Tour' },
+    { k: 'dice',   label: 'Dice' },
+    { k: 'zin',    label: 'Scale',  subs: ['Inner','System','Outer','Kuiper','Oort'] },
+    { k: 'sky',    label: 'Sky',    subs: ['Constellations','Asterisms','Stars','Deep space'] },
+    { k: 'layers', label: 'Layers', subs: ['NEOs','Comets','Meteors','Satellites'] },
+    { k: 'info',   label: 'Info',   subs: ['About','Shortcuts'] },
+  ];
+  const R1 = 132, R2 = 108; // bloom radii for the two tiers
+
+  const stage  = document.getElementById('stage');
+  const hub    = document.getElementById('hub');
+  const shimmer = document.getElementById('shimmer');
+
+  // Build primary nodes in an upward fan: 180°..360° (top half of the circle),
+  // measured CSS-screen so up is negative Y. Arc order is left→right.
+  const primEls = [];
+  PRIMARY.forEach((p, i) => {
+    const t = PRIMARY.length === 1 ? 0.5 : i / (PRIMARY.length - 1);
+    const ang = Math.PI + t * Math.PI;          // π (left) → 2π (right), sweeping over the top
+    const x = Math.cos(ang) * R1;
+    const y = Math.sin(ang) * R1;               // sin over (π,2π) is negative → upward
+    const el = document.createElement('div');
+    el.className = 'node' + (p.subs ? ' has-sub' : '');
+    el.style.setProperty('--x', x.toFixed(1) + 'px');
+    el.style.setProperty('--y', y.toFixed(1) + 'px');
+    el.innerHTML =
+      '<button class="ico" data-k="' + p.k + '" aria-label="' + p.label + '" tabindex="-1">' + ICONS[p.k] + '</button>' +
+      '<span class="lbl">' + p.label + '</span>';
+    stage.appendChild(el);
+    primEls.push(el);
+  });
+
+  // Sub nodes are created lazily per-primary, anchored on that primary's position.
+  let subEls = [];
+  function buildSubs(pi) {
+    clearSubs();
+    const p = PRIMARY[pi];
+    if (!p.subs) return;
+    const baseEl = primEls[pi];
+    const bx = parseFloat(baseEl.style.getPropertyValue('--x'));
+    const by = parseFloat(baseEl.style.getPropertyValue('--y'));
+    const n = p.subs.length;
+    p.subs.forEach((label, j) => {
+      // secondary arc bows further upward, centered above the primary
+      const t = n === 1 ? 0.5 : j / (n - 1);
+      const ang = Math.PI + 0.18 * Math.PI + t * 0.64 * Math.PI; // narrow upward fan
+      const x = bx + Math.cos(ang) * R2;
+      const y = by + Math.sin(ang) * R2;
+      const el = document.createElement('div');
+      el.className = 'node sub';
+      el.style.setProperty('--x', x.toFixed(1) + 'px');
+      el.style.setProperty('--y', y.toFixed(1) + 'px');
+      el.dataset.parent = p.k;
+      el.dataset.label = label;
+      const icon = p.k === 'sky' && label === 'Constellations' ? ICONS.sky : '';
+      el.innerHTML = '<button class="ico" tabindex="-1">' +
+        (icon ? icon : '') + '<span class="sub-txt">' + label + '</span></button>';
+      stage.appendChild(el);
+      subEls.push(el);
+    });
+  }
+  function clearSubs() { subEls.forEach(e => e.remove()); subEls = []; }
+
+  // ─── state machine ─────────────────────────────────────────
+  let level = 0;            // 0 collapsed, 1 primaries, 2 subs
+  let openPrimary = -1;     // index of expanded primary at level 2
+  let focusIdx = -1;        // -1 = hub focused; else index within active tier
+
+  function flashHub() {
+    hub.classList.remove('flash'); void hub.offsetWidth; hub.classList.add('flash');
+    setTimeout(() => hub.classList.remove('flash'), 520);
+  }
+  function pulseShimmer() {
+    shimmer.classList.remove('run'); void shimmer.offsetWidth; shimmer.classList.add('run');
+  }
+
+  function showPrimaries(forward) {
+    primEls.forEach((el, i) => {
+      const step = forward ? i : (primEls.length - 1 - i);
+      el.style.setProperty('--delay', (step * 0.05) + 's');
+      el.classList.add('shown'); el.classList.remove('dim');
+    });
+  }
+  function hidePrimaries() {
+    primEls.forEach((el, i) => {
+      el.style.setProperty('--delay', (i * 0.04) + 's');
+      el.classList.remove('shown', 'dim');
+    });
+  }
+
+  function toLevel1() {
+    level = 1; openPrimary = -1;
+    clearSubs();
+    showPrimaries(true);
+    hub.setAttribute('aria-expanded', 'true');
+    flashHub();
+    focusIdx = 0; paintFocus();
+  }
+  function collapse() {
+    level = 0; openPrimary = -1;
+    hidePrimaries();
+    clearSubs();
+    hub.setAttribute('aria-expanded', 'false');
+    flashHub();
+    focusIdx = -1; clearFocusRing();
+  }
+  function toLevel2(pi) {
+    level = 2; openPrimary = pi;
+    // recede the other primaries, keep the chosen one bright
+    primEls.forEach((el, i) => el.classList.toggle('dim', i !== pi));
+    buildSubs(pi);
+    // stagger reveal on the next frame so transitions fire
+    requestAnimationFrame(() => {
+      subEls.forEach((el, j) => {
+        el.style.setProperty('--delay', (j * 0.05) + 's');
+        el.classList.add('shown');
+      });
+    });
+    focusIdx = 0; paintFocus();
+  }
+  function backToLevel1() {
+    clearSubs();
+    level = 1; openPrimary = -1;
+    primEls.forEach(el => el.classList.remove('dim'));
+    focusIdx = 0; paintFocus();
+  }
+
+  function activatePrimary(pi) {
+    const p = PRIMARY[pi];
+    if (p.subs) { toLevel2(pi); return; }
+    pulseShimmer(); // direct action (Tour / Dice)
+  }
+  function activateSub(el) {
+    const parent = el.dataset.parent, label = el.dataset.label;
+    if (parent === 'sky' && label === 'Constellations') {
+      const skyIco = primEls[3].querySelector('.ico');
+      skyIco.classList.add('lit');
+      pulseShimmer();
+    } else {
+      pulseShimmer();
+    }
+  }
+
+  // ─── remote focus painting ──────────────────────────────────
+  function clearFocusRing() {
+    document.querySelectorAll('.node.remote-focus').forEach(n => n.classList.remove('remote-focus'));
+    hub.classList.remove('remote-focus');
+  }
+  function activeTier() { return level === 2 ? subEls : primEls; }
+  function paintFocus() {
+    clearFocusRing();
+    if (level === 0 || focusIdx < 0) { hub.classList.add('remote-focus'); return; }
+    const el = activeTier()[focusIdx];
+    if (el) el.classList.add('remote-focus');
+  }
+
+  // ─── pointer wiring ─────────────────────────────────────────
+  hub.addEventListener('click', () => { level === 0 ? toLevel1() : collapse(); });
+  stage.addEventListener('click', (e) => {
+    const ico = e.target.closest('.ico');
+    if (!ico) return;
+    const node = ico.closest('.node');
+    if (!node) return;
+    if (node.classList.contains('sub')) { activateSub(node); return; }
+    if (node.classList.contains('dim')) return;
+    const pi = primEls.indexOf(node);
+    if (pi < 0) return;
+    // re-tapping the open primary returns to level 1
+    if (level === 2 && pi === openPrimary) { backToLevel1(); return; }
+    activatePrimary(pi);
+  });
+
+  // ─── Apple TV / Siri Remote simulation ──────────────────────
+  document.addEventListener('keydown', (e) => {
+    const k = e.key;
+    if (k === 'Escape' || k === 'Backspace') {
+      if (level === 2) { backToLevel1(); e.preventDefault(); }
+      else if (level === 1) { collapse(); e.preventDefault(); }
+      return;
+    }
+    if (level === 0) {
+      if (k === 'Enter' || k === ' ') { toLevel1(); e.preventDefault(); }
+      return;
+    }
+    const tier = activeTier();
+    if (k === 'ArrowRight') { focusIdx = (focusIdx + 1) % tier.length; paintFocus(); e.preventDefault(); }
+    else if (k === 'ArrowLeft') { focusIdx = (focusIdx - 1 + tier.length) % tier.length; paintFocus(); e.preventDefault(); }
+    else if (k === 'Enter' || k === ' ') {
+      if (level === 1) activatePrimary(focusIdx);
+      else activateSub(tier[focusIdx]);
+      e.preventDefault();
+    }
+  });
+</script>
+</body>
+</html>

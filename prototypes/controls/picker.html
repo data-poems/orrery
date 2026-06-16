@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>orrery controls · selector ring</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --accent: #86b8ff; --accent-rgb: 134, 184, 255;
+    --ink: #eaf0ff;
+    --glass: rgba(255,255,255,0.05); --glass-hi: rgba(255,255,255,0.12);
+    --stroke: rgba(255,255,255,0.16);
+    --chip: 52px;
+    /* short, crisp snap */
+    --snap: 0.24s;
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background:
+      radial-gradient(ellipse at 70% 25%, rgba(20,28,60,0.45), transparent 60%),
+      radial-gradient(ellipse at 25% 85%, rgba(40,20,55,0.35), transparent 55%),
+      #04050c;
+    color: var(--ink); font-family: 'Cormorant Garamond', Georgia, serif;
+    overflow: hidden; height: 100dvh;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none;
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, #fff8, transparent),
+      radial-gradient(1px 1px at 80% 60%, #fff6, transparent),
+      radial-gradient(1px 1px at 50% 80%, #fff5, transparent),
+      radial-gradient(1px 1px at 65% 15%, #fff7, transparent),
+      radial-gradient(1px 1px at 35% 55%, #fff5, transparent);
+  }
+  .caption { position: fixed; top: 28px; left: 0; right: 0; text-align: center;
+    color: rgba(255,255,255,0.5); font-size: 15px; letter-spacing: 3px;
+    text-transform: uppercase; font-weight: 300; }
+  .hint { position: fixed; bottom: 24px; left: 0; right: 0; text-align: center;
+    color: rgba(255,255,255,0.32); font-size: 14px; font-style: italic; }
+
+  /* ─── arc selector ────────────────────────────────────────────
+     The ring is large and sits low; only the top arc is visible.
+     Nodes cluster near the active top slot so next/prev is a short hop.
+     Nodes far from the top recede (small + faded) toward the bottom. */
+  .stage { position: fixed; left: 50%; top: 38%; width: 0; height: 0; }
+  /* faint guide arc under the active cluster */
+  .track {
+    position: absolute; left: 50%; top: 50%; border-radius: 50%;
+    border: 1px solid rgba(var(--accent-rgb), 0.10);
+    -webkit-mask-image: linear-gradient(#000 0 32%, transparent 56%);
+    mask-image: linear-gradient(#000 0 32%, transparent 56%);
+    pointer-events: none;
+  }
+  /* the active slot marker at the top of the arc */
+  .slot {
+    position: absolute; left: 50%; top: 50%; width: 80px; height: 80px;
+    margin: -40px 0 0 -40px; border-radius: 50%;
+    border: 1px solid rgba(var(--accent-rgb), 0.45);
+    box-shadow: 0 0 22px rgba(var(--accent-rgb),0.3), inset 0 0 18px rgba(var(--accent-rgb),0.12);
+    transform: translateY(calc(-1 * var(--radius)));
+    pointer-events: none;
+  }
+  .slot::before {
+    content: ''; position: absolute; left: 50%; top: -16px; transform: translateX(-50%);
+    width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent;
+    border-top: 8px solid rgba(var(--accent-rgb),0.6);
+  }
+  .ring {
+    position: absolute; left: 50%; top: 50%; width: 0; height: 0;
+    cursor: grab; touch-action: none;
+  }
+  .ring.dragging { cursor: grabbing; }
+  .ring.animate { transition: transform var(--snap) var(--ease); }
+
+  .body {
+    position: absolute; left: 0; top: 0;
+    width: var(--chip); height: var(--chip); margin: calc(var(--chip)/-2);
+    transform: rotate(var(--a)) translateY(calc(-1 * var(--radius)));
+  }
+  .body .ico {
+    width: 100%; height: 100%; border-radius: 50%;
+    display: grid; place-items: center; cursor: pointer;
+    background: var(--glass); border: 1px solid var(--stroke); color: var(--ink);
+    backdrop-filter: blur(12px) saturate(1.4); -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    /* counter-rotate to stay upright; scale/opacity driven per-frame by --d (distance from slot) */
+    transform: rotate(var(--counter)) scale(var(--scale, 0.6));
+    opacity: var(--op, 0.35);
+    transition: background 0.25s, border-color 0.25s, box-shadow 0.3s,
+                transform var(--snap) var(--ease), opacity var(--snap) var(--ease);
+  }
+  .body svg { width: 22px; height: 22px; }
+  /* the node currently parked in the active slot */
+  .body.active .ico {
+    background: var(--glass-hi); border-color: rgba(var(--accent-rgb),0.6);
+    box-shadow: 0 0 18px rgba(var(--accent-rgb),0.42);
+  }
+  .body.active .ico svg, .body.active .ico span { color: var(--accent); }
+
+  .center {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+    text-align: center; pointer-events: none;
+  }
+  .center .name { font-size: 26px; letter-spacing: 2px; font-weight: 400; }
+  .center .sub { font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+    color: rgba(255,255,255,0.4); margin-top: 4px; }
+
+  .arrows { position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%);
+    display: flex; gap: 22px; }
+  .arrows button {
+    width: 48px; height: 48px; border-radius: 50%; cursor: pointer;
+    background: var(--glass); border: 1px solid var(--stroke); color: var(--ink);
+    font-size: 18px; display: grid; place-items: center;
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    transition: background 0.15s, border-color 0.15s, transform 0.12s; }
+  .arrows button:hover { background: var(--glass-hi); border-color: rgba(var(--accent-rgb),0.5); }
+  .arrows button:active { transform: scale(0.9); }
+
+  /* sky control lit */
+  .ico.lit { background: rgba(var(--accent-rgb),0.26); border-color: rgba(var(--accent-rgb),0.75) !important;
+    box-shadow: 0 0 14px rgba(var(--accent-rgb),0.55), 0 0 32px rgba(var(--accent-rgb),0.3) !important; }
+  .ico.lit svg { color: var(--accent); filter: drop-shadow(0 0 4px rgba(var(--accent-rgb),0.9)); }
+  .sky-lines { stroke-dasharray: 60; stroke-dashoffset: 60; transition: stroke-dashoffset 0.7s var(--ease); }
+  .ico.lit .sky-lines { stroke-dashoffset: 0; }
+
+  .shimmer { position: fixed; inset: 0; pointer-events: none; opacity: 0; z-index: 1;
+    background: linear-gradient(115deg, transparent 35%, rgba(var(--accent-rgb),0.16) 50%, transparent 65%);
+    background-size: 250% 100%; }
+  .shimmer.run { animation: sweep 1.1s var(--ease) forwards; }
+  @keyframes sweep { 0% { opacity:0; background-position:120% 0; } 25% { opacity:1; } 100% { opacity:0; background-position:-40% 0; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ring.animate { transition: none; }
+    .body .ico { transition: background 0.2s, border-color 0.2s; }
+    .sky-lines { transition: none; }
+    .shimmer.run { animation: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="caption">Selector ring</div>
+  <div class="shimmer" id="shimmer"></div>
+
+  <div class="stage" id="stage">
+    <div class="track" id="track"></div>
+    <div class="slot" id="slot"></div>
+    <div class="ring" id="ring"></div>
+    <div class="center"><div class="name" id="name">Tour</div><div class="sub">active</div></div>
+  </div>
+
+  <div class="arrows">
+    <button id="prev" aria-label="Previous control">◀</button>
+    <button id="next" aria-label="Next control">▶</button>
+  </div>
+
+  <div class="hint">Remote: ◀ ▶ to switch · select activates · drag to spin</div>
+
+<script>
+  const ICONS = {
+    tour: '<svg viewBox="0 0 24 24"><path d="M7 4v16l13-8z" fill="currentColor"/></svg>',
+    dice: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="8.5" cy="8.5" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="8.5" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="8.5" cy="15.5" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="15.5" r="1" fill="currentColor" stroke="none"/></svg>',
+    sky: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline class="sky-lines" points="4,15 9,7 14,13 20,5"/><circle cx="4" cy="15" r="1.4" fill="currentColor" stroke="none"/><circle cx="9" cy="7" r="1.4" fill="currentColor" stroke="none"/><circle cx="14" cy="13" r="1.4" fill="currentColor" stroke="none"/><circle cx="20" cy="5" r="1.4" fill="currentColor" stroke="none"/></svg>',
+    zin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg>',
+    zout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="12" x2="18" y2="12"/></svg>',
+    info: '<span style="font-size:18px;font-style:italic;">i</span>',
+    help: '<span style="font-size:18px;">?</span>',
+  };
+  const NODES = [
+    ['tour','Tour'], ['dice','Dice'], ['sky','Sky'], ['zin','Zoom in'],
+    ['zout','Zoom out'], ['info','About'], ['help','Keys'],
+  ];
+  const N = NODES.length;
+  // Tighter angular spacing clusters neighbors near the top slot — a short hop,
+  // not a long arc. With a large radius the arc reads as a gentle curve.
+  const STEP = 26;                 // degrees between adjacent nodes
+  const RADIUS = 230;              // large ring; only the top arc shows
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  document.documentElement.style.setProperty('--radius', RADIUS + 'px');
+
+  const ring = document.getElementById('ring');
+  const nameEl = document.getElementById('name');
+  const shimmer = document.getElementById('shimmer');
+  document.getElementById('track').style.cssText =
+    'width:' + (RADIUS*2) + 'px;height:' + (RADIUS*2) + 'px;margin:' + (-RADIUS) + 'px 0 0 ' + (-RADIUS) + 'px;';
+
+  // Each node sits at base angle = STEP*i. Screen angle = base + rotation; the
+  // node nearest 0deg sits in the top slot. activeIndex = that node.
+  const bodies = NODES.map(([k, label], i) => {
+    const a = STEP * i;
+    const body = document.createElement('div');
+    body.className = 'body';
+    body.style.setProperty('--a', a + 'deg');
+    const ico = document.createElement('button');
+    ico.className = 'ico'; ico.dataset.k = k; ico.dataset.i = i;
+    ico.setAttribute('aria-label', label);
+    ico.innerHTML = ICONS[k];
+    body.appendChild(ico);
+    ring.appendChild(body);
+    return { body, ico, k, label, base: a };
+  });
+
+  let rotation = 0;          // current ring rotation in degrees
+
+  // screen angle of a node, normalized to [-180,180]
+  function screenAngle(b) {
+    let d = ((b.base + rotation) % 360 + 360) % 360;
+    if (d > 180) d -= 360;
+    return d;
+  }
+  // Drive per-node scale/opacity from distance to the slot so the active node
+  // is large + lit and the rest recede smoothly toward the bottom.
+  function shade() {
+    bodies.forEach(b => {
+      const d = Math.abs(screenAngle(b));
+      // active (d~0) -> scale 1.18, op 1; falls off by ~3 steps then floors.
+      const t = Math.min(d / (STEP * 3), 1);          // 0..1
+      const scale = 1.18 - 0.62 * t;                   // 1.18 -> 0.56
+      const op = 1 - 0.78 * t;                         // 1 -> 0.22
+      b.ico.style.setProperty('--scale', scale.toFixed(3));
+      b.ico.style.setProperty('--op', op.toFixed(3));
+      b.ico.style.setProperty('--counter', (-(b.base + rotation)) + 'deg');
+    });
+  }
+  function apply(animate) {
+    ring.classList.toggle('animate', !!animate);
+    ring.style.transform = 'rotate(' + rotation + 'deg)';
+    shade();
+  }
+  function activeIndex() {
+    let best = 0, bestDiff = Infinity;
+    bodies.forEach((b, i) => {
+      const d = Math.abs(screenAngle(b));
+      if (d < bestDiff) { bestDiff = d; best = i; }
+    });
+    return best;
+  }
+  function refresh() {
+    const idx = activeIndex();
+    bodies.forEach((b, i) => b.body.classList.toggle('active', i === idx));
+    nameEl.textContent = bodies[idx].label;
+  }
+  function snap(animate) {
+    const idx = activeIndex();
+    rotation = -bodies[idx].base;        // land that node exactly at the slot
+    apply(animate);
+    refresh();
+  }
+  // One key press = one control step. Clamp to ends so it never wraps past
+  // the edges of the short arc (no long spin back around).
+  function stepTo(idx) {
+    idx = Math.max(0, Math.min(N - 1, idx));
+    rotation = -bodies[idx].base;
+    apply(true);
+    refresh();
+  }
+  function stepBy(dir) {                  // dir +1 = next control, -1 = prev
+    stepTo(activeIndex() + dir);
+  }
+
+  apply(false); refresh();
+
+  // ── pointer drag (no momentum — keeps switching light + controlled) ──
+  let dragging = false, lastAngle = 0;
+  const cx = () => window.innerWidth / 2;
+  const cy = () => window.innerHeight * 0.38;   // matches .stage top
+  const pointerAngle = (e) => Math.atan2(e.clientY - cy(), e.clientX - cx()) * 180 / Math.PI;
+
+  ring.addEventListener('pointerdown', (e) => {
+    dragging = true; ring.classList.add('dragging'); ring.classList.remove('animate');
+    ring.setPointerCapture(e.pointerId);
+    lastAngle = pointerAngle(e);
+  });
+  ring.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const a = pointerAngle(e);
+    let d = a - lastAngle;
+    if (d > 180) d -= 360; if (d < -180) d += 360;
+    rotation += d;
+    // keep drag inside the arc bounds
+    const lo = -bodies[N - 1].base, hi = -bodies[0].base;
+    rotation = Math.max(lo - STEP * 0.6, Math.min(hi + STEP * 0.6, rotation));
+    lastAngle = a;
+    apply(false); refresh();
+  });
+  function endDrag() {
+    if (!dragging) return;
+    dragging = false; ring.classList.remove('dragging');
+    snap(true);                            // quick crisp settle to nearest node
+  }
+  ring.addEventListener('pointerup', endDrag);
+  ring.addEventListener('pointercancel', endDrag);
+
+  // ── activation ────────────────────────────────────────────
+  function activate() {
+    const b = bodies[activeIndex()];
+    if (b.k === 'sky') {
+      b.ico.classList.add('lit');
+      shimmer.classList.remove('run'); void shimmer.offsetWidth; shimmer.classList.add('run');
+    }
+  }
+  ring.addEventListener('click', (e) => {
+    const ico = e.target.closest('.ico');
+    if (!ico) return;
+    const i = +ico.dataset.i;
+    if (i !== activeIndex()) { stepTo(i); return; }   // tap a neighbor to bring it up
+    activate();
+  });
+
+  document.getElementById('prev').addEventListener('click', () => stepBy(-1));
+  document.getElementById('next').addEventListener('click', () => stepBy(+1));
+  // Apple TV / Siri Remote: arrow = one crisp control step; select = activate.
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') { stepBy(-1); e.preventDefault(); }
+    else if (e.key === 'ArrowRight') { stepBy(+1); e.preventDefault(); }
+    else if (e.key === 'Enter' || e.key === ' ') { activate(); e.preventDefault(); }
+  });
+</script>
+</body>
+</html>

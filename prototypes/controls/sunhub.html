@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>orrery controls · sun hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --accent: #86b8ff; --accent-rgb: 134, 184, 255;
+    --ink: #eaf0ff;
+    --glass: rgba(255,255,255,0.05); --glass-hi: rgba(255,255,255,0.12);
+    --stroke: rgba(255,255,255,0.16);
+    --chip: 46px;
+    --ease: cubic-bezier(0.34, 1.56, 0.64, 1); /* spring-like overshoot */
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background:
+      radial-gradient(ellipse at 70% 25%, rgba(20,28,60,0.45), transparent 60%),
+      radial-gradient(ellipse at 25% 85%, rgba(40,20,55,0.35), transparent 55%),
+      #04050c;
+    color: var(--ink); font-family: 'Cormorant Garamond', Georgia, serif;
+    overflow: hidden; height: 100dvh;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none;
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, #fff8, transparent),
+      radial-gradient(1px 1px at 80% 60%, #fff6, transparent),
+      radial-gradient(1px 1px at 50% 80%, #fff5, transparent),
+      radial-gradient(1px 1px at 65% 15%, #fff7, transparent),
+      radial-gradient(1px 1px at 35% 55%, #fff5, transparent);
+  }
+  .caption { position: fixed; top: 28px; left: 0; right: 0; text-align: center;
+    color: rgba(255,255,255,0.5); font-size: 15px; letter-spacing: 3px;
+    text-transform: uppercase; font-weight: 300; }
+  .hint { position: fixed; bottom: 24px; left: 0; right: 0; text-align: center;
+    color: rgba(255,255,255,0.32); font-size: 14px; font-style: italic; }
+
+  /* ─── the sun hub ─────────────────────────────────────────── */
+  .system { position: fixed; top: 50%; left: 50%; width: 0; height: 0; }
+
+  .sun {
+    position: absolute; left: 50%; top: 50%;
+    width: 84px; height: 84px; margin: -42px 0 0 -42px; border-radius: 50%;
+    background: radial-gradient(circle at 38% 34%, #ffe9b8, #f0a338 60%, #c8761b);
+    box-shadow: 0 0 30px rgba(240,163,56,0.55), 0 0 72px rgba(240,163,56,0.26);
+    border: none; cursor: pointer; z-index: 6;
+    animation: pulse 6s ease-in-out infinite;
+    transition: transform 0.55s var(--ease), box-shadow 0.55s var(--ease);
+  }
+  @keyframes pulse { 50% { box-shadow: 0 0 42px rgba(240,163,56,0.75), 0 0 108px rgba(240,163,56,0.36); } }
+  .sun.flash { box-shadow: 0 0 64px rgba(255,220,150,0.95), 0 0 170px rgba(240,163,56,0.6); transform: scale(1.2); }
+  .sun.remote-focus { outline: 2px solid var(--accent); outline-offset: 8px; }
+  /* dim the sun when a primary has opened its subs */
+  .system.level2 .sun { transform: scale(0.86); box-shadow: 0 0 18px rgba(240,163,56,0.4), 0 0 44px rgba(240,163,56,0.18); }
+
+  /* primaries + subs share the .body bloom mechanic */
+  .body {
+    position: absolute; left: 50%; top: 50%;
+    width: var(--chip); height: var(--chip); margin: calc(var(--chip)/-2);
+    /* COLLAPSED: tucked at the sun core, invisible */
+    transform: rotate(var(--a)) translate(0) rotate(calc(-1 * var(--a))) scale(0);
+    opacity: 0; z-index: 4;
+    transition: transform 0.7s var(--ease), opacity 0.5s ease;
+    transition-delay: var(--delay, 0s);
+  }
+  /* BLOOMED: fly out from the sun to ring position */
+  .system.bloomed .primary {
+    transform: rotate(var(--a)) translate(var(--r)) rotate(calc(-1 * var(--a))) scale(1);
+    opacity: 1;
+  }
+  /* recede the other primaries while a sub-ring is open */
+  .system.level2 .primary { opacity: 0.22; transform: rotate(var(--a)) translate(calc(var(--r) * 0.82)) rotate(calc(-1 * var(--a))) scale(0.8); }
+  .system.level2 .primary.active { opacity: 1; transform: rotate(var(--a)) translate(var(--r)) rotate(calc(-1 * var(--a))) scale(1.06); }
+
+  .body .ico {
+    width: 100%; height: 100%; border-radius: 50%;
+    display: grid; place-items: center; cursor: pointer;
+    background: var(--glass); border: 1px solid var(--stroke); color: var(--ink);
+    backdrop-filter: blur(12px) saturate(1.4); -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    transition: background 0.25s, border-color 0.25s, box-shadow 0.4s, transform 0.25s var(--ease);
+  }
+  .body .ico:hover { background: var(--glass-hi); border-color: rgba(var(--accent-rgb),0.55); transform: scale(1.12); }
+  .body svg { width: 22px; height: 22px; }
+
+  /* Apple-TV style accent focus ring */
+  .body.remote-focus .ico {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.55), 0 0 22px rgba(var(--accent-rgb),0.5);
+    transform: scale(1.16);
+  }
+
+  .body .lbl {
+    position: absolute; top: calc(100% + 4px); left: 50%; transform: translateX(-50%);
+    font-size: 10px; letter-spacing: 1.4px; text-transform: uppercase;
+    color: rgba(255,255,255,0.5); white-space: nowrap; opacity: 0; transition: opacity 0.2s;
+  }
+  .body .ico:hover + .lbl, .body.remote-focus .lbl, .system.level2 .primary.active .lbl { opacity: 1; }
+
+  /* ─── sub-options (outer bloom) ──────────────────────────────── */
+  .sub {
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%,-50%) scale(0); opacity: 0; z-index: 5;
+    transition: transform 0.6s var(--ease), opacity 0.4s ease;
+    transition-delay: var(--delay, 0s);
+  }
+  .system.level2 .sub.shown { opacity: 1; }
+  .sub .chip {
+    display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+    padding: 7px 13px; border-radius: 16px; white-space: nowrap;
+    background: var(--glass); border: 1px solid var(--stroke); color: var(--ink);
+    backdrop-filter: blur(12px) saturate(1.4); -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    font-family: inherit; font-size: 13px; letter-spacing: 0.6px;
+    transition: background 0.25s, border-color 0.25s, box-shadow 0.4s, transform 0.2s var(--ease);
+  }
+  .sub .chip:hover { background: var(--glass-hi); border-color: rgba(var(--accent-rgb),0.55); transform: scale(1.06); }
+  .sub.remote-focus .chip {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.55), 0 0 22px rgba(var(--accent-rgb),0.5);
+    transform: scale(1.08);
+  }
+  .sub .chip.on { background: rgba(var(--accent-rgb),0.22); border-color: rgba(var(--accent-rgb),0.7); }
+
+  /* sky control lit */
+  .ico.lit { background: rgba(var(--accent-rgb),0.26); border-color: rgba(var(--accent-rgb),0.75);
+    box-shadow: 0 0 14px rgba(var(--accent-rgb),0.55), 0 0 32px rgba(var(--accent-rgb),0.3); }
+  .ico.lit svg { color: var(--accent); filter: drop-shadow(0 0 4px rgba(var(--accent-rgb),0.9)); }
+  .sky-lines { stroke-dasharray: 60; stroke-dashoffset: 60; transition: stroke-dashoffset 0.7s var(--ease); }
+  .ico.lit .sky-lines { stroke-dashoffset: 0; }
+
+  .shimmer { position: fixed; inset: 0; pointer-events: none; opacity: 0; z-index: 1;
+    background: linear-gradient(115deg, transparent 35%, rgba(var(--accent-rgb),0.16) 50%, transparent 65%);
+    background-size: 250% 100%; }
+  .shimmer.run { animation: sweep 1.1s var(--ease) forwards; }
+  @keyframes sweep { 0% { opacity:0; background-position:120% 0; } 25% { opacity:1; } 100% { opacity:0; background-position:-40% 0; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sun { animation: none !important; }
+    .body, .sub, .sun { transition: none !important; }
+    .sky-lines { transition: none; }
+    .shimmer.run { animation: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="caption">Sun hub</div>
+  <div class="shimmer" id="shimmer"></div>
+
+  <div class="system" id="system">
+    <button class="sun" id="sun" aria-label="Select the sun to open the controls" aria-expanded="false"></button>
+    <div class="ring" id="ring"></div>
+    <div class="subs" id="subs"></div>
+  </div>
+
+  <div class="hint">Select the sun to open · arrows move · back collapses</div>
+
+<script>
+  const ICONS = {
+    tour: '<svg viewBox="0 0 24 24"><path d="M7 4v16l13-8z" fill="currentColor"/></svg>',
+    dice: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="8.5" cy="8.5" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="8.5" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="8.5" cy="15.5" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="15.5" r="1" fill="currentColor" stroke="none"/></svg>',
+    sky: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline class="sky-lines" points="4,15 9,7 14,13 20,5"/><circle cx="4" cy="15" r="1.4" fill="currentColor" stroke="none"/><circle cx="9" cy="7" r="1.4" fill="currentColor" stroke="none"/><circle cx="14" cy="13" r="1.4" fill="currentColor" stroke="none"/><circle cx="20" cy="5" r="1.4" fill="currentColor" stroke="none"/></svg>',
+    zin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg>',
+    zout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="12" x2="18" y2="12"/></svg>',
+    info: '<span style="font-size:18px;font-style:italic;">i</span>',
+    help: '<span style="font-size:18px;">?</span>',
+    layers: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="5" y1="8" x2="19" y2="8"/><line x1="5" y1="12" x2="19" y2="12"/><line x1="5" y1="16" x2="19" y2="16"/></svg>',
+    scale: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/></svg>',
+  };
+
+  // primaries: direct ones have no subs; others carry a sub list
+  const PRIMARIES = [
+    { k:'tour',   label:'Tour',   direct:true },
+    { k:'dice',   label:'Dice',   direct:true },
+    { k:'scale',  label:'Scale',  subs:['Inner','System','Outer','Kuiper','Oort'] },
+    { k:'sky',    label:'Sky',    subs:['Constellations','Asterisms','Stars','Deep space'] },
+    { k:'layers', label:'Layers', subs:['NEOs','Comets','Meteors','Satellites'] },
+    { k:'info',   label:'Info',   subs:['About','Shortcuts'] },
+  ];
+  const R_PRIMARY = 132, R_SUB = 116;
+
+  const system = document.getElementById('system');
+  const sun = document.getElementById('sun');
+  const ring = document.getElementById('ring');
+  const subsLayer = document.getElementById('subs');
+  const shimmer = document.getElementById('shimmer');
+
+  // build primary ring
+  const primaryEls = PRIMARIES.map((p, i) => {
+    const a = (360 / PRIMARIES.length) * i - 90;
+    const body = document.createElement('div');
+    body.className = 'body primary';
+    body.style.setProperty('--a', a + 'deg');
+    body.style.setProperty('--r', R_PRIMARY + 'px');
+    body.dataset.idx = i;
+    const ico = document.createElement('button');
+    ico.className = 'ico'; ico.dataset.k = p.k; ico.setAttribute('aria-label', p.label); ico.tabIndex = -1;
+    ico.innerHTML = ICONS[p.k];
+    const lbl = document.createElement('span'); lbl.className = 'lbl'; lbl.textContent = p.label;
+    body.appendChild(ico); body.appendChild(lbl);
+    ring.appendChild(body);
+    p._angle = a; p._el = body; p._ico = ico;
+    return body;
+  });
+
+  let bloomed = false;
+  let level = 1;            // 1 = primaries, 2 = subs open
+  let openIdx = -1;         // which primary opened its subs
+  let focusIdx = -1;        // -1 = sun; else index into current ring
+  let subEls = [];          // current sub .sub elements
+
+  function setPrimaryDelays(forward) {
+    const n = primaryEls.length;
+    primaryEls.forEach((b, i) => {
+      const step = forward ? i : (n - 1 - i);
+      b.style.setProperty('--delay', (step * 0.05) + 's');
+    });
+  }
+
+  function flashSun() {
+    sun.classList.remove('flash'); void sun.offsetWidth; sun.classList.add('flash');
+    setTimeout(() => sun.classList.remove('flash'), 540);
+  }
+  function pulseShimmer() {
+    shimmer.classList.remove('run'); void shimmer.offsetWidth; shimmer.classList.add('run');
+  }
+
+  function clearFocus() {
+    document.querySelectorAll('.remote-focus').forEach(b => b.classList.remove('remote-focus'));
+    sun.classList.remove('remote-focus');
+  }
+  function paintFocus() {
+    clearFocus();
+    if (focusIdx < 0) { sun.classList.add('remote-focus'); return; }
+    const list = level === 1 ? primaryEls : subEls;
+    const el = list[focusIdx];
+    if (el) el.classList.add('remote-focus');
+  }
+
+  function bloom() {
+    bloomed = true; level = 1; openIdx = -1;
+    setPrimaryDelays(true);
+    system.classList.add('bloomed'); system.classList.remove('level2');
+    sun.setAttribute('aria-expanded', 'true');
+    flashSun();
+    focusIdx = 0; paintFocus();
+  }
+  function collapse() {
+    closeSubs(true);
+    bloomed = false; level = 1;
+    setPrimaryDelays(false);
+    system.classList.remove('bloomed', 'level2');
+    sun.setAttribute('aria-expanded', 'false');
+    flashSun();
+    clearFocus(); focusIdx = -1;
+  }
+
+  function closeSubs(silent) {
+    subEls.forEach(s => s.remove());
+    subEls = [];
+    primaryEls.forEach(b => b.classList.remove('active'));
+    system.classList.remove('level2');
+    level = 1; openIdx = -1;
+    if (!silent) { focusIdx = 0; paintFocus(); }
+  }
+
+  function openSubs(idx) {
+    closeSubs(true);
+    const p = PRIMARIES[idx];
+    if (!p.subs) return;
+    openIdx = idx; level = 2;
+    p._el.classList.add('active');
+    system.classList.add('level2');
+    // arc the subs around the primary's angle, stepping outward from the sun
+    const base = p._angle;          // degrees
+    const span = Math.min(28 * (p.subs.length - 1), 150);
+    const start = base - span / 2;
+    p.subs.forEach((name, i) => {
+      const a = (p.subs.length === 1 ? base : start + (span / (p.subs.length - 1)) * i) * Math.PI / 180;
+      const r = R_PRIMARY + R_SUB * 0.62;
+      const x = Math.cos(a) * r, y = Math.sin(a) * r;
+      const sub = document.createElement('div');
+      sub.className = 'sub';
+      sub.style.left = `calc(50% + ${x}px)`;
+      sub.style.top = `calc(50% + ${y}px)`;
+      sub.style.setProperty('--delay', (i * 0.05) + 's');
+      const chip = document.createElement('button');
+      chip.className = 'chip'; chip.type = 'button'; chip.tabIndex = -1;
+      chip.textContent = name; chip.dataset.parent = p.k; chip.dataset.name = name;
+      sub.appendChild(chip);
+      subsLayer.appendChild(sub);
+      subEls.push(sub);
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        sub.classList.add('shown');
+        sub.style.transform = `translate(-50%,-50%) scale(1)`;
+      }));
+    });
+    focusIdx = 0; paintFocus();
+  }
+
+  function activatePrimary(idx) {
+    const p = PRIMARIES[idx];
+    if (p.direct) { pulseShimmer(); return; }
+    openSubs(idx);
+  }
+
+  function activateSub(sub) {
+    const chip = sub.querySelector('.chip');
+    if (chip.dataset.parent === 'sky' && chip.dataset.name === 'Constellations') {
+      const skyIco = PRIMARIES.find(p => p.k === 'sky')._ico;
+      skyIco.classList.add('lit');
+      pulseShimmer();
+    }
+    chip.classList.toggle('on');
+  }
+
+  // ─── pointer ──────────────────────────────────────────────────
+  sun.addEventListener('click', () => { bloomed ? collapse() : bloom(); });
+
+  ring.addEventListener('click', (e) => {
+    const body = e.target.closest('.primary');
+    if (!body) return;
+    activatePrimary(+body.dataset.idx);
+  });
+  subsLayer.addEventListener('click', (e) => {
+    const sub = e.target.closest('.sub');
+    if (sub) activateSub(sub);
+  });
+
+  // ─── Apple TV / Siri Remote simulation ───────────────────────
+  document.addEventListener('keydown', (e) => {
+    const k = e.key;
+    if (k === 'Escape' || k === 'Backspace') {
+      if (level === 2) { closeSubs(); e.preventDefault(); }
+      else if (bloomed) { collapse(); e.preventDefault(); }
+      return;
+    }
+    if (!bloomed) {
+      if (k === 'Enter' || k === ' ') { bloom(); e.preventDefault(); }
+      return;
+    }
+    const list = () => (level === 1 ? primaryEls : subEls);
+    if (k === 'ArrowRight' || k === 'ArrowDown') {
+      focusIdx = focusIdx < 0 ? 0 : (focusIdx + 1) % list().length; paintFocus(); e.preventDefault();
+    } else if (k === 'ArrowLeft' || k === 'ArrowUp') {
+      focusIdx = focusIdx < 0 ? 0 : (focusIdx - 1 + list().length) % list().length; paintFocus(); e.preventDefault();
+    } else if (k === 'Enter' || k === ' ') {
+      if (focusIdx < 0) { collapse(); }
+      else if (level === 1) { activatePrimary(focusIdx); }
+      else { activateSub(subEls[focusIdx]); }
+      e.preventDefault();
+    }
+  });
+</script>
+</body>
+</html>

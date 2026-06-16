@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>orrery control studies</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  :root { --accent:#86b8ff; --ink:#eaf0ff; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100dvh;
+    background: radial-gradient(ellipse at 60% 20%, rgba(20,28,60,0.5), transparent 60%), #04050c;
+    color: var(--ink); font-family: 'Cormorant Garamond', Georgia, serif;
+    padding: 48px 24px 64px;
+  }
+  header { max-width: 1100px; margin: 0 auto 36px; }
+  h1 { font-weight: 300; letter-spacing: 4px; text-transform: uppercase; font-size: 30px; margin: 0 0 8px; }
+  h1 .dot { color: var(--accent); }
+  .sub { color: rgba(255,255,255,0.5); font-style: italic; font-size: 17px; }
+  .grid { max-width: 1100px; margin: 0 auto; display: grid; gap: 22px;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .card { display: block; text-decoration: none; color: inherit;
+    border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; overflow: hidden;
+    background: rgba(255,255,255,0.03); transition: border-color 0.3s, transform 0.3s; }
+  .card:hover { border-color: rgba(134,184,255,0.5); transform: translateY(-3px); }
+  .frame { position: relative; height: 280px; background: #04050c; }
+  .frame iframe { width: 100%; height: 100%; border: 0; pointer-events: none; }
+  .frame::after { content: 'open'; position: absolute; bottom: 10px; right: 12px;
+    font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); opacity: 0.7; }
+  .row { display: flex; justify-content: space-between; align-items: baseline; padding: 13px 16px; }
+  .name { font-size: 18px; letter-spacing: 1px; }
+  .num { color: rgba(255,255,255,0.35); font-size: 14px; }
+  .desc { padding: 0 16px 16px; color: rgba(255,255,255,0.55); font-size: 14px; line-height: 1.55; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>control studies<span class="dot">.</span></h1>
+    <div class="sub">Three ways to reorganize the Solar Orrery HUD. Each demonstrates the new sky-ignite cue — no popup, the control lights and the sky shimmers once.</div>
+  </header>
+  <div class="grid">
+    <a class="card" href="orbital.html">
+      <div class="frame"><iframe src="orbital.html" title="orbital" scrolling="no" tabindex="-1"></iframe></div>
+      <div class="row"><span class="name">orbiting bodies</span><span class="num">01</span></div>
+      <p class="desc">Controls orbit the sun on live auto-rotating rings, icons staying upright. Hover to pause. The metaphor is the app.</p>
+    </a>
+    <a class="card" href="hex.html">
+      <div class="frame"><iframe src="hex.html" title="hex" scrolling="no" tabindex="-1"></iframe></div>
+      <div class="row"><span class="name">hex cluster</span><span class="num">02</span></div>
+      <p class="desc">A flush flat-top honeycomb; tapping a tile blooms a ring of sub-hexes (two-level). Remote-navigable.</p>
+    </a>
+    <a class="card" href="dial.html">
+      <div class="frame"><iframe src="dial.html" title="dial" scrolling="no" tabindex="-1"></iframe></div>
+      <div class="row"><span class="name">radial dial</span><span class="num">03</span></div>
+      <p class="desc">A still astrolabe pie wheel: angular wedges around a sun hub with rim ticks. Crisp wedge focus.</p>
+    </a>
+    <a class="card" href="picker.html">
+      <div class="frame"><iframe src="picker.html" title="picker" scrolling="no" tabindex="-1"></iframe></div>
+      <div class="row"><span class="name">selector ring</span><span class="num">04</span></div>
+      <p class="desc">A rotary ring you spin with momentum; whichever node snaps into the top slot is the active control.</p>
+    </a>
+    <a class="card" href="dock.html">
+      <div class="frame"><iframe src="dock.html" title="dock" scrolling="no" tabindex="-1"></iframe></div>
+      <div class="row"><span class="name">bottom dock</span><span class="num">05</span></div>
+      <p class="desc">The conventional control: a slim always-visible dock along the bottom edge. Frees both corners.</p>
+    </a>
+    <a class="card" href="sunhub.html">
+      <div class="frame"><iframe src="sunhub.html" title="sunhub" scrolling="no" tabindex="-1"></iframe></div>
+      <div class="row"><span class="name">sun hub</span><span class="num">06</span></div>
+      <p class="desc">The sun itself is the settings hub: select it and controls bloom radially out, with a second level for sub-options.</p>
+    </a>
+    <a class="card" href="corner.html">
+      <div class="frame"><iframe src="corner.html" title="corner" scrolling="no" tabindex="-1"></iframe></div>
+      <div class="row"><span class="name">corner bloom</span><span class="num">07</span></div>
+      <p class="desc">A hub pinned to the bottom-right fans controls up-and-left in a quarter-arc, with a second level for sub-options.</p>
+    </a>
+    <a class="card" href="bottomcenter.html">
+      <div class="frame"><iframe src="bottomcenter.html" title="bottomcenter" scrolling="no" tabindex="-1"></iframe></div>
+      <div class="row"><span class="name">bottom bloom</span><span class="num">08</span></div>
+      <p class="desc">A bottom-center hub blooms controls upward in a semicircle, with a second level for sub-options.</p>
+    </a>
+  </div>
+</body>
+</html>

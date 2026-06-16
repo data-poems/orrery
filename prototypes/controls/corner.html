@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>orrery controls · corner bloom</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --accent: #86b8ff; --accent-rgb: 134, 184, 255;
+    --ink: #eaf0ff;
+    --glass: rgba(255,255,255,0.05); --glass-hi: rgba(255,255,255,0.12);
+    --stroke: rgba(255,255,255,0.16);
+    --chip: 48px;
+    --ease: cubic-bezier(0.34, 1.56, 0.64, 1); /* spring-like overshoot */
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background:
+      radial-gradient(ellipse at 70% 25%, rgba(20,28,60,0.45), transparent 60%),
+      radial-gradient(ellipse at 25% 85%, rgba(40,20,55,0.35), transparent 55%),
+      #04050c;
+    color: var(--ink); font-family: 'Cormorant Garamond', Georgia, serif;
+    overflow: hidden; height: 100dvh;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none;
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, #fff8, transparent),
+      radial-gradient(1px 1px at 80% 60%, #fff6, transparent),
+      radial-gradient(1px 1px at 50% 80%, #fff5, transparent),
+      radial-gradient(1px 1px at 65% 15%, #fff7, transparent),
+      radial-gradient(1px 1px at 35% 55%, #fff5, transparent);
+  }
+  .caption { position: fixed; top: 28px; left: 0; right: 0; text-align: center;
+    color: rgba(255,255,255,0.5); font-size: 15px; letter-spacing: 3px;
+    text-transform: uppercase; font-weight: 300; }
+  .hint { position: fixed; bottom: 24px; left: 0; right: 0; text-align: center;
+    color: rgba(255,255,255,0.32); font-size: 14px; font-style: italic; }
+
+  /* ─── corner-anchored bloom ───────────────────────────────── */
+  .dock {
+    position: fixed;
+    right: calc(28px + env(safe-area-inset-right, 0px));
+    bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+    width: 0; height: 0; z-index: 5;
+  }
+  /* origin point (hub center) is at the dock's 0,0 corner */
+  .hub {
+    position: absolute; right: -29px; bottom: -29px;
+    width: 58px; height: 58px; border-radius: 50%;
+    background: radial-gradient(circle at 38% 34%, #ffe9b8, #f0a338 60%, #c8761b);
+    box-shadow: 0 0 22px rgba(240,163,56,0.5), 0 0 52px rgba(240,163,56,0.22);
+    border: none; cursor: pointer; z-index: 6;
+    animation: pulse 6s ease-in-out infinite;
+    transition: transform 0.5s var(--ease), box-shadow 0.5s var(--ease);
+  }
+  @keyframes pulse { 50% { box-shadow: 0 0 30px rgba(240,163,56,0.7), 0 0 78px rgba(240,163,56,0.32); } }
+  .hub.flash { box-shadow: 0 0 48px rgba(255,220,150,0.95), 0 0 130px rgba(240,163,56,0.55); transform: scale(1.18); }
+  .hub.remote-focus { outline: 2px solid var(--accent); outline-offset: 6px; }
+
+  /* a bloomed item: positioned by --x / --y offset from hub center */
+  .body {
+    position: absolute; right: 0; bottom: 0;
+    width: var(--chip); height: var(--chip); margin: calc(var(--chip)/-2);
+    transform: translate(0, 0) scale(0); opacity: 0; pointer-events: none;
+    transition: transform 0.6s var(--ease), opacity 0.4s ease;
+    transition-delay: var(--delay, 0s);
+  }
+  .dock.open .body.lvl1,
+  .dock.sub .body.lvl2 {
+    transform: translate(var(--x), var(--y)) scale(1);
+    opacity: 1; pointer-events: auto;
+  }
+  /* when a sub-fan is open, the level-1 primaries recede/dim */
+  .dock.sub .body.lvl1 { opacity: 0.18; }
+  .dock.sub .body.lvl1.active { opacity: 1; }
+  .dock.sub .body.lvl1.active { transform: translate(var(--x), var(--y)) scale(0.92); }
+
+  .body .ico {
+    width: 100%; height: 100%; border-radius: 50%;
+    display: grid; place-items: center; cursor: pointer;
+    background: var(--glass); border: 1px solid var(--stroke); color: var(--ink);
+    backdrop-filter: blur(12px) saturate(1.4); -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    transition: background 0.25s, border-color 0.25s, box-shadow 0.4s, transform 0.25s var(--ease);
+  }
+  .body .ico:hover { background: var(--glass-hi); border-color: rgba(var(--accent-rgb),0.55); transform: scale(1.12); }
+  .body svg { width: 20px; height: 20px; }
+  .body.active .ico { border-color: rgba(var(--accent-rgb),0.6); background: var(--glass-hi); }
+
+  /* sub-option chips: labeled glass tiles */
+  .body.lvl2 { width: auto; height: 34px; margin: -17px 0 0 0; }
+  .body.lvl2 .ico {
+    width: auto; height: 34px; border-radius: 17px; padding: 0 14px;
+    font-size: 12px; letter-spacing: 1.2px; text-transform: uppercase;
+    color: rgba(255,255,255,0.78); white-space: nowrap; place-items: center;
+  }
+  .body.lvl2 .ico:hover { color: var(--ink); }
+
+  /* Apple-TV style accent focus ring */
+  .body.remote-focus .ico {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.55), 0 0 22px rgba(var(--accent-rgb),0.5);
+    transform: scale(1.16);
+  }
+  .body.lvl2.remote-focus .ico { transform: scale(1.06); }
+
+  .body .lbl {
+    position: absolute; top: calc(100% + 4px); left: 50%; transform: translateX(-50%);
+    font-size: 10px; letter-spacing: 1.4px; text-transform: uppercase;
+    color: rgba(255,255,255,0.5); white-space: nowrap; opacity: 0; transition: opacity 0.2s;
+  }
+  .body.lvl1 .ico:hover + .lbl, .body.lvl1.remote-focus .lbl { opacity: 1; }
+
+  /* sky control lit */
+  .ico.lit { background: rgba(var(--accent-rgb),0.26); border-color: rgba(var(--accent-rgb),0.75);
+    box-shadow: 0 0 14px rgba(var(--accent-rgb),0.55), 0 0 32px rgba(var(--accent-rgb),0.3); }
+  .ico.lit svg { color: var(--accent); filter: drop-shadow(0 0 4px rgba(var(--accent-rgb),0.9)); }
+  .sky-lines { stroke-dasharray: 60; stroke-dashoffset: 60; transition: stroke-dashoffset 0.7s var(--ease); }
+  .ico.lit .sky-lines { stroke-dashoffset: 0; }
+
+  .shimmer { position: fixed; inset: 0; pointer-events: none; opacity: 0; z-index: 1;
+    background: linear-gradient(115deg, transparent 35%, rgba(var(--accent-rgb),0.16) 50%, transparent 65%);
+    background-size: 250% 100%; }
+  .shimmer.run { animation: sweep 1.1s var(--ease) forwards; }
+  @keyframes sweep { 0% { opacity:0; background-position:120% 0; } 25% { opacity:1; } 100% { opacity:0; background-position:-40% 0; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hub { animation: none !important; }
+    .body, .hub { transition: none !important; }
+    .sky-lines { transition: none; }
+    .shimmer.run { animation: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="caption">Corner bloom</div>
+  <div class="shimmer" id="shimmer"></div>
+
+  <div class="dock" id="dock">
+    <button class="hub" id="hub" aria-label="Bloom or collapse the controls" aria-expanded="false"></button>
+  </div>
+
+  <div class="hint">Tap the hub to bloom · Remote: arrows move · select opens/activates · back collapses</div>
+
+<script>
+  const ICONS = {
+    tour: '<svg viewBox="0 0 24 24"><path d="M7 4v16l13-8z" fill="currentColor"/></svg>',
+    dice: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="8.5" cy="8.5" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="8.5" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="8.5" cy="15.5" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="15.5" r="1" fill="currentColor" stroke="none"/></svg>',
+    sky: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline class="sky-lines" points="4,15 9,7 14,13 20,5"/><circle cx="4" cy="15" r="1.4" fill="currentColor" stroke="none"/><circle cx="9" cy="7" r="1.4" fill="currentColor" stroke="none"/><circle cx="14" cy="13" r="1.4" fill="currentColor" stroke="none"/><circle cx="20" cy="5" r="1.4" fill="currentColor" stroke="none"/></svg>',
+    zin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg>',
+    layers: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="5" y1="7" x2="19" y2="7"/><line x1="5" y1="12" x2="19" y2="12"/><line x1="5" y1="17" x2="19" y2="17"/></svg>',
+    info: '<span style="font-size:18px;font-style:italic;">i</span>',
+  };
+
+  // Two-level control model. `subs:null` = direct action.
+  const PRIMARIES = [
+    { k: 'tour',   label: 'Tour',   subs: null },
+    { k: 'dice',   label: 'Dice',   subs: null },
+    { k: 'zin',    label: 'Scale',  subs: ['Inner', 'System', 'Outer', 'Kuiper', 'Oort'] },
+    { k: 'sky',    label: 'Sky',    subs: ['Constellations', 'Asterisms', 'Stars', 'Deep space'] },
+    { k: 'layers', label: 'Layers', subs: ['NEOs', 'Comets', 'Meteors', 'Satellites'] },
+    { k: 'info',   label: 'Info',   subs: ['About', 'Shortcuts'] },
+  ];
+  const R1 = 110;          // level-1 fan radius (px from hub)
+  const R2_STEP = 84;      // additional reach for level-2 chips
+
+  const dock = document.getElementById('dock');
+  const hub = document.getElementById('hub');
+  const shimmer = document.getElementById('shimmer');
+
+  // Quarter-circle fan sweeping up-and-left from the bottom-right hub.
+  // Angle measured CCW from straight-left (180deg) toward straight-up (270deg).
+  function fanAngle(i, n, lo, hi) {
+    const t = n === 1 ? 0.5 : i / (n - 1);
+    return lo + (hi - lo) * t;
+  }
+  // returns {x,y} offset (right/bottom origin; up = -y, left = -x)
+  function offset(deg, r) {
+    const rad = deg * Math.PI / 180;
+    return { x: Math.cos(rad) * r, y: -Math.sin(rad) * r };
+  }
+
+  // Build level-1 primaries across the quarter (185deg..265deg, nicely inset).
+  PRIMARIES.forEach((p, i) => {
+    const deg = fanAngle(i, PRIMARIES.length, 184, 266);
+    const o = offset(deg, R1);
+    const body = document.createElement('div');
+    body.className = 'body lvl1';
+    body.dataset.idx = i; body.dataset.deg = deg;
+    body.style.setProperty('--x', o.x.toFixed(1) + 'px');
+    body.style.setProperty('--y', o.y.toFixed(1) + 'px');
+    const ico = document.createElement('button');
+    ico.className = 'ico'; ico.dataset.k = p.k; ico.setAttribute('aria-label', p.label); ico.tabIndex = -1;
+    ico.innerHTML = ICONS[p.k];
+    const lbl = document.createElement('span'); lbl.className = 'lbl'; lbl.textContent = p.label;
+    body.appendChild(ico); body.appendChild(lbl);
+    dock.appendChild(body);
+    p._body = body;
+  });
+
+  const lvl1Bodies = Array.from(dock.querySelectorAll('.body.lvl1'));
+
+  // ─── state machine ──────────────────────────────────────────
+  let open = false;       // level-1 bloomed
+  let subIdx = -1;        // primary index whose subs are showing (-1 = none)
+  let focusIdx = -1;      // -1 = hub; else index into current focus list
+  let level = 0;          // 0 = collapsed, 1 = primaries, 2 = subs
+
+  function flashHub() {
+    hub.classList.remove('flash'); void hub.offsetWidth; hub.classList.add('flash');
+    setTimeout(() => hub.classList.remove('flash'), 520);
+  }
+  function pulse() {
+    shimmer.classList.remove('run'); void shimmer.offsetWidth; shimmer.classList.add('run');
+  }
+
+  function setDelays(bodies, forward) {
+    const n = bodies.length;
+    bodies.forEach((b, i) => {
+      const step = forward ? i : (n - 1 - i);
+      b.style.setProperty('--delay', (step * 0.05) + 's');
+    });
+  }
+
+  function clearSubs() {
+    dock.querySelectorAll('.body.lvl2').forEach(b => b.remove());
+  }
+
+  function buildSubs(primIdx) {
+    clearSubs();
+    const p = PRIMARIES[primIdx];
+    const baseDeg = parseFloat(p._body.dataset.deg);
+    const n = p.subs.length;
+    // fan the subs in a small arc centered on the primary's own angle
+    const spread = Math.min(70, 22 * (n - 1));
+    p.subs.forEach((label, i) => {
+      const t = n === 1 ? 0 : (i / (n - 1)) - 0.5;
+      const deg = baseDeg + t * spread;
+      const o = offset(deg, R1 + R2_STEP);
+      const body = document.createElement('div');
+      body.className = 'body lvl2';
+      body.dataset.parent = primIdx; body.dataset.sub = i;
+      body.style.setProperty('--x', o.x.toFixed(1) + 'px');
+      body.style.setProperty('--y', o.y.toFixed(1) + 'px');
+      const ico = document.createElement('button');
+      ico.className = 'ico'; ico.dataset.sub = label; ico.textContent = label; ico.tabIndex = -1;
+      body.appendChild(ico);
+      dock.appendChild(body);
+    });
+    return Array.from(dock.querySelectorAll('.body.lvl2'));
+  }
+
+  function clearFocus() {
+    dock.querySelectorAll('.body.remote-focus').forEach(b => b.classList.remove('remote-focus'));
+    hub.classList.remove('remote-focus');
+  }
+  function focusList() {
+    return level === 2 ? Array.from(dock.querySelectorAll('.body.lvl2')) : lvl1Bodies;
+  }
+  function paintFocus() {
+    clearFocus();
+    if (focusIdx < 0) { hub.classList.add('remote-focus'); return; }
+    const list = focusList();
+    const b = list[focusIdx];
+    if (b) b.classList.add('remote-focus');
+  }
+
+  // ─── transitions ────────────────────────────────────────────
+  function bloom() {
+    open = true; level = 1;
+    setDelays(lvl1Bodies, true);
+    dock.classList.add('open');
+    hub.setAttribute('aria-expanded', 'true');
+    flashHub();
+    focusIdx = 0; paintFocus();
+  }
+  function collapse() {
+    open = false; level = 0;
+    closeSubs(true);
+    setDelays(lvl1Bodies, false);
+    dock.classList.remove('open');
+    hub.setAttribute('aria-expanded', 'false');
+    flashHub();
+    clearFocus(); focusIdx = -1;
+  }
+  function openSubs(primIdx) {
+    subIdx = primIdx; level = 2;
+    lvl1Bodies.forEach((b, i) => b.classList.toggle('active', i === primIdx));
+    const subs = buildSubs(primIdx);
+    setDelays(subs, true);
+    // next frame so the freshly-inserted nodes animate in
+    requestAnimationFrame(() => { void dock.offsetWidth; dock.classList.add('sub'); });
+    focusIdx = 0; paintFocus();
+  }
+  function closeSubs(silent) {
+    if (subIdx < 0 && !dock.classList.contains('sub')) { if (silent) clearSubs(); return; }
+    dock.classList.remove('sub');
+    lvl1Bodies.forEach(b => b.classList.remove('active'));
+    const prev = subIdx; subIdx = -1;
+    if (!silent) { level = 1; focusIdx = Math.max(0, prev); paintFocus(); }
+    setTimeout(clearSubs, 380);
+  }
+
+  // ─── activation ─────────────────────────────────────────────
+  function activatePrimary(i) {
+    const p = PRIMARIES[i];
+    if (!p.subs) { pulse(); return; }      // direct action
+    openSubs(i);
+  }
+  function activateSub(primIdx, subI) {
+    const label = PRIMARIES[primIdx].subs[subI];
+    if (PRIMARIES[primIdx].k === 'sky' && label === 'Constellations') {
+      const skyIco = PRIMARIES.find(p => p.k === 'sky')._body.querySelector('.ico');
+      skyIco.classList.add('lit');
+      pulse();
+    } else {
+      pulse();
+    }
+  }
+
+  // ─── pointer ────────────────────────────────────────────────
+  hub.addEventListener('click', () => { open ? collapse() : bloom(); });
+  dock.addEventListener('click', (e) => {
+    const ico = e.target.closest('.ico');
+    if (!ico) return;
+    const lvl2 = ico.closest('.body.lvl2');
+    if (lvl2) { activateSub(+lvl2.dataset.parent, +lvl2.dataset.sub); return; }
+    const lvl1 = ico.closest('.body.lvl1');
+    if (lvl1) {
+      const i = +lvl1.dataset.idx;
+      if (level === 2 && subIdx === i) { closeSubs(false); }  // tapping active primary returns
+      else { activatePrimary(i); }
+    }
+  });
+
+  // ─── Apple TV / Siri Remote simulation ──────────────────────
+  document.addEventListener('keydown', (e) => {
+    const k = e.key;
+    if (!open) {
+      if (k === 'Enter' || k === ' ') { bloom(); e.preventDefault(); }
+      return;
+    }
+    if (k === 'Escape' || k === 'Backspace') {
+      if (level === 2) { closeSubs(false); } else { collapse(); }
+      e.preventDefault(); return;
+    }
+    const list = focusList();
+    const len = list.length;
+    const fwd = (k === 'ArrowUp' || k === 'ArrowRight');
+    const back = (k === 'ArrowDown' || k === 'ArrowLeft');
+    if (fwd) { focusIdx = focusIdx < 0 ? 0 : (focusIdx + 1) % len; paintFocus(); e.preventDefault(); }
+    else if (back) { focusIdx = focusIdx < 0 ? 0 : (focusIdx - 1 + len) % len; paintFocus(); e.preventDefault(); }
+    else if (k === 'Enter' || k === ' ') {
+      if (focusIdx < 0) { collapse(); }
+      else if (level === 2) {
+        const b = list[focusIdx];
+        activateSub(+b.dataset.parent, +b.dataset.sub);
+      } else {
+        if (level === 2 && subIdx === focusIdx) closeSubs(false);
+        else activatePrimary(focusIdx);
+      }
+      e.preventDefault();
+    }
+  });
+</script>
+</body>
+</html>

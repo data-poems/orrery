@@ -7,6 +7,9 @@ const config: CapacitorConfig = {
   loggingBehavior: 'production',
   ios: {
     contentInset: 'never',
+    // The Xcode project dir must stay App.xcodeproj (Capacitor hardcodes that
+    // path); the shared scheme is named Orrery, so point the CLI at it.
+    scheme: 'Orrery',
   },
   plugins: {
     SplashScreen: {

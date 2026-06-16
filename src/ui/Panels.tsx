@@ -15,6 +15,7 @@ import { getMoonsForPlanet } from '../data/moons';
 import { useTheme } from '../lib/themes';
 import { bokehCard, useIsMobile, Z, BLUR } from './styles';
 import { PREFERS_REDUCED_MOTION } from '../lib/motion';
+import BodyStats from './BodyStats';
 import type { CometDef } from '../data/comets';
 import type { MeteorShower } from '../scene/Meteors';
 import type { SatellitePosition } from '../lib/satellites';
@@ -499,7 +500,6 @@ export default function Panels(props: PanelProps) {
   const accent = theme.uiAccent;
   const accentRgb = theme.uiAccentRgb;
   const mobile = useIsMobile();
-  const [cardMinimized, setCardMinimized] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   // Pale Blue Dot: a single quiet Sagan caption the first time you pull the
@@ -528,8 +528,6 @@ export default function Panels(props: PanelProps) {
     };
   }, []);
   const sp = selPlanet !== null ? ALL_BODIES[selPlanet] : null;
-  const mobilePanelOffset = '12px';
-  const detailsBodyId = 'planet-details-card-body';
 
   // Selected moon info
   const selectedMoon = selPlanet !== null && selMoonIdx !== null
@@ -749,144 +747,21 @@ export default function Panels(props: PanelProps) {
 
       {/* ── Planet/Moon info card (hidden in observatory / cinematic — tour sets selPlanet for camera) ── */}
       {!cinematic && !observatoryMode && (selSun || sp || selectedMoon) && (
-        <div
-          role="region"
-          aria-label={selectedMoon ? `${selectedMoon.name} details` : selSun ? 'Sun details' : `${sp!.name} details`}
-          onPointerDown={(e) => e.stopPropagation()}
-          onTouchStart={(e) => e.stopPropagation()}
-          style={mobile ? {
-            position: 'fixed',
-            left: 8, right: 8, bottom: mobilePanelOffset, top: 'auto',
-            maxHeight: '28vh',
-            borderRadius: 12,
-            overflowY: 'auto',
-            ...bokehCard,
-            padding: '12px 14px 14px',
-            zIndex: Z.dialog,
-            pointerEvents: 'auto',
-            touchAction: 'manipulation',
-          } : {
-            position: 'absolute',
-            bottom: 16, left: 16,
-            maxWidth: 400, width: '36vw', minWidth: 300,
-            ...bokehCard,
-            padding: '12px 14px',
-            zIndex: Z.dialog,
-            pointerEvents: 'auto',
-          }}
-        >
-          {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-            <button
-              type="button"
-              aria-label="Toggle details visibility"
-              aria-expanded={!cardMinimized}
-              aria-controls={detailsBodyId}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', flex: 1, background: 'none', border: 'none', padding: 0, textAlign: 'left' }}
-              onClick={(e) => { e.stopPropagation(); setCardMinimized(m => !m); }}
-            >
-              <span style={{
-                width: 12, height: 12, borderRadius: '50%',
-                background: selectedMoon ? selectedMoon.color : selSun ? '#ffca74' : sp!.color,
-                boxShadow: `0 0 8px ${selectedMoon ? selectedMoon.color : selSun ? '#ffca74' : sp!.color}`,
-                flexShrink: 0,
-              }} />
-              <div>
-                <div style={{ color: '#fff', fontSize: 16, fontWeight: 600, letterSpacing: 1 }}>
-                  {selectedMoon ? selectedMoon.name : selSun ? 'Sun' : sp!.name}
-                </div>
-                <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 10, fontWeight: 300, fontStyle: 'italic', letterSpacing: 0.5 }}>
-                  {selectedMoon ? `Moon of ${sp!.name}` : selSun ? 'G-type main-sequence star (Sol)' : sp!.type}
-                </div>
-              </div>
-            </button>
-            <button
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); props.navigateBack(); }}
-              onPointerUp={(e) => { e.preventDefault(); e.stopPropagation(); props.navigateBack(); }}
-              onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); props.navigateBack(); }}
-              style={{
-                background: `rgba(${accentRgb},0.12)`,
-                border: `1px solid rgba(${accentRgb},0.3)`,
-                borderRadius: 4, padding: mobile ? '7px 12px' : '6px 10px',
-                color: accent, fontSize: mobile ? 12 : 11,
-                fontFamily: 'inherit', fontWeight: 400, letterSpacing: 0.5,
-                cursor: 'pointer', whiteSpace: 'nowrap',
-                minHeight: mobile ? 36 : 30,
-              }}
-            >
-              {'\u2190'} Back
-            </button>
-          </div>
-
-          {/* Collapsible body */}
-          {!cardMinimized && (
-            <div id={detailsBodyId}>
-              {/* Stats grid */}
-              {!selectedMoon && !selSun && planetStats.length > 0 && (
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: mobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(3, minmax(0, 1fr))',
-                  gap: 6,
-                  marginTop: 8,
-                }}>
-                  {planetStats.map((item) => (
-                    <div key={item.label} style={{ padding: '6px 7px', borderRadius: 6, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                      <div style={{ color: 'rgba(255,255,255,0.68)', fontSize: 9, letterSpacing: 1.1, textTransform: 'uppercase' }}>{item.label}</div>
-                      <div style={{ color: '#fff', fontSize: 13, marginTop: 2, lineHeight: 1.1 }}>{item.value}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {selectedMoon && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 8 }}>
-                  {moonStats.map((item) => (
-                    <div key={item.label} style={{ padding: '6px 7px', borderRadius: 6, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                      <div style={{ color: 'rgba(255,255,255,0.68)', fontSize: 9, letterSpacing: 1.1, textTransform: 'uppercase' }}>{item.label}</div>
-                      <div style={{ color: '#fff', fontSize: 13, marginTop: 2, lineHeight: 1.1 }}>{item.value}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {selSun && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 8 }}>
-                  {[
-                    ['Type', 'G2V'],
-                    ['Radius', '695,700 km'],
-                    ['Mass', '1.989e30 kg'],
-                    ['Surface', '5,778 K'],
-                  ].map(([label, value]) => (
-                    <div key={label} style={{ padding: '6px 7px', borderRadius: 6, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                      <div style={{ color: 'rgba(255,255,255,0.68)', fontSize: 9, letterSpacing: 1.1, textTransform: 'uppercase' }}>{label}</div>
-                      <div style={{ color: '#fff', fontSize: 13, marginTop: 2, lineHeight: 1.1 }}>{value}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Breadcrumb nav */}
-              <div style={{ display: 'flex', gap: 4, marginTop: 8, overflowX: 'auto', paddingBottom: 2 }}>
-                {navStack.map((crumb, i) => (
-                  <span key={i} style={{ fontSize: 9, color: 'rgba(255,255,255,0.65)', fontWeight: 300 }}>
-                    {i > 0 && <span style={{ margin: '0 4px' }}>{'\u203a'}</span>}
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => { e.stopPropagation(); props.navigateToLevel(i); }}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          props.navigateToLevel(i);
-                        }
-                      }}
-                      style={{ cursor: i < navStack.length - 1 ? 'pointer' : 'default', color: i === navStack.length - 1 ? accent : 'rgba(255,255,255,0.25)' }}
-                    >{crumb}</span>
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        <BodyStats
+          name={selectedMoon ? selectedMoon.name : selSun ? 'Sun' : sp!.name}
+          subtitle={selectedMoon ? `Moon of ${sp!.name}` : selSun ? 'G-type main-sequence star (Sol)' : sp!.type}
+          color={selectedMoon ? selectedMoon.color : selSun ? '#ffca74' : sp!.color}
+          stats={selectedMoon ? moonStats : selSun ? [
+            { label: 'Type', value: 'G2V' },
+            { label: 'Radius', value: '695,700 km' },
+            { label: 'Mass', value: '1.989e30 kg' },
+            { label: 'Surface', value: '5,778 K' },
+          ] : planetStats}
+          accent={accent}
+          accentRgb={accentRgb}
+          onBack={props.navigateBack}
+          mobile={mobile}
+        />
       )}
 
       {showNeo && neoStatus === 'error' && !cinematic && (

@@ -463,7 +463,6 @@ function OrreryInner() {
   useEffect(() => {
     if (!OBSERVATORY_MODE || !sceneReady || observatoryEntered.current) return;
     observatoryEntered.current = true;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- entry-mode bootstrap, fires once
     exitCinematic({ kind: 'preset', label: 'Earth Observer' });
   }, [sceneReady, exitCinematic]);
 

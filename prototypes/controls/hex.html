@@ -13,7 +13,6 @@
     --glass: rgba(255,255,255,0.05); --glass-hi: rgba(255,255,255,0.12);
     --stroke: rgba(255,255,255,0.16);
     --hex: 96px;            /* flat-top hex width (point-to-point, horizontal) */
-    --sub: 60px;            /* sub-hex width */
     --ease: cubic-bezier(0.22, 1, 0.36, 1);
   }
   * { box-sizing: border-box; }
@@ -43,6 +42,13 @@
   .hint.bottom { bottom: 24px; }
   .hint.remote { bottom: 52px; letter-spacing: 0.5px; }
 
+  /* breadcrumb above the cluster */
+  .crumb { position: fixed; top: 50%; left: 0; right: 0; text-align: center;
+    margin-top: -150px; color: rgba(var(--accent-rgb),0.85); font-size: 14px;
+    letter-spacing: 2.5px; text-transform: uppercase; font-weight: 300;
+    opacity: 0; transition: opacity 0.3s var(--ease); pointer-events: none; }
+  .crumb.show { opacity: 1; }
+
   /* ─── flat-top honeycomb cluster ──────────────────────────── */
   .cluster { position: fixed; top: 50%; left: 50%; width: 0; height: 0; }
   /* static rigid body — all tiles ride this, packing stays flush */
@@ -63,7 +69,7 @@
     background: var(--glass); border: none; color: var(--ink); padding: 0;
     backdrop-filter: blur(12px) saturate(1.4); -webkit-backdrop-filter: blur(12px) saturate(1.4);
     box-shadow: inset 0 0 0 1px var(--stroke), inset 0 1px 0 0 var(--glass-hi);
-    transition: background 0.25s, box-shadow 0.4s, transform 0.25s var(--ease);
+    transition: background 0.25s, box-shadow 0.4s, transform 0.25s var(--ease), opacity 0.25s;
   }
   /* subtle inner highlight along the top facets */
   .tile .face::before {
@@ -88,6 +94,19 @@
   }
   .tile.center .face:hover { transform: scale(1.07); }
 
+  /* outer tile showing a sub-option at level 2 */
+  .tile.sublevel .face {
+    background: rgba(var(--accent-rgb),0.10);
+    box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb),0.32), inset 0 1px 0 0 var(--glass-hi);
+  }
+  /* blank/dimmed slot (sub count < 6) */
+  .tile.blank .face {
+    background: rgba(255,255,255,0.02); cursor: default; opacity: 0.28;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+  }
+  .tile.blank .face:hover { background: rgba(255,255,255,0.02); transform: none;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08); }
+
   .tile .lbl {
     position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
     margin-top: 4px; font-size: 10px; letter-spacing: 1.4px; text-transform: uppercase;
@@ -95,50 +114,22 @@
   }
   .tile .face:hover ~ .lbl, .tile.focused .lbl { opacity: 1; }
 
+  /* the swappable label inside a sub-level outer tile */
+  .tile .sub-label { font-size: 11px; letter-spacing: 0.8px; text-transform: uppercase;
+    text-align: center; line-height: 1.15; padding: 0 6px; position: relative; z-index: 1; }
+
+  /* content cross-fade when contents swap (level transition) */
+  .tile .ico, .tile .sub-label { transition: opacity 0.18s var(--ease); }
+  .comb.swapping .tile .ico, .comb.swapping .tile .sub-label { opacity: 0; }
+
   /* remote / Siri-Remote focus ring */
   .tile.focused .face {
     box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb),0.9),
                 0 0 18px rgba(var(--accent-rgb),0.5), 0 0 40px rgba(var(--accent-rgb),0.28);
     transform: scale(1.07);
   }
-
-  /* dimmed when a sub-ring is open elsewhere */
-  .comb.expanded .tile:not(.active) { opacity: 0.22; pointer-events: none; }
-  .comb.expanded .tile.active .face {
-    box-shadow: inset 0 0 0 1.5px rgba(var(--accent-rgb),0.8),
-                0 0 24px rgba(var(--accent-rgb),0.45);
-  }
-
-  /* ─── sub-hex ring (second level) ─────────────────────────── */
-  .sub {
-    position: absolute; left: 0; top: 0;
-    width: var(--sub); height: calc(var(--sub) * 0.8660254);
-    margin: calc(var(--sub) * -0.4330127) 0 0 calc(var(--sub) / -2);
-    transform: translate(var(--bx), var(--by)) scale(0.3);
-    opacity: 0;
-    transition: transform 0.34s var(--ease), opacity 0.28s var(--ease);
-  }
-  .sub.bloom { transform: translate(var(--x), var(--y)) scale(1); opacity: 1; }
-  .sub .face {
-    width: 100%; height: 100%; cursor: pointer; position: relative;
-    display: grid; place-items: center;
-    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-    background: rgba(var(--accent-rgb),0.07); border: none; color: var(--ink); padding: 0;
-    backdrop-filter: blur(10px) saturate(1.4); -webkit-backdrop-filter: blur(10px) saturate(1.4);
-    box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb),0.3), inset 0 1px 0 0 var(--glass-hi);
-    transition: background 0.2s, box-shadow 0.3s, transform 0.2s var(--ease);
-  }
-  .sub .face::before {
-    content: ''; position: absolute; inset: 0; pointer-events: none; clip-path: inherit;
-    background: linear-gradient(180deg, rgba(255,255,255,0.12), transparent 42%);
-  }
-  .sub .face span { font-size: 9px; letter-spacing: 0.6px; text-transform: uppercase;
-    text-align: center; line-height: 1.1; padding: 0 4px; position: relative; z-index: 1; }
-  .sub .face:hover, .sub.focused .face {
-    background: rgba(var(--accent-rgb),0.18); transform: scale(1.08);
-    box-shadow: inset 0 0 0 1.5px rgba(var(--accent-rgb),0.75),
-                0 0 14px rgba(var(--accent-rgb),0.4);
-  }
+  .tile.blank.focused .face { transform: none;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08); }
 
   /* sky control lit */
   .face.lit { background: rgba(var(--accent-rgb),0.26) !important;
@@ -155,9 +146,7 @@
   @keyframes sweep { 0% { opacity:0; background-position:120% 0; } 25% { opacity:1; } 100% { opacity:0; background-position:-40% 0; } }
 
   @media (prefers-reduced-motion: reduce) {
-    .sky-lines, .tile, .sub, .tile .face, .sub .face { transition: none; }
-    .sub { transform: translate(var(--bx), var(--by)) scale(1); }
-    .sub.bloom { transform: translate(var(--x), var(--y)) scale(1); }
+    .sky-lines, .tile, .tile .face, .tile .ico, .tile .sub-label, .crumb { transition: none; }
     .shimmer.run { animation: none; }
   }
 </style>
@@ -165,13 +154,14 @@
 <body>
   <div class="caption">Hex cluster</div>
   <div class="shimmer" id="shimmer"></div>
+  <div class="crumb" id="crumb"></div>
 
   <div class="cluster" id="cluster">
     <div class="comb" id="comb"></div>
   </div>
 
-  <div class="hint remote">Remote: arrows move · select opens/activates · back collapses</div>
-  <div class="hint bottom">Flat-top honeycomb · tap a tile with sub-options to bloom the next ring</div>
+  <div class="hint remote">Remote: arrows move · select opens/activates · back steps out</div>
+  <div class="hint bottom">Flat-top honeycomb · select a primary to swap in its sub-options in place</div>
 
 <script>
   const ICONS = {
@@ -182,6 +172,8 @@
     layers: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 4 4 8l8 4 8-4-8-4z"/><path d="M4 12l8 4 8-4"/><path d="M4 16l8 4 8-4"/></svg>',
     info: '<span style="font-size:18px;font-style:italic;">i</span>',
     help: '<span style="font-size:18px;">?</span>',
+    home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M4 11 12 4l8 7"/><path d="M6 10v9h12v-9"/></svg>',
+    back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 6 8 12l6 6"/></svg>',
   };
 
   // Flat-top honeycomb packing. Hex width W (point-to-point, horizontal),
@@ -194,33 +186,31 @@
   // this hex's right edge with zero gap; ±0.5H vertical interleave keeps the
   // shared diagonal edges flush.
   const W = 96, H = W * 0.8660254;
-  const SW = 60, SH = SW * 0.8660254;
-  const ring = (w, h) => ({
-    top: { x: 0, y: -h }, bottom: { x: 0, y: h },
-    rup: { x: 0.75 * w, y: -0.5 * h }, rdn: { x: 0.75 * w, y: 0.5 * h },
-    lup: { x: -0.75 * w, y: -0.5 * h }, ldn: { x: -0.75 * w, y: 0.5 * h },
-  });
-  const OFFS = ring(W, H);
-  const SUBOFF = ring(SW, SH);          // sub-hex offsets relative to parent
-  const SUBORDER = ['top', 'rup', 'rdn', 'bottom', 'ldn', 'lup']; // bloom sequence (cw)
+  const OFFS = {
+    top: { x: 0, y: -H }, bottom: { x: 0, y: H },
+    rup: { x: 0.75 * W, y: -0.5 * H }, rdn: { x: 0.75 * W, y: 0.5 * H },
+    lup: { x: -0.75 * W, y: -0.5 * H }, ldn: { x: -0.75 * W, y: 0.5 * H },
+  };
 
-  // Center hub + six flush neighbours. Some carry sub-options.
-  const TILES = [
-    { id: 'help', k: 'help', label: 'Keys', pos: { x: 0, y: 0 }, center: true },
-    { id: 'lup',  k: 'tour', label: 'Tour', pos: OFFS.lup },
-    { id: 'top',  k: 'sky',  label: 'Sky',  pos: OFFS.top,
-      subs: ['Constellations', 'Asterisms', 'Stars', 'Deep space'] },
-    { id: 'rup',  k: 'dice', label: 'Dice', pos: OFFS.rup },
-    { id: 'rdn',  k: 'layers', label: 'Layers', pos: OFFS.rdn,
-      subs: ['NEOs', 'Comets', 'Meteors', 'Satellites'] },
-    { id: 'bottom', k: 'scale', label: 'Scale', pos: OFFS.bottom,
-      subs: ['Inner', 'System', 'Outer', 'Kuiper', 'Oort'] },
-    { id: 'ldn',  k: 'info', label: 'Info', pos: OFFS.ldn,
-      subs: ['About', 'Shortcuts'] },
-  ];
-  const TILE_BY = Object.fromEntries(TILES.map(t => [t.id, t]));
+  // The six outer slots in a stable clockwise order. Sub-options fill these
+  // slots in this sequence; remaining slots go blank/dimmed. Replace-in-place
+  // keeps the honeycomb shape identical between levels — only contents change.
+  const OUTER = ['top', 'rup', 'rdn', 'bottom', 'ldn', 'lup'];
 
-  // Spatial adjacency for remote navigation across the primary ring.
+  // Level-1 primaries. Center hub = Home/recenter (the 7th control).
+  const PRIMARY = {
+    help:   { k: 'home', label: 'Home', center: true },
+    lup:    { k: 'tour', label: 'Tour' },
+    top:    { k: 'sky',  label: 'Sky',  subs: ['Constellations', 'Asterisms', 'Stars', 'Deep space'] },
+    rup:    { k: 'dice', label: 'Dice' },
+    rdn:    { k: 'layers', label: 'Layers', subs: ['NEOs', 'Comets', 'Meteors', 'Satellites'] },
+    bottom: { k: 'scale', label: 'Scale', subs: ['Inner', 'System', 'Outer', 'Kuiper', 'Oort'] },
+    ldn:    { k: 'info', label: 'Info', subs: ['About', 'Shortcuts'] },
+  };
+
+  // Spatial adjacency for remote navigation. Geometry is identical at both
+  // levels (replace-in-place), so a single flat-top map drives every level.
+  // left/right and the four diagonals; top/bottom reach the hub vertically.
   const NAV = {
     help:   { up: 'top',  down: 'bottom', left: 'lup', right: 'rup' },
     top:    { up: null,   down: 'help',   left: 'lup', right: 'rup' },
@@ -233,158 +223,180 @@
 
   const comb = document.getElementById('comb');
   const shimmer = document.getElementById('shimmer');
-  const tileEls = {};
+  const crumb = document.getElementById('crumb');
+  const tileEls = {};   // slot id -> tile element
 
-  function makeTile(t) {
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Build the seven hex shells once. Contents are swapped per level.
+  function buildShell(id) {
     const tile = document.createElement('div');
-    tile.className = 'tile' + (t.center ? ' center' : '');
-    tile.dataset.id = t.id;
-    tile.style.setProperty('--x', t.pos.x.toFixed(2) + 'px');
-    tile.style.setProperty('--y', t.pos.y.toFixed(2) + 'px');
+    tile.className = 'tile' + (id === 'help' ? ' center' : '');
+    tile.dataset.id = id;
+    const off = id === 'help' ? { x: 0, y: 0 } : OFFS[id];
+    tile.style.setProperty('--x', off.x.toFixed(2) + 'px');
+    tile.style.setProperty('--y', off.y.toFixed(2) + 'px');
     const face = document.createElement('button');
-    face.className = 'face'; face.dataset.k = t.k; face.dataset.id = t.id;
-    face.setAttribute('aria-label', t.label); face.setAttribute('tabindex', '-1');
-    const ico = document.createElement('span'); ico.className = 'ico'; ico.innerHTML = ICONS[t.k];
-    face.appendChild(ico);
-    const lbl = document.createElement('span'); lbl.className = 'lbl'; lbl.textContent = t.label;
-    tile.appendChild(face); tile.appendChild(lbl);
+    face.className = 'face'; face.dataset.id = id; face.setAttribute('tabindex', '-1');
+    tile.appendChild(face);
+    const lbl = document.createElement('span'); lbl.className = 'lbl';
+    tile.appendChild(lbl);
     comb.appendChild(tile);
-    tileEls[t.id] = tile;
+    tileEls[id] = tile;
   }
-  TILES.forEach(makeTile);
+  ['help', ...OUTER].forEach(buildShell);
 
-  // ─── second level: sub-hex ring ─────────────────────────────
-  let openId = null;          // primary id whose sub-ring is bloomed
-  let subEls = [];            // current sub-hex elements
-  let subFocus = -1;          // index into subEls when navigating a sub-ring
+  // ─── level state ────────────────────────────────────────────
+  // level === null  → level 1 (primaries)
+  // level === '<id>' → level 2, showing PRIMARY[id].subs
+  let level = null;
+  let focusId = 'help';
 
-  function openSub(id) {
-    const t = TILE_BY[id];
-    if (!t || !t.subs) return false;
-    closeSub();
-    openId = id;
-    comb.classList.add('expanded');
-    tileEls[id].classList.add('active');
-    const base = t.pos;
-    t.subs.forEach((label, i) => {
-      const slot = SUBOFF[SUBORDER[i % SUBORDER.length]];
-      const sub = document.createElement('div');
-      sub.className = 'sub';
-      // start position: collapsed onto the parent center
-      sub.style.setProperty('--bx', base.x.toFixed(2) + 'px');
-      sub.style.setProperty('--by', base.y.toFixed(2) + 'px');
-      // bloomed position: parent center + sub offset
-      sub.style.setProperty('--x', (base.x + slot.x).toFixed(2) + 'px');
-      sub.style.setProperty('--y', (base.y + slot.y).toFixed(2) + 'px');
-      const face = document.createElement('button');
-      face.className = 'face'; face.dataset.sub = label; face.setAttribute('tabindex', '-1');
-      face.innerHTML = '<span>' + label + '</span>';
-      sub.appendChild(face);
-      comb.appendChild(sub);
-      subEls.push(sub);
-      // staggered, eased bloom
-      requestAnimationFrame(() => setTimeout(() => sub.classList.add('bloom'), i * 55));
-    });
-    subFocus = 0;
-    syncSubFocus();
-    return true;
+  // Render the contents of every tile for the current level.
+  function render() {
+    if (level === null) {
+      crumb.classList.remove('show');
+      ['help', ...OUTER].forEach(id => {
+        const p = PRIMARY[id];
+        const tile = tileEls[id], face = tile.querySelector('.face'), lbl = tile.querySelector('.lbl');
+        tile.classList.remove('sublevel', 'blank');
+        tile.classList.toggle('center', id === 'help');
+        face.dataset.role = id === 'help' ? 'home' : (p.subs ? 'open' : 'direct');
+        face.dataset.key = p.k;
+        face.dataset.label = p.label;
+        face.removeAttribute('disabled');
+        face.setAttribute('aria-label', p.label);
+        face.innerHTML = '<span class="ico">' + ICONS[p.k] + '</span>';
+        lbl.textContent = p.label;
+      });
+    } else {
+      const p = PRIMARY[level];
+      crumb.textContent = p.label;
+      crumb.classList.add('show');
+      // center hex becomes Back breadcrumb
+      const c = tileEls.help, cf = c.querySelector('.face');
+      c.classList.remove('blank'); c.classList.add('center');
+      cf.dataset.role = 'back'; cf.dataset.label = 'Back';
+      cf.removeAttribute('disabled'); cf.setAttribute('aria-label', 'Back');
+      cf.innerHTML = '<span class="ico">' + ICONS.back + '</span>';
+      c.querySelector('.lbl').textContent = 'Back';
+      // outer hexes carry the sub-options; pad remainder blank
+      OUTER.forEach((slot, i) => {
+        const tile = tileEls[slot], face = tile.querySelector('.face'), lbl = tile.querySelector('.lbl');
+        const sub = p.subs[i];
+        tile.classList.remove('center');
+        if (sub) {
+          tile.classList.add('sublevel'); tile.classList.remove('blank');
+          face.dataset.role = 'sub'; face.dataset.label = sub; face.dataset.parent = level;
+          face.removeAttribute('disabled'); face.setAttribute('aria-label', sub);
+          face.innerHTML = '<span class="sub-label">' + sub + '</span>';
+          lbl.textContent = '';
+        } else {
+          tile.classList.add('blank'); tile.classList.remove('sublevel');
+          face.dataset.role = 'blank'; face.removeAttribute('data-label');
+          face.setAttribute('disabled', '');
+          face.innerHTML = '';
+          lbl.textContent = '';
+        }
+      });
+    }
+    applyFocus();
   }
 
-  function closeSub() {
-    if (!openId) return;
-    comb.classList.remove('expanded');
-    tileEls[openId].classList.remove('active');
-    subEls.forEach(s => { s.classList.remove('bloom'); setTimeout(() => s.remove(), 320); });
-    subEls = []; subFocus = -1; openId = null;
+  // ─── level transitions (content swap, shape stays put) ──────
+  function swap(fn) {
+    if (reduced) { fn(); return; }
+    comb.classList.add('swapping');
+    setTimeout(() => { fn(); comb.classList.remove('swapping'); }, 170);
   }
 
-  function syncSubFocus() {
-    subEls.forEach((s, i) => s.classList.toggle('focused', i === subFocus));
+  function openLevel(id) {
+    if (!PRIMARY[id] || !PRIMARY[id].subs) return;
+    swap(() => { level = id; focusId = 'top'; render(); });
   }
 
-  // ─── primary activation ─────────────────────────────────────
+  function backLevel() {
+    if (level === null) return;
+    const from = level;
+    swap(() => { level = null; focusId = from; render(); });
+  }
+
+  // ─── focus ring ─────────────────────────────────────────────
+  function applyFocus() {
+    Object.values(tileEls).forEach(t => t.classList.remove('focused'));
+    // never rest focus on a blank slot
+    if (tileEls[focusId] && tileEls[focusId].classList.contains('blank')) focusId = 'help';
+    if (tileEls[focusId]) tileEls[focusId].classList.add('focused');
+  }
+  function setFocus(id) {
+    if (!tileEls[id]) return;
+    if (tileEls[id].classList.contains('blank')) return;  // skip blanks
+    focusId = id; applyFocus();
+  }
+
+  // ─── activation ─────────────────────────────────────────────
   function flash(face) {
+    if (reduced) return;
     face.style.transform = 'scale(1.14)';
     setTimeout(() => { face.style.transform = ''; }, 160);
   }
 
-  function activatePrimary(id) {
-    const t = TILE_BY[id];
-    if (!t) return;
-    if (t.subs) {                       // toggle the sub-ring
-      if (openId === id) closeSub(); else openSub(id);
-      return;
+  function activate(id) {
+    const tile = tileEls[id];
+    if (!tile) return;
+    const face = tile.querySelector('.face');
+    const role = face.dataset.role;
+    if (role === 'blank') return;
+    if (role === 'home')  { flash(face); return; }       // recenter / hub
+    if (role === 'back')  { backLevel(); return; }
+    if (role === 'open')  { openLevel(id); return; }
+    if (role === 'direct'){ flash(face); return; }        // Tour / Dice
+    if (role === 'sub') {
+      flash(face);
+      // Sky → Constellations ignites the sky on this very tile + shimmer.
+      if (face.dataset.parent === 'top' && face.dataset.label === 'Constellations') {
+        face.classList.add('lit');
+        // give the lit face a star polyline to animate
+        face.innerHTML = '<span class="ico">' + ICONS.sky + '</span>'
+          + '<span class="sub-label" style="position:absolute;bottom:6px;">Constellations</span>';
+        shimmer.classList.remove('run'); void shimmer.offsetWidth; shimmer.classList.add('run');
+      }
     }
-    flash(tileEls[id].querySelector('.face'));  // direct action (Tour, Dice, Keys)
   }
 
-  function activateSub(label) {
-    // Sky → Constellations ignites the sky on the parent Sky hex.
-    if (openId === 'top' && label === 'Constellations') {
-      const skyFace = tileEls.top.querySelector('.face');
-      skyFace.classList.add('lit');
-      shimmer.classList.remove('run'); void shimmer.offsetWidth; shimmer.classList.add('run');
-    }
-  }
-
-  // ─── remote focus ring ──────────────────────────────────────
-  let focusId = 'help';
-  function setFocus(id) {
-    if (!tileEls[id]) return;
-    if (tileEls[focusId]) tileEls[focusId].classList.remove('focused');
-    focusId = id;
-    tileEls[focusId].classList.add('focused');
-  }
-  setFocus('help');
-
+  // ─── input: remote D-pad + click ────────────────────────────
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      if (openId) { closeSub(); e.preventDefault(); }
+    if (e.key === 'Escape' || e.key === 'Backspace') {
+      if (level !== null) { backLevel(); e.preventDefault(); }
       return;
     }
     const dir = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' }[e.key];
-
-    if (openId) {                       // navigating inside a sub-ring
-      if (dir) {
-        if (dir === 'up' || dir === 'right') subFocus = (subFocus + 1) % subEls.length;
-        else subFocus = (subFocus - 1 + subEls.length) % subEls.length;
-        syncSubFocus(); e.preventDefault(); return;
+    if (dir) {
+      // step in direction, skipping blank slots (land on next valid)
+      let next = NAV[focusId] && NAV[focusId][dir];
+      if (next && tileEls[next].classList.contains('blank')) {
+        // hop again from the blank in the same direction toward a live tile
+        const hop = NAV[next] && NAV[next][dir];
+        next = (hop && !tileEls[hop].classList.contains('blank')) ? hop : null;
       }
-      if (e.key === 'Enter' || e.key === ' ') {
-        const face = subEls[subFocus] && subEls[subFocus].querySelector('.face');
-        if (face) { flash(face); activateSub(face.dataset.sub); }
-        e.preventDefault(); return;
-      }
-      return;
-    }
-
-    if (dir) {                          // navigating the primary ring
-      const next = NAV[focusId] && NAV[focusId][dir];
       if (next) setFocus(next);
       e.preventDefault(); return;
     }
-    if (e.key === 'Enter' || e.key === ' ') {
-      activatePrimary(focusId);
-      e.preventDefault();
-    }
+    if (e.key === 'Enter' || e.key === ' ') { activate(focusId); e.preventDefault(); }
   });
 
   document.addEventListener('click', (e) => {
-    const subFace = e.target.closest('.sub .face');
-    if (subFace) {
-      subFocus = subEls.findIndex(s => s.contains(subFace));
-      syncSubFocus();
-      flash(subFace); activateSub(subFace.dataset.sub);
-      return;
-    }
     const face = e.target.closest('.tile .face');
     if (face) {
-      setFocus(face.dataset.id);
-      activatePrimary(face.dataset.id);
+      const id = face.dataset.id;
+      if (tileEls[id].classList.contains('blank')) return;
+      setFocus(id); activate(id);
       return;
     }
-    if (openId) closeSub();             // tap empty space collapses
+    if (level !== null) backLevel();   // tap empty space steps out
   });
+
+  render();
 </script>
 </body>
 </html>

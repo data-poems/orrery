@@ -12,7 +12,7 @@
     --ink: #eaf0ff;
     --glass: rgba(255,255,255,0.05); --glass-hi: rgba(255,255,255,0.12);
     --stroke: rgba(255,255,255,0.16);
-    --chip: 46px;
+    --chip: 50px;
     --ease: cubic-bezier(0.34, 1.56, 0.64, 1); /* spring-like overshoot */
   }
   * { box-sizing: border-box; }
@@ -41,51 +41,67 @@
     color: rgba(255,255,255,0.32); font-size: 14px; font-style: italic; }
 
   /* ─── the sun hub ─────────────────────────────────────────── */
-  .system { position: fixed; top: 50%; left: 50%; width: 0; height: 0; }
+  .system { position: fixed; top: 50%; left: 50%; width: 0; height: 0; touch-action: none; }
 
   .sun {
     position: absolute; left: 50%; top: 50%;
     width: 84px; height: 84px; margin: -42px 0 0 -42px; border-radius: 50%;
     background: radial-gradient(circle at 38% 34%, #ffe9b8, #f0a338 60%, #c8761b);
     box-shadow: 0 0 30px rgba(240,163,56,0.55), 0 0 72px rgba(240,163,56,0.26);
-    border: none; cursor: pointer; z-index: 6;
+    border: none; cursor: pointer; z-index: 6; padding: 0; overflow: hidden;
+    display: grid; place-items: center; color: #2a1606;
     animation: pulse 6s ease-in-out infinite;
-    transition: transform 0.55s var(--ease), box-shadow 0.55s var(--ease);
+    transition: transform 0.55s var(--ease), box-shadow 0.55s var(--ease), background 0.4s ease;
   }
   @keyframes pulse { 50% { box-shadow: 0 0 42px rgba(240,163,56,0.75), 0 0 108px rgba(240,163,56,0.36); } }
   .sun.flash { box-shadow: 0 0 64px rgba(255,220,150,0.95), 0 0 170px rgba(240,163,56,0.6); transform: scale(1.2); }
   .sun.remote-focus { outline: 2px solid var(--accent); outline-offset: 8px; }
-  /* dim the sun when a primary has opened its subs */
-  .system.level2 .sun { transform: scale(0.86); box-shadow: 0 0 18px rgba(240,163,56,0.4), 0 0 44px rgba(240,163,56,0.18); }
 
-  /* primaries + subs share the .body bloom mechanic */
+  /* breadcrumb mode: sun becomes a Back affordance for the parent */
+  .sun .crumb {
+    display: none; flex-direction: column; align-items: center; gap: 1px;
+    pointer-events: none; line-height: 1;
+  }
+  .sun .crumb svg { width: 20px; height: 20px; color: #2a1606; }
+  .sun .crumb .crumb-lbl { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; font-weight: 500; }
+  .system.level2 .sun {
+    background: radial-gradient(circle at 38% 34%, #ffe6ad, #e58f2c 62%, #b3640f);
+    box-shadow: 0 0 22px rgba(240,163,56,0.5), 0 0 54px rgba(240,163,56,0.24);
+  }
+  .system.level2 .sun .crumb { display: flex; }
+
+  /* ─── ring slots (shared by primaries and subs) ─────────────── */
   .body {
     position: absolute; left: 50%; top: 50%;
     width: var(--chip); height: var(--chip); margin: calc(var(--chip)/-2);
     /* COLLAPSED: tucked at the sun core, invisible */
     transform: rotate(var(--a)) translate(0) rotate(calc(-1 * var(--a))) scale(0);
     opacity: 0; z-index: 4;
-    transition: transform 0.7s var(--ease), opacity 0.5s ease;
+    transition: transform 0.7s var(--ease), opacity 0.45s ease;
     transition-delay: var(--delay, 0s);
+    pointer-events: none;
   }
-  /* BLOOMED: fly out from the sun to ring position */
-  .system.bloomed .primary {
+  /* BLOOMED: fly out from the sun to the ring radius */
+  .system.bloomed .body.filled {
     transform: rotate(var(--a)) translate(var(--r)) rotate(calc(-1 * var(--a))) scale(1);
-    opacity: 1;
+    opacity: 1; pointer-events: auto;
   }
-  /* recede the other primaries while a sub-ring is open */
-  .system.level2 .primary { opacity: 0.22; transform: rotate(var(--a)) translate(calc(var(--r) * 0.82)) rotate(calc(-1 * var(--a))) scale(0.8); }
-  .system.level2 .primary.active { opacity: 1; transform: rotate(var(--a)) translate(var(--r)) rotate(calc(-1 * var(--a))) scale(1.06); }
+  /* a quick crossfade pop when sub-options replace primaries in place */
+  .body.swap { animation: swapPop 0.42s var(--ease); }
+  @keyframes swapPop { 0% { opacity: 0; transform: rotate(var(--a)) translate(calc(var(--r) * 0.78)) rotate(calc(-1 * var(--a))) scale(0.7); } }
 
   .body .ico {
     width: 100%; height: 100%; border-radius: 50%;
     display: grid; place-items: center; cursor: pointer;
     background: var(--glass); border: 1px solid var(--stroke); color: var(--ink);
     backdrop-filter: blur(12px) saturate(1.4); -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    font-family: inherit; font-size: 11px; letter-spacing: 0.4px; text-align: center; padding: 4px;
     transition: background 0.25s, border-color 0.25s, box-shadow 0.4s, transform 0.25s var(--ease);
   }
   .body .ico:hover { background: var(--glass-hi); border-color: rgba(var(--accent-rgb),0.55); transform: scale(1.12); }
   .body svg { width: 22px; height: 22px; }
+  .body.sub .ico { font-size: 12px; }
+  .body.sub .ico.on { background: rgba(var(--accent-rgb),0.22); border-color: rgba(var(--accent-rgb),0.7); color: var(--accent); }
 
   /* Apple-TV style accent focus ring */
   .body.remote-focus .ico {
@@ -99,31 +115,7 @@
     font-size: 10px; letter-spacing: 1.4px; text-transform: uppercase;
     color: rgba(255,255,255,0.5); white-space: nowrap; opacity: 0; transition: opacity 0.2s;
   }
-  .body .ico:hover + .lbl, .body.remote-focus .lbl, .system.level2 .primary.active .lbl { opacity: 1; }
-
-  /* ─── sub-options (outer bloom) ──────────────────────────────── */
-  .sub {
-    position: absolute; left: 50%; top: 50%;
-    transform: translate(-50%,-50%) scale(0); opacity: 0; z-index: 5;
-    transition: transform 0.6s var(--ease), opacity 0.4s ease;
-    transition-delay: var(--delay, 0s);
-  }
-  .system.level2 .sub.shown { opacity: 1; }
-  .sub .chip {
-    display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
-    padding: 7px 13px; border-radius: 16px; white-space: nowrap;
-    background: var(--glass); border: 1px solid var(--stroke); color: var(--ink);
-    backdrop-filter: blur(12px) saturate(1.4); -webkit-backdrop-filter: blur(12px) saturate(1.4);
-    font-family: inherit; font-size: 13px; letter-spacing: 0.6px;
-    transition: background 0.25s, border-color 0.25s, box-shadow 0.4s, transform 0.2s var(--ease);
-  }
-  .sub .chip:hover { background: var(--glass-hi); border-color: rgba(var(--accent-rgb),0.55); transform: scale(1.06); }
-  .sub.remote-focus .chip {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.55), 0 0 22px rgba(var(--accent-rgb),0.5);
-    transform: scale(1.08);
-  }
-  .sub .chip.on { background: rgba(var(--accent-rgb),0.22); border-color: rgba(var(--accent-rgb),0.7); }
+  .body.has-lbl .ico:hover + .lbl, .body.remote-focus.has-lbl .lbl { opacity: 1; }
 
   /* sky control lit */
   .ico.lit { background: rgba(var(--accent-rgb),0.26); border-color: rgba(var(--accent-rgb),0.75);
@@ -138,40 +130,49 @@
   .shimmer.run { animation: sweep 1.1s var(--ease) forwards; }
   @keyframes sweep { 0% { opacity:0; background-position:120% 0; } 25% { opacity:1; } 100% { opacity:0; background-position:-40% 0; } }
 
+  /* faint marking-menu flick trail */
+  .trail { position: fixed; left: 50%; top: 50%; height: 2px; transform-origin: 0 50%;
+    background: linear-gradient(90deg, rgba(var(--accent-rgb),0.55), transparent);
+    pointer-events: none; opacity: 0; z-index: 2; border-radius: 2px; }
+  .trail.run { animation: trailFade 0.5s ease forwards; }
+  @keyframes trailFade { 0% { opacity: 0.85; } 100% { opacity: 0; } }
+
   @media (prefers-reduced-motion: reduce) {
     .sun { animation: none !important; }
-    .body, .sub, .sun { transition: none !important; }
+    .body, .sun { transition: none !important; }
+    .body.swap { animation: none; }
     .sky-lines { transition: none; }
     .shimmer.run { animation: none; }
+    .trail { display: none; }
   }
 </style>
 </head>
 <body>
   <div class="caption">Sun hub</div>
   <div class="shimmer" id="shimmer"></div>
+  <div class="trail" id="trail"></div>
 
   <div class="system" id="system">
-    <button class="sun" id="sun" aria-label="Select the sun to open the controls" aria-expanded="false"></button>
     <div class="ring" id="ring"></div>
-    <div class="subs" id="subs"></div>
+    <button class="sun" id="sun" aria-label="Select the sun to open the controls" aria-expanded="false">
+      <span class="crumb" id="crumb"></span>
+    </button>
   </div>
 
-  <div class="hint">Select the sun to open · arrows move · back collapses</div>
+  <div class="hint">Tap or flick the sun · arrows move · back steps out</div>
 
 <script>
   const ICONS = {
     tour: '<svg viewBox="0 0 24 24"><path d="M7 4v16l13-8z" fill="currentColor"/></svg>',
     dice: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="8.5" cy="8.5" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="8.5" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="8.5" cy="15.5" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="15.5" r="1" fill="currentColor" stroke="none"/></svg>',
     sky: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline class="sky-lines" points="4,15 9,7 14,13 20,5"/><circle cx="4" cy="15" r="1.4" fill="currentColor" stroke="none"/><circle cx="9" cy="7" r="1.4" fill="currentColor" stroke="none"/><circle cx="14" cy="13" r="1.4" fill="currentColor" stroke="none"/><circle cx="20" cy="5" r="1.4" fill="currentColor" stroke="none"/></svg>',
-    zin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg>',
-    zout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="12" x2="18" y2="12"/></svg>',
     info: '<span style="font-size:18px;font-style:italic;">i</span>',
-    help: '<span style="font-size:18px;">?</span>',
     layers: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="5" y1="8" x2="19" y2="8"/><line x1="5" y1="12" x2="19" y2="12"/><line x1="5" y1="16" x2="19" y2="16"/></svg>',
     scale: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/></svg>',
+    back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,6 9,12 15,18"/></svg>',
   };
 
-  // primaries: direct ones have no subs; others carry a sub list
+  // primaries: direct ones fire immediately; others replace the ring in place
   const PRIMARIES = [
     { k:'tour',   label:'Tour',   direct:true },
     { k:'dice',   label:'Dice',   direct:true },
@@ -180,44 +181,77 @@
     { k:'layers', label:'Layers', subs:['NEOs','Comets','Meteors','Satellites'] },
     { k:'info',   label:'Info',   subs:['About','Shortcuts'] },
   ];
-  const R_PRIMARY = 132, R_SUB = 116;
+  const RING = 132;
+  // fixed slot count: the most a sub-list needs (5). Primaries pad to the same ring.
+  const SLOTS = 6;
 
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const system = document.getElementById('system');
   const sun = document.getElementById('sun');
   const ring = document.getElementById('ring');
-  const subsLayer = document.getElementById('subs');
+  const crumb = document.getElementById('crumb');
   const shimmer = document.getElementById('shimmer');
+  const trail = document.getElementById('trail');
 
-  // build primary ring
-  const primaryEls = PRIMARIES.map((p, i) => {
-    const a = (360 / PRIMARIES.length) * i - 90;
+  // Build a fixed pool of ring slots; we fill/empty them as levels change.
+  const slots = [];
+  for (let i = 0; i < SLOTS; i++) {
+    const a = (360 / SLOTS) * i - 90;             // start at top
     const body = document.createElement('div');
-    body.className = 'body primary';
+    body.className = 'body';
     body.style.setProperty('--a', a + 'deg');
-    body.style.setProperty('--r', R_PRIMARY + 'px');
+    body.style.setProperty('--r', RING + 'px');
     body.dataset.idx = i;
+    body.dataset.angle = a;
     const ico = document.createElement('button');
-    ico.className = 'ico'; ico.dataset.k = p.k; ico.setAttribute('aria-label', p.label); ico.tabIndex = -1;
-    ico.innerHTML = ICONS[p.k];
-    const lbl = document.createElement('span'); lbl.className = 'lbl'; lbl.textContent = p.label;
+    ico.className = 'ico'; ico.tabIndex = -1; ico.type = 'button';
+    const lbl = document.createElement('span'); lbl.className = 'lbl';
     body.appendChild(ico); body.appendChild(lbl);
     ring.appendChild(body);
-    p._angle = a; p._el = body; p._ico = ico;
-    return body;
-  });
+    slots.push({ body, ico, lbl });
+  }
 
   let bloomed = false;
-  let level = 1;            // 1 = primaries, 2 = subs open
-  let openIdx = -1;         // which primary opened its subs
-  let focusIdx = -1;        // -1 = sun; else index into current ring
-  let subEls = [];          // current sub .sub elements
+  let level = 1;            // 1 = primaries, 2 = a primary's subs
+  let parentIdx = -1;       // which primary opened the subs
+  let focusIdx = -1;        // -1 = sun; else index into filled slots
+  // model[i] describes the action bound to slot i for the current level
+  let model = [];
 
-  function setPrimaryDelays(forward) {
-    const n = primaryEls.length;
-    primaryEls.forEach((b, i) => {
-      const step = forward ? i : (n - 1 - i);
-      b.style.setProperty('--delay', (step * 0.05) + 's');
+  function fillSlot(i, spec) {
+    const s = slots[i];
+    s.body.className = 'body filled' + (spec.kind === 'sub' ? ' sub' : '') + (spec.label ? ' has-lbl' : '');
+    s.ico.innerHTML = spec.icon || '';
+    s.ico.setAttribute('aria-label', spec.aria || spec.text || '');
+    s.lbl.textContent = spec.label || '';
+    if (spec.lit) s.ico.classList.add('lit');
+  }
+  function emptySlot(i) {
+    const s = slots[i];
+    s.body.className = 'body';
+    s.ico.innerHTML = '';
+    s.ico.classList.remove('lit', 'on');
+    s.lbl.textContent = '';
+  }
+
+  function renderLevel1() {
+    model = [];
+    PRIMARIES.forEach((p, i) => {
+      fillSlot(i, { kind: 'primary', icon: ICONS[p.k], label: p.label, aria: p.label });
+      model[i] = { type: p.direct ? 'direct' : 'open', primaryIdx: i };
     });
+    for (let i = PRIMARIES.length; i < SLOTS; i++) emptySlot(i);
+  }
+
+  function renderLevel2(idx) {
+    const p = PRIMARIES[idx];
+    model = [];
+    p.subs.forEach((name, i) => {
+      fillSlot(i, { kind: 'sub', text: name, label: name, aria: p.label + ': ' + name });
+      slots[i].ico.textContent = name;
+      model[i] = { type: 'sub', parentIdx: idx, name };
+    });
+    for (let i = p.subs.length; i < SLOTS; i++) emptySlot(i);
   }
 
   function flashSun() {
@@ -227,114 +261,160 @@
   function pulseShimmer() {
     shimmer.classList.remove('run'); void shimmer.offsetWidth; shimmer.classList.add('run');
   }
+  function swapPop() {
+    if (reduceMotion) return;
+    slots.forEach(s => {
+      if (!s.body.classList.contains('filled')) return;
+      s.body.classList.remove('swap'); void s.body.offsetWidth; s.body.classList.add('swap');
+    });
+  }
 
   function clearFocus() {
-    document.querySelectorAll('.remote-focus').forEach(b => b.classList.remove('remote-focus'));
+    slots.forEach(s => s.body.classList.remove('remote-focus'));
     sun.classList.remove('remote-focus');
   }
+  function filledCount() { return model.filter(Boolean).length; }
   function paintFocus() {
     clearFocus();
     if (focusIdx < 0) { sun.classList.add('remote-focus'); return; }
-    const list = level === 1 ? primaryEls : subEls;
-    const el = list[focusIdx];
-    if (el) el.classList.add('remote-focus');
+    const s = slots[focusIdx];
+    if (s && s.body.classList.contains('filled')) s.body.classList.add('remote-focus');
+  }
+
+  function setStagger(forward) {
+    const n = filledCount();
+    for (let i = 0; i < SLOTS; i++) {
+      const step = forward ? i : (n - 1 - i);
+      slots[i].body.style.setProperty('--delay', reduceMotion ? '0s' : (step * 0.05) + 's');
+    }
+  }
+
+  function setCrumb(idx) {
+    if (idx < 0) { crumb.innerHTML = ''; return; }
+    const p = PRIMARIES[idx];
+    crumb.innerHTML = ICONS.back + '<span class="crumb-lbl">' + p.label + '</span>';
   }
 
   function bloom() {
-    bloomed = true; level = 1; openIdx = -1;
-    setPrimaryDelays(true);
+    bloomed = true; level = 1; parentIdx = -1;
+    renderLevel1(); setStagger(true);
     system.classList.add('bloomed'); system.classList.remove('level2');
+    setCrumb(-1);
     sun.setAttribute('aria-expanded', 'true');
+    sun.setAttribute('aria-label', 'Collapse the controls');
     flashSun();
     focusIdx = 0; paintFocus();
   }
   function collapse() {
-    closeSubs(true);
-    bloomed = false; level = 1;
-    setPrimaryDelays(false);
+    bloomed = false; level = 1; parentIdx = -1;
+    setStagger(false);
     system.classList.remove('bloomed', 'level2');
+    setCrumb(-1);
     sun.setAttribute('aria-expanded', 'false');
+    sun.setAttribute('aria-label', 'Select the sun to open the controls');
     flashSun();
     clearFocus(); focusIdx = -1;
+    // empty slots after they recede home
+    setTimeout(() => { if (!bloomed) slots.forEach((_, i) => emptySlot(i)); }, reduceMotion ? 0 : 720);
   }
 
-  function closeSubs(silent) {
-    subEls.forEach(s => s.remove());
-    subEls = [];
-    primaryEls.forEach(b => b.classList.remove('active'));
-    system.classList.remove('level2');
-    level = 1; openIdx = -1;
-    if (!silent) { focusIdx = 0; paintFocus(); }
-  }
-
+  // LEVEL 2 = REPLACE IN PLACE: same ring slots, sub-options crossfade in.
   function openSubs(idx) {
-    closeSubs(true);
-    const p = PRIMARIES[idx];
-    if (!p.subs) return;
-    openIdx = idx; level = 2;
-    p._el.classList.add('active');
+    level = 2; parentIdx = idx;
+    renderLevel2(idx);
+    setStagger(true);
     system.classList.add('level2');
-    // arc the subs around the primary's angle, stepping outward from the sun
-    const base = p._angle;          // degrees
-    const span = Math.min(28 * (p.subs.length - 1), 150);
-    const start = base - span / 2;
-    p.subs.forEach((name, i) => {
-      const a = (p.subs.length === 1 ? base : start + (span / (p.subs.length - 1)) * i) * Math.PI / 180;
-      const r = R_PRIMARY + R_SUB * 0.62;
-      const x = Math.cos(a) * r, y = Math.sin(a) * r;
-      const sub = document.createElement('div');
-      sub.className = 'sub';
-      sub.style.left = `calc(50% + ${x}px)`;
-      sub.style.top = `calc(50% + ${y}px)`;
-      sub.style.setProperty('--delay', (i * 0.05) + 's');
-      const chip = document.createElement('button');
-      chip.className = 'chip'; chip.type = 'button'; chip.tabIndex = -1;
-      chip.textContent = name; chip.dataset.parent = p.k; chip.dataset.name = name;
-      sub.appendChild(chip);
-      subsLayer.appendChild(sub);
-      subEls.push(sub);
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        sub.classList.add('shown');
-        sub.style.transform = `translate(-50%,-50%) scale(1)`;
-      }));
-    });
+    setCrumb(idx);
+    swapPop();
+    focusIdx = 0; paintFocus();
+  }
+  // back to level 1 (ring repopulates with primaries in place)
+  function backToLevel1() {
+    level = 1; parentIdx = -1;
+    renderLevel1();
+    setStagger(true);
+    system.classList.remove('level2');
+    setCrumb(-1);
+    swapPop();
+    flashSun();
     focusIdx = 0; paintFocus();
   }
 
-  function activatePrimary(idx) {
-    const p = PRIMARIES[idx];
-    if (p.direct) { pulseShimmer(); return; }
-    openSubs(idx);
-  }
-
-  function activateSub(sub) {
-    const chip = sub.querySelector('.chip');
-    if (chip.dataset.parent === 'sky' && chip.dataset.name === 'Constellations') {
-      const skyIco = PRIMARIES.find(p => p.k === 'sky')._ico;
-      skyIco.classList.add('lit');
-      pulseShimmer();
+  function activate(i) {
+    const m = model[i];
+    if (!m) return;
+    if (m.type === 'direct') { flashSun(); pulseShimmer(); return; }
+    if (m.type === 'open') { openSubs(m.primaryIdx); return; }
+    if (m.type === 'sub') {
+      const ico = slots[i].ico;
+      const on = ico.classList.toggle('on');
+      if (PRIMARIES[m.parentIdx].k === 'sky' && m.name === 'Constellations') {
+        // ignite the Sky context (the breadcrumb sun) + shimmer
+        ico.classList.toggle('lit', on);
+        pulseShimmer();
+      }
     }
-    chip.classList.toggle('on');
   }
 
-  // ─── pointer ──────────────────────────────────────────────────
-  sun.addEventListener('click', () => { bloomed ? collapse() : bloom(); });
+  // ─── pointer: tap sun toggles / breadcrumb backs ─────────────
+  function sunTap() {
+    if (!bloomed) { bloom(); return; }
+    if (level === 2) { backToLevel1(); return; }
+    collapse();
+  }
 
   ring.addEventListener('click', (e) => {
-    const body = e.target.closest('.primary');
+    const body = e.target.closest('.body.filled');
     if (!body) return;
-    activatePrimary(+body.dataset.idx);
+    activate(+body.dataset.idx);
   });
-  subsLayer.addEventListener('click', (e) => {
-    const sub = e.target.closest('.sub');
-    if (sub) activateSub(sub);
+
+  // ─── CHAOS / expert: marking-menu flick from the sun ─────────
+  let down = null;
+  const FLICK_MIN = 26;
+  sun.addEventListener('pointerdown', (e) => {
+    down = { x: e.clientX, y: e.clientY, t: Date.now() };
+    sun.setPointerCapture(e.pointerId);
   });
+  sun.addEventListener('pointerup', (e) => {
+    if (!down) { return; }
+    const dx = e.clientX - down.x, dy = e.clientY - down.y;
+    const dist = Math.hypot(dx, dy);
+    const start = down; down = null;
+    if (dist < FLICK_MIN) { sunTap(); return; }      // a tap, not a flick
+    // a flick: fire the primary nearest the flick direction directly
+    if (level === 2) { backToLevel1(); }
+    if (!bloomed) { bloom(); }                         // bloom so the slot is live
+    showTrail(start, e.clientX, e.clientY);
+    const ang = Math.atan2(dy, dx) * 180 / Math.PI;    // screen degrees
+    // slot angles are measured the same way (0deg = +x, top = -90)
+    let best = -1, bestD = 1e9;
+    for (let i = 0; i < SLOTS; i++) {
+      if (!model[i] || model[i].type === 'sub') continue;
+      let d = Math.abs(((+slots[i].body.dataset.angle - ang + 540) % 360) - 180);
+      if (d < bestD) { bestD = d; best = i; }
+    }
+    if (best >= 0) { focusIdx = best; paintFocus(); activate(best); }
+  });
+  sun.addEventListener('pointercancel', () => { down = null; });
+
+  function showTrail(start, ex, ey) {
+    if (reduceMotion) return;
+    const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+    const dx = ex - cx, dy = ey - cy;
+    const len = Math.min(Math.hypot(dx, dy), RING);
+    const ang = Math.atan2(dy, dx) * 180 / Math.PI;
+    trail.style.left = cx + 'px'; trail.style.top = cy + 'px';
+    trail.style.width = len + 'px';
+    trail.style.transform = `rotate(${ang}deg)`;
+    trail.classList.remove('run'); void trail.offsetWidth; trail.classList.add('run');
+  }
 
   // ─── Apple TV / Siri Remote simulation ───────────────────────
   document.addEventListener('keydown', (e) => {
     const k = e.key;
-    if (k === 'Escape' || k === 'Backspace') {
-      if (level === 2) { closeSubs(); e.preventDefault(); }
+    if (k === 'Escape' || k === 'Backspace' || k === 'ArrowUp') {
+      if (level === 2) { backToLevel1(); e.preventDefault(); }
       else if (bloomed) { collapse(); e.preventDefault(); }
       return;
     }
@@ -342,15 +422,14 @@
       if (k === 'Enter' || k === ' ') { bloom(); e.preventDefault(); }
       return;
     }
-    const list = () => (level === 1 ? primaryEls : subEls);
-    if (k === 'ArrowRight' || k === 'ArrowDown') {
-      focusIdx = focusIdx < 0 ? 0 : (focusIdx + 1) % list().length; paintFocus(); e.preventDefault();
-    } else if (k === 'ArrowLeft' || k === 'ArrowUp') {
-      focusIdx = focusIdx < 0 ? 0 : (focusIdx - 1 + list().length) % list().length; paintFocus(); e.preventDefault();
+    const n = filledCount();
+    if (k === 'ArrowRight') {
+      focusIdx = focusIdx < 0 ? 0 : (focusIdx + 1) % n; paintFocus(); e.preventDefault();
+    } else if (k === 'ArrowLeft') {
+      focusIdx = focusIdx < 0 ? 0 : (focusIdx - 1 + n) % n; paintFocus(); e.preventDefault();
     } else if (k === 'Enter' || k === ' ') {
-      if (focusIdx < 0) { collapse(); }
-      else if (level === 1) { activatePrimary(focusIdx); }
-      else { activateSub(subEls[focusIdx]); }
+      if (focusIdx < 0) { sunTap(); }
+      else { activate(focusIdx); }
       e.preventDefault();
     }
   });

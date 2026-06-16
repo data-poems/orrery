@@ -43,29 +43,39 @@
 
   /* ─── bottom-center bloom stage ───────────────────────────── */
   .stage {
-    position: fixed; left: 50%; bottom: calc(36px + env(safe-area-inset-bottom));
+    position: fixed; left: 50%; bottom: calc(54px + env(safe-area-inset-bottom));
     width: 0; height: 0;
   }
-  /* the hub anchor sits at the stage origin; bloom fans upward */
+  /* the hub anchor sits at the stage origin; the arc fans upward */
   .hub {
     position: absolute; left: 0; top: 0;
     width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%;
     background: radial-gradient(circle at 38% 34%, #ffe9b8, #f0a338 60%, #c8761b);
     box-shadow: 0 0 22px rgba(240,163,56,0.5), 0 0 52px rgba(240,163,56,0.22);
-    border: none; cursor: pointer; z-index: 6;
+    border: none; cursor: pointer; z-index: 6; overflow: hidden;
+    color: rgba(8,6,2,0.78); font-family: inherit;
     animation: pulse 6s ease-in-out infinite;
     transition: transform 0.5s var(--ease), box-shadow 0.5s var(--ease);
   }
   @keyframes pulse { 50% { box-shadow: 0 0 30px rgba(240,163,56,0.7), 0 0 78px rgba(240,163,56,0.32); } }
   .hub.flash { box-shadow: 0 0 48px rgba(255,220,150,0.95), 0 0 130px rgba(240,163,56,0.55); transform: scale(1.16); }
   .hub.remote-focus { outline: 2px solid var(--accent); outline-offset: 6px; }
+  /* breadcrumb label shown when the hub is acting as Back */
+  .hub .crumb {
+    position: absolute; inset: 0; display: none; flex-direction: column;
+    align-items: center; justify-content: center; gap: 1px; line-height: 1;
+  }
+  .hub.back .crumb { display: flex; }
+  .hub .crumb .arrow { font-size: 17px; }
+  .hub .crumb .who { font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
+    max-width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-  /* a control node (primary or sub) blooms from the hub origin */
+  /* a control node blooms from the hub origin into its arc slot */
   .node {
     position: absolute; left: 0; top: 0;
     width: var(--chip); height: var(--chip); margin: calc(var(--chip)/-2);
     transform: translate(0, 0) scale(0); opacity: 0;
-    transition: transform 0.6s var(--ease), opacity 0.4s ease;
+    transition: transform 0.55s var(--ease), opacity 0.34s ease;
     transition-delay: var(--delay, 0s);
     pointer-events: none;
   }
@@ -73,9 +83,13 @@
     transform: translate(var(--x), var(--y)) scale(1); opacity: 1;
     pointer-events: auto;
   }
-  .node.dim { opacity: 0.18; filter: saturate(0.4); pointer-events: none; }
+  /* crossfade: outgoing tier fades in place without flying home */
+  .node.fading {
+    transform: translate(var(--x), var(--y)) scale(0.84); opacity: 0;
+    pointer-events: none; transition: transform 0.2s ease, opacity 0.2s ease;
+  }
   .node .ico {
-    width: 100%; height: 100%; border-radius: 50%;
+    width: 100%; height: 100%; border-radius: 50%; position: relative;
     display: grid; place-items: center; cursor: pointer;
     background: var(--glass); border: 1px solid var(--stroke); color: var(--ink);
     backdrop-filter: blur(12px) saturate(1.4); -webkit-backdrop-filter: blur(12px) saturate(1.4);
@@ -103,15 +117,8 @@
   }
   .node .ico:hover ~ .lbl, .node.remote-focus .lbl { opacity: 1; }
 
-  /* secondary tier = labeled glass chips */
-  .node.sub { width: auto; height: auto; margin: 0; }
-  .node.sub .ico {
-    width: auto; height: auto; padding: 9px 14px; border-radius: 22px;
-    gap: 7px; grid-auto-flow: column; place-items: center;
-    font-size: 13px; letter-spacing: 0.5px; white-space: nowrap;
-  }
-  .node.sub .ico .sub-txt { font-size: 13px; line-height: 1; }
-  .node.sub svg { width: 16px; height: 16px; }
+  /* sub tier = the label rides inside the chip glyph slot, compact */
+  .node.sub .lbl { font-size: 9px; bottom: calc(100% + 4px); }
 
   /* sky control lit */
   .ico.lit { background: rgba(var(--accent-rgb),0.26); border-color: rgba(var(--accent-rgb),0.75);
@@ -139,90 +146,73 @@
   <div class="shimmer" id="shimmer"></div>
 
   <div class="stage" id="stage">
-    <button class="hub" id="hub" aria-label="Bloom or collapse the controls" aria-expanded="false"></button>
+    <button class="hub" id="hub" aria-label="Bloom or collapse the controls" aria-expanded="false">
+      <span class="crumb"><span class="arrow">‹</span><span class="who" id="crumbWho"></span></span>
+    </button>
   </div>
 
-  <div class="hint">Tap the hub to bloom · Remote: arrows move · select opens/activates · back collapses</div>
+  <div class="hint">Tap to open · arrows move · back steps out</div>
 
 <script>
   const ICONS = {
     tour: '<svg viewBox="0 0 24 24"><path d="M7 4v16l13-8z" fill="currentColor"/></svg>',
     dice: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="8.5" cy="8.5" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="8.5" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="8.5" cy="15.5" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="15.5" r="1" fill="currentColor" stroke="none"/></svg>',
     sky: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline class="sky-lines" points="4,15 9,7 14,13 20,5"/><circle cx="4" cy="15" r="1.4" fill="currentColor" stroke="none"/><circle cx="9" cy="7" r="1.4" fill="currentColor" stroke="none"/><circle cx="14" cy="13" r="1.4" fill="currentColor" stroke="none"/><circle cx="20" cy="5" r="1.4" fill="currentColor" stroke="none"/></svg>',
-    zin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg>',
+    scale: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/></svg>',
     info: '<span style="font-size:18px;font-style:italic;">i</span>',
     layers: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="5" y1="8" x2="19" y2="8"/><line x1="5" y1="12" x2="19" y2="12"/><line x1="5" y1="16" x2="19" y2="16"/></svg>',
+    dot: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="6"/></svg>',
   };
 
-  // primary controls (level 1) — each may carry subs (level 2)
+  // primary controls (level 1) — Tour/Dice are direct; the rest carry subs
   const PRIMARY = [
     { k: 'tour',   label: 'Tour' },
-    { k: 'dice',   label: 'Dice' },
-    { k: 'zin',    label: 'Scale',  subs: ['Inner','System','Outer','Kuiper','Oort'] },
+    { k: 'scale',  label: 'Scale',  subs: ['Inner','System','Outer','Kuiper','Oort'] },
     { k: 'sky',    label: 'Sky',    subs: ['Constellations','Asterisms','Stars','Deep space'] },
     { k: 'layers', label: 'Layers', subs: ['NEOs','Comets','Meteors','Satellites'] },
     { k: 'info',   label: 'Info',   subs: ['About','Shortcuts'] },
+    { k: 'dice',   label: 'Dice' },
   ];
-  const R1 = 132, R2 = 108; // bloom radii for the two tiers
 
-  const stage  = document.getElementById('stage');
-  const hub    = document.getElementById('hub');
-  const shimmer = document.getElementById('shimmer');
+  // Narrowed UPWARD arc, measured CSS-screen (up = negative Y). Endpoints pulled
+  // off the pure-horizontal extremes: 200°..340° keeps every item in the
+  // upper-middle band, away from the dead bottom corners.
+  const ARC_START = 200, ARC_END = 340; // degrees, screen-measured
+  const RADIUS = 138;                    // single shared arc radius for both tiers
 
-  // Build primary nodes in an upward fan: 180°..360° (top half of the circle),
-  // measured CSS-screen so up is negative Y. Arc order is left→right.
-  const primEls = [];
-  PRIMARY.forEach((p, i) => {
-    const t = PRIMARY.length === 1 ? 0.5 : i / (PRIMARY.length - 1);
-    const ang = Math.PI + t * Math.PI;          // π (left) → 2π (right), sweeping over the top
-    const x = Math.cos(ang) * R1;
-    const y = Math.sin(ang) * R1;               // sin over (π,2π) is negative → upward
-    const el = document.createElement('div');
-    el.className = 'node' + (p.subs ? ' has-sub' : '');
-    el.style.setProperty('--x', x.toFixed(1) + 'px');
-    el.style.setProperty('--y', y.toFixed(1) + 'px');
-    el.innerHTML =
-      '<button class="ico" data-k="' + p.k + '" aria-label="' + p.label + '" tabindex="-1">' + ICONS[p.k] + '</button>' +
-      '<span class="lbl">' + p.label + '</span>';
-    stage.appendChild(el);
-    primEls.push(el);
-  });
+  const stage   = document.getElementById('stage');
+  const hub      = document.getElementById('hub');
+  const crumbWho = document.getElementById('crumbWho');
+  const shimmer  = document.getElementById('shimmer');
 
-  // Sub nodes are created lazily per-primary, anchored on that primary's position.
-  let subEls = [];
-  function buildSubs(pi) {
-    clearSubs();
-    const p = PRIMARY[pi];
-    if (!p.subs) return;
-    const baseEl = primEls[pi];
-    const bx = parseFloat(baseEl.style.getPropertyValue('--x'));
-    const by = parseFloat(baseEl.style.getPropertyValue('--y'));
-    const n = p.subs.length;
-    p.subs.forEach((label, j) => {
-      // secondary arc bows further upward, centered above the primary
-      const t = n === 1 ? 0.5 : j / (n - 1);
-      const ang = Math.PI + 0.18 * Math.PI + t * 0.64 * Math.PI; // narrow upward fan
-      const x = bx + Math.cos(ang) * R2;
-      const y = by + Math.sin(ang) * R2;
-      const el = document.createElement('div');
-      el.className = 'node sub';
-      el.style.setProperty('--x', x.toFixed(1) + 'px');
-      el.style.setProperty('--y', y.toFixed(1) + 'px');
-      el.dataset.parent = p.k;
-      el.dataset.label = label;
-      const icon = p.k === 'sky' && label === 'Constellations' ? ICONS.sky : '';
-      el.innerHTML = '<button class="ico" tabindex="-1">' +
-        (icon ? icon : '') + '<span class="sub-txt">' + label + '</span></button>';
-      stage.appendChild(el);
-      subEls.push(el);
-    });
+  // place N nodes evenly across the arc; returns [{x,y}]
+  function arcSlots(n) {
+    const slots = [];
+    for (let i = 0; i < n; i++) {
+      const t = n === 1 ? 0.5 : i / (n - 1);
+      const deg = ARC_START + t * (ARC_END - ARC_START);
+      const a = deg * Math.PI / 180;
+      slots.push({ x: Math.cos(a) * RADIUS, y: Math.sin(a) * RADIUS });
+    }
+    return slots;
   }
-  function clearSubs() { subEls.forEach(e => e.remove()); subEls = []; }
 
-  // ─── state machine ─────────────────────────────────────────
-  let level = 0;            // 0 collapsed, 1 primaries, 2 subs
-  let openPrimary = -1;     // index of expanded primary at level 2
-  let focusIdx = -1;        // -1 = hub focused; else index within active tier
+  // build a node element for either tier
+  function makeNode(html, label, opts) {
+    const el = document.createElement('div');
+    el.className = 'node' + (opts.hasSub ? ' has-sub' : '') + (opts.sub ? ' sub' : '');
+    el.innerHTML =
+      '<button class="ico"' + (opts.k ? ' data-k="' + opts.k + '"' : '') +
+        ' aria-label="' + label + '" tabindex="-1">' + html + '</button>' +
+      '<span class="lbl">' + label + '</span>';
+    return el;
+  }
+
+  // ─── state ──────────────────────────────────────────────────
+  let level = 0;          // 0 collapsed, 1 primaries, 2 subs (in-place)
+  let openPrimary = -1;   // index of the primary whose subs are shown
+  let focusIdx = -1;      // -1 = hub focused; else index within the active tier
+  let tier = [];          // currently rendered node elements
 
   function flashHub() {
     hub.classList.remove('flash'); void hub.offsetWidth; hub.classList.add('flash');
@@ -232,71 +222,103 @@
     shimmer.classList.remove('run'); void shimmer.offsetWidth; shimmer.classList.add('run');
   }
 
-  function showPrimaries(forward) {
-    primEls.forEach((el, i) => {
-      const step = forward ? i : (primEls.length - 1 - i);
-      el.style.setProperty('--delay', (step * 0.05) + 's');
-      el.classList.add('shown'); el.classList.remove('dim');
+  // crossfade old tier out (in place), then render+bloom the new one
+  function renderTier(entries, opts) {
+    const dying = tier;
+    dying.forEach(el => { el.classList.remove('shown'); el.classList.add('fading'); });
+    setTimeout(() => dying.forEach(el => el.remove()), 220);
+
+    const slots = arcSlots(entries.length);
+    tier = entries.map((e, i) => {
+      const el = makeNode(e.html, e.label, e.opts || {});
+      el.dataset.idx = i;
+      if (e.k) el.dataset.k = e.k;
+      el.style.setProperty('--x', slots[i].x.toFixed(1) + 'px');
+      el.style.setProperty('--y', slots[i].y.toFixed(1) + 'px');
+      stage.appendChild(el);
+      return el;
+    });
+    // stagger the bloom (≤200ms overlapped)
+    requestAnimationFrame(() => {
+      tier.forEach((el, i) => {
+        el.style.setProperty('--delay', (i * 0.03).toFixed(2) + 's');
+        el.classList.add('shown');
+      });
     });
   }
-  function hidePrimaries() {
-    primEls.forEach((el, i) => {
-      el.style.setProperty('--delay', (i * 0.04) + 's');
-      el.classList.remove('shown', 'dim');
-    });
+
+  function showPrimaries() {
+    renderTier(PRIMARY.map(p => ({
+      html: ICONS[p.k], label: p.label, k: p.k,
+      opts: { k: p.k, hasSub: !!p.subs },
+    })));
+  }
+  function showSubs(pi) {
+    const p = PRIMARY[pi];
+    renderTier(p.subs.map(label => {
+      const isConst = p.k === 'sky' && label === 'Constellations';
+      return {
+        html: (isConst ? ICONS.sky : ICONS.dot), label,
+        opts: { sub: true },
+      };
+    }));
+  }
+
+  function setHubBack(parentLabel) {
+    hub.classList.add('back');
+    crumbWho.textContent = parentLabel || '';
+    hub.setAttribute('aria-label', 'Back to ' + (parentLabel || 'controls'));
+  }
+  function setHubHome(expanded) {
+    hub.classList.remove('back');
+    hub.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    hub.setAttribute('aria-label', 'Bloom or collapse the controls');
   }
 
   function toLevel1() {
     level = 1; openPrimary = -1;
-    clearSubs();
-    showPrimaries(true);
-    hub.setAttribute('aria-expanded', 'true');
+    showPrimaries();
+    setHubHome(true);
     flashHub();
     focusIdx = 0; paintFocus();
   }
   function collapse() {
     level = 0; openPrimary = -1;
-    hidePrimaries();
-    clearSubs();
-    hub.setAttribute('aria-expanded', 'false');
+    const dying = tier; tier = [];
+    dying.forEach(el => { el.classList.remove('shown'); el.classList.add('fading'); });
+    setTimeout(() => dying.forEach(el => el.remove()), 220);
+    setHubHome(false);
     flashHub();
     focusIdx = -1; clearFocusRing();
   }
   function toLevel2(pi) {
     level = 2; openPrimary = pi;
-    // recede the other primaries, keep the chosen one bright
-    primEls.forEach((el, i) => el.classList.toggle('dim', i !== pi));
-    buildSubs(pi);
-    // stagger reveal on the next frame so transitions fire
-    requestAnimationFrame(() => {
-      subEls.forEach((el, j) => {
-        el.style.setProperty('--delay', (j * 0.05) + 's');
-        el.classList.add('shown');
-      });
-    });
+    showSubs(pi);
+    setHubBack(PRIMARY[pi].label);
     focusIdx = 0; paintFocus();
   }
   function backToLevel1() {
-    clearSubs();
     level = 1; openPrimary = -1;
-    primEls.forEach(el => el.classList.remove('dim'));
+    showPrimaries();
+    setHubHome(true);
     focusIdx = 0; paintFocus();
   }
 
   function activatePrimary(pi) {
+    if (pi < 0 || pi >= PRIMARY.length) return;
     const p = PRIMARY[pi];
     if (p.subs) { toLevel2(pi); return; }
     pulseShimmer(); // direct action (Tour / Dice)
   }
-  function activateSub(el) {
-    const parent = el.dataset.parent, label = el.dataset.label;
-    if (parent === 'sky' && label === 'Constellations') {
-      const skyIco = primEls[3].querySelector('.ico');
-      skyIco.classList.add('lit');
-      pulseShimmer();
-    } else {
-      pulseShimmer();
+  function activateSub(idx) {
+    const p = PRIMARY[openPrimary];
+    if (!p) return;
+    const label = p.subs[idx];
+    if (p.k === 'sky' && label === 'Constellations') {
+      const ico = tier[idx] && tier[idx].querySelector('.ico');
+      if (ico) ico.classList.add('lit'); // .lit sky-ignite
     }
+    pulseShimmer();
   }
 
   // ─── remote focus painting ──────────────────────────────────
@@ -304,28 +326,28 @@
     document.querySelectorAll('.node.remote-focus').forEach(n => n.classList.remove('remote-focus'));
     hub.classList.remove('remote-focus');
   }
-  function activeTier() { return level === 2 ? subEls : primEls; }
   function paintFocus() {
     clearFocusRing();
     if (level === 0 || focusIdx < 0) { hub.classList.add('remote-focus'); return; }
-    const el = activeTier()[focusIdx];
+    const el = tier[focusIdx];
     if (el) el.classList.add('remote-focus');
   }
 
   // ─── pointer wiring ─────────────────────────────────────────
-  hub.addEventListener('click', () => { level === 0 ? toLevel1() : collapse(); });
+  hub.addEventListener('click', () => {
+    if (level === 0) toLevel1();
+    else if (level === 2) backToLevel1(); // hub is Back
+    else collapse();
+  });
   stage.addEventListener('click', (e) => {
     const ico = e.target.closest('.ico');
     if (!ico) return;
     const node = ico.closest('.node');
-    if (!node) return;
-    if (node.classList.contains('sub')) { activateSub(node); return; }
-    if (node.classList.contains('dim')) return;
-    const pi = primEls.indexOf(node);
-    if (pi < 0) return;
-    // re-tapping the open primary returns to level 1
-    if (level === 2 && pi === openPrimary) { backToLevel1(); return; }
-    activatePrimary(pi);
+    if (!node || node.classList.contains('fading')) return;
+    const idx = parseInt(node.dataset.idx, 10);
+    if (Number.isNaN(idx)) return;
+    if (level === 2) activateSub(idx);
+    else activatePrimary(idx);
   });
 
   // ─── Apple TV / Siri Remote simulation ──────────────────────
@@ -340,12 +362,12 @@
       if (k === 'Enter' || k === ' ') { toLevel1(); e.preventDefault(); }
       return;
     }
-    const tier = activeTier();
-    if (k === 'ArrowRight') { focusIdx = (focusIdx + 1) % tier.length; paintFocus(); e.preventDefault(); }
-    else if (k === 'ArrowLeft') { focusIdx = (focusIdx - 1 + tier.length) % tier.length; paintFocus(); e.preventDefault(); }
+    const n = tier.length;
+    if (k === 'ArrowRight') { focusIdx = (focusIdx + 1) % n; paintFocus(); e.preventDefault(); }
+    else if (k === 'ArrowLeft') { focusIdx = (focusIdx - 1 + n) % n; paintFocus(); e.preventDefault(); }
     else if (k === 'Enter' || k === ' ') {
       if (level === 1) activatePrimary(focusIdx);
-      else activateSub(tier[focusIdx]);
+      else activateSub(focusIdx);
       e.preventDefault();
     }
   });

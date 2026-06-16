@@ -24,7 +24,7 @@ import { CONSTELLATION_NAMES } from './data/mythology';
 import { getConstellationCentroid, getConstellationCentroidCached, prefetchConstellationCentroids } from './lib/constellationCentroids';
 import Scene from './scene/Scene';
 import Panels from './ui/Panels';
-import SolarArc from './ui/SolarArc';
+import ControlBar from './ui/ControlBar';
 import LoadingScreen from './ui/LoadingScreen';
 import OrreryDiagOverlay from './ui/OrreryDiagOverlay';
 import { neoFeedUrlForDay } from './lib/neoFeed';
@@ -251,7 +251,6 @@ function OrreryInner() {
   const [cameraDistance, setCameraDistance] = useState(50);
   const [camIdx, setCamIdx] = useState(0);
   const [panelOpen, setPanelOpen] = useState(false);
-  const [arcOpen, setArcOpen] = useState(false);
   // Idle-fade: the summon hub is invisible at rest and wakes on interaction.
   const [hudActive, setHudActive] = useState(true);
   const hudActiveRef = useRef(true);
@@ -1017,30 +1016,30 @@ function OrreryInner() {
     if (cinematic) exitCinematic();
   }, [cinematic, exitCinematic]);
 
-  // Sun Fan: clicking/zooming to the sun fans the controls above it. Summon
-  // zooms to the 'Sun' preset (a fixed framing the fan is anchored to) and
-  // remembers where we were; dismiss restores that view so you're never stuck.
-  const arcPrevCamIdx = useRef(0);
-  const summonArc = useCallback(() => {
-    if (OBSERVATORY_MODE || arcOpen) return;
-    arcPrevCamIdx.current = camIdx;
-    setCinematic(false);
-    jumpToPreset('SunHub');
-    setArcOpen(true);
-  }, [arcOpen, camIdx, jumpToPreset]);
-  const dismissArc = useCallback(() => {
-    setArcOpen(false);
-    const prev = arcPrevCamIdx.current;
-    if (prev >= 0 && prev !== camIndex('SunHub')) handlePresetSelect(prev);
-    else jumpToPreset('System');
-  }, [handlePresetSelect, jumpToPreset]);
-
-  // Solar Arc action dispatch (no camera move beyond the summon zoom).
+  // Control Bar action dispatch. The bar manages its own expand/collapse.
+  const ZOOM_LADDER = ['Sun', 'Inner', 'System', 'Outer', 'Kuiper', 'Oort', 'Stellar'];
   const handleArcAction = useCallback((action: string, arg?: string) => {
     switch (action) {
-      case 'tour': setArcOpen(false); startCinematicTour(); break;
-      case 'dice': setArcOpen(false); triggerRandomJump(); break;
-      case 'preset': if (arg) { setArcOpen(false); jumpToPreset(arg); } break;
+      case 'tour': startCinematicTour(); break;
+      case 'dice': triggerRandomJump(); break;
+      case 'preset': if (arg) jumpToPreset(arg); break;
+      case 'zoom': {
+        // Step the scale ladder by nearest current rung (by camera distance).
+        const dists = ZOOM_LADDER.map(l => {
+          const i = camIndex(l);
+          if (i < 0) return Infinity;
+          const [x, y, z] = CAMS[i].pos;
+          return Math.sqrt(x * x + y * y + z * z);
+        });
+        let cur = 0, best = Infinity;
+        dists.forEach((d, i) => {
+          const diff = Math.abs(Math.log10(d) - Math.log10(Math.max(0.01, cameraDistance)));
+          if (diff < best) { best = diff; cur = i; }
+        });
+        const next = Math.max(0, Math.min(ZOOM_LADDER.length - 1, cur + (arg === 'in' ? -1 : 1)));
+        if (next !== cur) jumpToPreset(ZOOM_LADDER[next]);
+        break;
+      }
       case 'toggleSky':
         setConstellationFocus((prev) => {
           const next = !prev;
@@ -1057,10 +1056,11 @@ function OrreryInner() {
         else if (arg === 'deepSpace') setShowDeepSpace(p => !p);
         else if (arg === 'asterisms') setShowAsterisms(p => !p);
         break;
-      case 'info': setArcOpen(false); window.dispatchEvent(new CustomEvent('orrery:open-info')); break;
-      case 'shortcuts': setArcOpen(false); window.dispatchEvent(new CustomEvent('orrery:toggle-shortcuts')); break;
+      case 'info': window.dispatchEvent(new CustomEvent('orrery:open-info')); break;
+      case 'shortcuts': window.dispatchEvent(new CustomEvent('orrery:toggle-shortcuts')); break;
     }
-  }, [startCinematicTour, triggerRandomJump, jumpToPreset]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startCinematicTour, triggerRandomJump, jumpToPreset, cameraDistance]);
   const arcLayerState = useMemo(() => ({
     sky: constellationFocus,
     neo: showNeo, dwarf: showDwarf, comets: showComets, meteors: showMeteors,
@@ -1174,7 +1174,7 @@ function OrreryInner() {
       selSpacecraft={selSpacecraft} setSelSpacecraft={setSelSpacecraft}
       selNearStar={selNearStar} setSelNearStar={setSelNearStar}
       selGalaxy={selGalaxy} setSelGalaxy={setSelGalaxy}
-      onSunSelect={() => { if (!cinematic) summonArc(); }}
+      onSunSelect={handleSunSelect}
       onUserGrabDuringCinematic={handleUserGrabDuringCinematic}
     />
   );
@@ -1335,42 +1335,15 @@ function OrreryInner() {
         onStartCinematic={startCinematicTour}
       />
 
-      {!OBSERVATORY_MODE && !arcOpen && (
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); summonArc(); }}
-          aria-label="Open controls"
-          style={{
-            // Sits where the sun lands after the summon zoom (50%, 78%), so
-            // tapping it reads as zooming into the sun. Small + idle-faded so it
-            // stays out of the way otherwise.
-            position: 'fixed', top: '78%', left: '50%',
-            transform: 'translate(-50%,-50%)', zIndex: 30, width: 40, height: 40, borderRadius: '50%',
-            background: `rgba(${accentRgb},0.12)`, border: `1px solid rgba(${accentRgb},0.4)`,
-            color: theme.uiAccent, cursor: hudActive ? 'pointer' : 'default', display: 'grid', placeItems: 'center',
-            backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-            opacity: hudActive ? 0.85 : 0,
-            pointerEvents: hudActive ? 'auto' : 'none',
-            transition: 'opacity 0.6s ease',
-          }}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="12" cy="12" r="5" fill="currentColor" />
-            <g stroke="currentColor" strokeWidth="1.4">
-              <line x1="12" y1="2" x2="12" y2="5" /><line x1="12" y1="19" x2="12" y2="22" />
-              <line x1="2" y1="12" x2="5" y2="12" /><line x1="19" y1="12" x2="22" y2="12" />
-            </g>
-          </svg>
-        </button>
+      {!OBSERVATORY_MODE && (
+        <ControlBar
+          visible={hudActive}
+          accent={theme.uiAccent}
+          accentRgb={accentRgb}
+          onAction={handleArcAction}
+          layerState={arcLayerState}
+        />
       )}
-      <SolarArc
-        open={arcOpen}
-        onDismiss={dismissArc}
-        accent={theme.uiAccent}
-        accentRgb={accentRgb}
-        onAction={handleArcAction}
-        layerState={arcLayerState}
-      />
 
       {showSkyModeHint && !OBSERVATORY_MODE && (
         <div

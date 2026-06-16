@@ -99,10 +99,6 @@ export const CAMS: CamPreset[] = [
   { key: '-', label: 'Stargazer', pos: [0, 3, 6],         tgt: [0, 0, 0] },
   { key: '=', label: 'Stellar',   pos: [0, 12000, 18000], tgt: [0, 0, 0] },
   { key: 'e', label: 'Earth Observer', pos: [0.001, 0, 0], tgt: [0, 0, 0], follow: 2, observe: true },
-  // Framing for the Sun Fan control surface: sun small and low, sky above for
-  // the fanned controls. Appended (never reordered) so cinematicSteps indices
-  // stay valid. Not bound to a number key; summoned via the control hub.
-  { key: 'u', label: 'SunHub', pos: [0, 1.1, 3.2], tgt: [0, 1.1, 0], fastApproach: true },
 ];
 
 const CAM_INDEX: Record<string, number> = Object.fromEntries(CAMS.map((c, i) => [c.label, i]));

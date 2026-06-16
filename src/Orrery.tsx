@@ -24,6 +24,7 @@ import { CONSTELLATION_NAMES } from './data/mythology';
 import { getConstellationCentroid, getConstellationCentroidCached, prefetchConstellationCentroids } from './lib/constellationCentroids';
 import Scene from './scene/Scene';
 import Panels from './ui/Panels';
+import SolarArc from './ui/SolarArc';
 import LoadingScreen from './ui/LoadingScreen';
 import OrreryDiagOverlay from './ui/OrreryDiagOverlay';
 import { neoFeedUrlForDay } from './lib/neoFeed';
@@ -250,6 +251,11 @@ function OrreryInner() {
   const [cameraDistance, setCameraDistance] = useState(50);
   const [camIdx, setCamIdx] = useState(0);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [arcOpen, setArcOpen] = useState(false);
+  // Idle-fade: the summon hub is invisible at rest and wakes on interaction.
+  const [hudActive, setHudActive] = useState(true);
+  const hudActiveRef = useRef(true);
+  const hudTimerRef = useRef<number | undefined>(undefined);
   const [cinematicRotateSpeed, setCinematicRotateSpeed] = useState(0.5);
   const [showSkyModeHint, setShowSkyModeHint] = useState(false);
   const [pulseSkyToggle, setPulseSkyToggle] = useState(false);
@@ -815,9 +821,20 @@ function OrreryInner() {
       setFocusTarget(null);
     };
 
+    // Constellations belong to sky destinations only. Without this, one
+    // constellation roll left them (and focus-mode brightness) on for every
+    // later planet/preset/moon roll — the "chaotic" accumulation.
+    const disableSkyTourLayers = () => {
+      setShowConstellations(false);
+      setConstellationFocus(false);
+      setSelConstellation(null);
+      setSelAsterism(null);
+    };
+
     switch (target.kind) {
       case 'preset':
         clearObjectSelections();
+        disableSkyTourLayers();
         setAimAtSphere(null);
         if (target.label === 'Sun') {
           handleSunSelect();
@@ -827,6 +844,7 @@ function OrreryInner() {
         return;
       case 'planet':
         clearObjectSelections();
+        disableSkyTourLayers();
         setAimAtSphere(null);
         // Dwarf planets are filtered out of `visibleBodies` unless `showDwarf`
         // is enabled; without this, focusing Eris/Pluto/Ceres lands the camera
@@ -836,6 +854,7 @@ function OrreryInner() {
         return;
       case 'moon':
         clearObjectSelections();
+        disableSkyTourLayers();
         setAimAtSphere(null);
         handleMoonSelect(target.planetIdx, target.moonIdx);
         return;
@@ -997,6 +1016,64 @@ function OrreryInner() {
   const handleUserGrabDuringCinematic = useCallback(() => {
     if (cinematic) exitCinematic();
   }, [cinematic, exitCinematic]);
+
+  // Solar Arc action dispatch (no camera move — pure overlay).
+  const handleArcAction = useCallback((action: string, arg?: string) => {
+    switch (action) {
+      case 'tour': setArcOpen(false); startCinematicTour(); break;
+      case 'dice': setArcOpen(false); triggerRandomJump(); break;
+      case 'preset': if (arg) { setArcOpen(false); jumpToPreset(arg); } break;
+      case 'toggleSky':
+        setConstellationFocus((prev) => {
+          const next = !prev;
+          if (next) { setShowStars(true); setShowConstellations(true); setSelConstellation(null); setSelAsterism(null); setAimAtSphere(null); }
+          return next;
+        });
+        break;
+      case 'layer':
+        if (arg === 'neo') setShowNeo(p => !p);
+        else if (arg === 'dwarf') setShowDwarf(p => !p);
+        else if (arg === 'comets') setShowComets(p => !p);
+        else if (arg === 'meteors') setShowMeteors(p => !p);
+        else if (arg === 'satellites') setShowSatellites(p => !p);
+        else if (arg === 'deepSpace') setShowDeepSpace(p => !p);
+        else if (arg === 'asterisms') setShowAsterisms(p => !p);
+        break;
+      case 'info': setArcOpen(false); window.dispatchEvent(new CustomEvent('orrery:open-info')); break;
+      case 'shortcuts': setArcOpen(false); window.dispatchEvent(new CustomEvent('orrery:toggle-shortcuts')); break;
+    }
+  }, [startCinematicTour, triggerRandomJump, jumpToPreset]);
+  const arcLayerState = useMemo(() => ({
+    sky: constellationFocus,
+    neo: showNeo, dwarf: showDwarf, comets: showComets, meteors: showMeteors,
+    satellites: showSatellites, deepSpace: showDeepSpace, asterisms: showAsterisms,
+  }), [constellationFocus, showNeo, showDwarf, showComets, showMeteors, showSatellites, showDeepSpace, showAsterisms]);
+
+  // Wake the HUD on any interaction; fade out after idle. setState only on edges.
+  useEffect(() => {
+    const IDLE_MS = 4000;
+    const wake = () => {
+      if (!hudActiveRef.current) { hudActiveRef.current = true; setHudActive(true); }
+      window.clearTimeout(hudTimerRef.current);
+      hudTimerRef.current = window.setTimeout(() => {
+        hudActiveRef.current = false;
+        setHudActive(false);
+      }, IDLE_MS);
+    };
+    const opts = { passive: true } as const;
+    window.addEventListener('pointermove', wake, opts);
+    window.addEventListener('pointerdown', wake, opts);
+    window.addEventListener('touchstart', wake, opts);
+    window.addEventListener('keydown', wake);
+    wake();
+    return () => {
+      window.removeEventListener('pointermove', wake);
+      window.removeEventListener('pointerdown', wake);
+      window.removeEventListener('touchstart', wake);
+      window.removeEventListener('keydown', wake);
+      window.clearTimeout(hudTimerRef.current);
+    };
+  }, []);
 
   const reloadLoadingTasks = useCallback(() => {
     setLoadingTasks({
@@ -1238,6 +1315,40 @@ function OrreryInner() {
         currentAreaLabel={currentAreaLabel}
         onRandomJump={triggerRandomJump}
         onStartCinematic={startCinematicTour}
+      />
+
+      {!OBSERVATORY_MODE && !arcOpen && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setArcOpen(true); }}
+          aria-label="Open controls"
+          style={{
+            position: 'fixed', bottom: 'calc(env(safe-area-inset-bottom,0px) + 24px)', left: '50%',
+            transform: 'translateX(-50%)', zIndex: 30, width: 44, height: 44, borderRadius: '50%',
+            background: `rgba(${accentRgb},0.14)`, border: `1px solid rgba(${accentRgb},0.45)`,
+            color: theme.uiAccent, cursor: hudActive ? 'pointer' : 'default', display: 'grid', placeItems: 'center',
+            backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+            opacity: hudActive ? 1 : 0,
+            pointerEvents: hudActive ? 'auto' : 'none',
+            transition: 'opacity 0.6s ease',
+          }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="5" fill="currentColor" />
+            <g stroke="currentColor" strokeWidth="1.4">
+              <line x1="12" y1="2" x2="12" y2="5" /><line x1="12" y1="19" x2="12" y2="22" />
+              <line x1="2" y1="12" x2="5" y2="12" /><line x1="19" y1="12" x2="22" y2="12" />
+            </g>
+          </svg>
+        </button>
+      )}
+      <SolarArc
+        open={arcOpen}
+        onDismiss={() => setArcOpen(false)}
+        accent={theme.uiAccent}
+        accentRgb={accentRgb}
+        onAction={handleArcAction}
+        layerState={arcLayerState}
       />
 
       {showSkyModeHint && !OBSERVATORY_MODE && (

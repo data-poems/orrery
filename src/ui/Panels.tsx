@@ -8,12 +8,12 @@
  * No emoji anywhere.
  */
 
-import { useEffect, useState, useCallback, useRef, Fragment } from 'react';
+import { useEffect, useState, useRef, Fragment } from 'react';
 import type { NEO, CamPreset } from '../lib/kepler';
 import { ALL_BODIES } from '../data/planets';
 import { getMoonsForPlanet } from '../data/moons';
 import { useTheme } from '../lib/themes';
-import { bokehCard, useIsMobile, Z, BLUR, ACTIVE_ALPHA } from './styles';
+import { bokehCard, useIsMobile, Z, BLUR } from './styles';
 import { PREFERS_REDUCED_MOTION } from '../lib/motion';
 import type { CometDef } from '../data/comets';
 import type { MeteorShower } from '../scene/Meteors';
@@ -31,16 +31,6 @@ function safeAreaTop(extraPx: number): string {
 /** Distance from bottom of viewport above home indicator (iOS safe area). */
 function safeAreaBottom(extraPx: number): string {
   return `calc(env(safe-area-inset-bottom, 0px) + ${extraPx}px)`;
-}
-
-/** Distance from right viewport edge inside notch / rounded-corner inset. */
-function safeAreaRight(extraPx: number): string {
-  return `calc(env(safe-area-inset-right, 0px) + ${extraPx}px)`;
-}
-
-/** Distance from left viewport edge inside notch / rounded-corner inset. */
-function safeAreaLeft(extraPx: number): string {
-  return `calc(env(safe-area-inset-left, 0px) + ${extraPx}px)`;
 }
 
 // Group MYTHOLOGY entries into Northern-hemisphere season buckets. Constellations
@@ -93,132 +83,6 @@ function formatEarthRelativeGravity(gravity: string | undefined): string {
   if (g < 0.1) return `${g.toFixed(2)}x Earth`;
   if (g < 10) return `${g.toFixed(1)}x Earth`;
   return `${g.toFixed(0)}x Earth`;
-}
-
-// ─── Zoom controls (jumps between camera scale-level presets) ───────────────────
-
-const ZOOM_LEVEL_LABELS = ['Sun', 'Inner', 'System', 'Outer', 'Kuiper', 'Oort', 'Stellar'] as const;
-
-/** Dice icon used by the random-tour toggle. Shows the "five" face. */
-function DiceIcon({ size = 18 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <rect
-        x="3.5" y="3.5" width="17" height="17" rx="3.6" ry="3.6"
-        stroke="currentColor" strokeWidth="1.4" fill="none"
-      />
-      <circle cx="8" cy="8" r="1.4" fill="currentColor" />
-      <circle cx="16" cy="8" r="1.4" fill="currentColor" />
-      <circle cx="12" cy="12" r="1.4" fill="currentColor" />
-      <circle cx="8" cy="16" r="1.4" fill="currentColor" />
-      <circle cx="16" cy="16" r="1.4" fill="currentColor" />
-    </svg>
-  );
-}
-
-/** Compact constellation stick-figure icon for Sky mode toggle. */
-function ConstellationIcon({ size = 18 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <circle cx="5" cy="6" r="1.4" fill="currentColor" />
-      <circle cx="12" cy="4" r="1.6" fill="currentColor" />
-      <circle cx="19" cy="8" r="1.4" fill="currentColor" />
-      <circle cx="8" cy="14" r="1.3" fill="currentColor" />
-      <circle cx="16" cy="17" r="1.5" fill="currentColor" />
-      <path
-        d="M5 6L12 4M12 4L19 8M5 6L8 14M19 8L16 17M8 14L16 17"
-        stroke="currentColor"
-        strokeWidth="1.1"
-        strokeLinecap="round"
-        opacity="0.85"
-      />
-    </svg>
-  );
-}
-
-function ZoomControls({ cams, cameraDistance, onPresetSelect }: {
-  cams: CamPreset[];
-  cameraDistance: number;
-  onPresetSelect: (i: number) => void;
-}) {
-  const levels = ZOOM_LEVEL_LABELS
-    .map(label => {
-      const idx = cams.findIndex(c => c.label === label);
-      if (idx < 0) return null;
-      const [x, y, z] = cams[idx].pos;
-      return { idx, dist: Math.sqrt(x * x + y * y + z * z) };
-    })
-    .filter((v): v is { idx: number; dist: number } => v !== null);
-
-  const currentLevel = levels.reduce((best, cur, i) => {
-    const diff = Math.abs(Math.log10(cur.dist) - Math.log10(Math.max(0.01, cameraDistance)));
-    return diff < best.diff ? { i, diff } : best;
-  }, { i: 0, diff: Infinity }).i;
-
-  const zoom = useCallback((direction: number) => {
-    const next = Math.max(0, Math.min(levels.length - 1, currentLevel + direction));
-    if (next !== currentLevel) onPresetSelect(levels[next].idx);
-  }, [currentLevel, levels, onPresetSelect]);
-
-  const atMin = currentLevel === 0;
-  const atMax = currentLevel === levels.length - 1;
-
-  const btnStyle = (disabled: boolean): React.CSSProperties => ({
-    background: 'rgba(0,0,0,0.35)',
-    border: '1px solid rgba(255,255,255,0.12)',
-    borderRadius: 6,
-    color: disabled ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.7)',
-    width: 44,
-    height: 44,
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    padding: 0,
-    fontFamily: 'inherit',
-    fontSize: 18,
-    fontWeight: 400,
-    backdropFilter: `blur(${BLUR.chip}px)`,
-    WebkitBackdropFilter: `blur(${BLUR.chip}px)`,
-    transition: 'color 0.18s ease, border-color 0.18s ease',
-    pointerEvents: 'auto',
-  });
-
-  // Top-right placement on every form factor: bottom-right used to be the
-  // tablet/desktop home, but the InfoPanel detail card pins itself to
-  // [bottom: 16, right: 16] with full-height width on iPad and was occluding
-  // the +/- buttons whenever a constellation/planet card was open. Sitting
-  // directly under the dice/sky chip cluster keeps the controls reachable and
-  // avoids the cinematic Sky toggle hint that hugs the upper-left.
-  return (
-    <div style={{
-      position: 'fixed',
-      top: safeAreaTop(64),
-      right: safeAreaRight(12),
-      display: 'flex', flexDirection: 'column', gap: 4,
-      zIndex: Z.hud,
-      pointerEvents: 'none',
-    }}>
-      <button onClick={() => zoom(-1)} disabled={atMin} aria-label="Zoom in to next scale level" style={btnStyle(atMin)}>
-        <span aria-hidden="true">+</span>
-      </button>
-      <button onClick={() => zoom(1)} disabled={atMax} aria-label="Zoom out to next scale level" style={btnStyle(atMax)}>
-        <span aria-hidden="true">−</span>
-      </button>
-    </div>
-  );
 }
 
 // ─── About dialog (accessible modal) ────────────────────────────────────────────
@@ -602,10 +466,10 @@ export default function Panels(props: PanelProps) {
     showNeo,
     setShowNeo: _setShowNeo,
     setShowDwarf: _setShowDwarf,
-    showStars: _showStars, setShowStars,
-    showConstellations: _showConstellations, setShowConstellations,
+    showStars: _showStars, setShowStars: _setShowStars,
+    showConstellations: _showConstellations, setShowConstellations: _setShowConstellations,
     setShowAsterisms: _setShowAsterisms,
-    constellationFocus, setConstellationFocus,
+    setConstellationFocus: _setConstellationFocus,
     setShowAsteroidBelt: _setShowAsteroidBelt,
     setShowComets: _setShowComets,
     setShowMeteors: _setShowMeteors,
@@ -614,10 +478,8 @@ export default function Panels(props: PanelProps) {
     selAsterism, setSelAsterism,
     panelOpen: _panelOpen, setPanelOpen: _setPanelOpen,
     cinematic,
-    pulseSkyToggle = false,
     navStack,
     selMoonIdx, cameraDistance,
-    cams, onPresetSelect,
     selComet, selMeteor, selSatellite,
     setShowDeepSpace: _setShowDeepSpace,
     selSun,
@@ -625,13 +487,12 @@ export default function Panels(props: PanelProps) {
     selNearStar, setSelNearStar,
     selGalaxy, setSelGalaxy,
     currentAreaLabel,
-    onRandomJump,
-    onStartCinematic,
   } = props;
   void _setShowNeo; void _simTime; void _speed; void _setSelPlanet; void _neos; void _setShowDwarf; void _showStars; void _showConstellations;
   void _setShowAsterisms; void _setShowAsteroidBelt; void _setShowComets;
   void _setShowMeteors; void _setShowSatellites;
   void _panelOpen; void _setPanelOpen; void _setShowDeepSpace;
+  void _setShowStars; void _setShowConstellations; void _setConstellationFocus;
 
   const observatoryMode = OBSERVATORY_MODE;
   const { theme } = useTheme();
@@ -655,48 +516,20 @@ export default function Panels(props: PanelProps) {
     const hide = window.setTimeout(() => setPaleBlueDot(false), 9000);
     return () => { window.clearTimeout(show); window.clearTimeout(hide); };
   }, [cameraDistance, observatoryMode]);
-  // The '?' keyboard shortcut is handled in Orrery; it pings us via this event.
+  // The Solar Arc + '?' shortcut open these dialogs via window events.
   useEffect(() => {
-    const toggle = () => setShowShortcuts(s => !s);
-    window.addEventListener('orrery:toggle-shortcuts', toggle);
-    return () => window.removeEventListener('orrery:toggle-shortcuts', toggle);
+    const toggleShortcuts = () => setShowShortcuts(s => !s);
+    const openInfo = () => setShowInfo(true);
+    window.addEventListener('orrery:toggle-shortcuts', toggleShortcuts);
+    window.addEventListener('orrery:open-info', openInfo);
+    return () => {
+      window.removeEventListener('orrery:toggle-shortcuts', toggleShortcuts);
+      window.removeEventListener('orrery:open-info', openInfo);
+    };
   }, []);
   const sp = selPlanet !== null ? ALL_BODIES[selPlanet] : null;
   const mobilePanelOffset = '12px';
   const detailsBodyId = 'planet-details-card-body';
-  const controlChipStyle: React.CSSProperties = {
-    width: 44,
-    height: 44,
-    borderRadius: 6,
-    border: '1px solid rgba(255,255,255,0.12)',
-    background: 'rgba(0,0,0,0.35)',
-    color: 'rgba(255,255,255,0.58)',
-    fontFamily: 'inherit',
-    fontSize: 16,
-    fontWeight: 300,
-    cursor: 'pointer',
-    backdropFilter: `blur(${BLUR.chip}px)`,
-    WebkitBackdropFilter: `blur(${BLUR.chip}px)`,
-    transition: 'border-color 0.18s ease, color 0.18s ease, background 0.18s ease',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 0,
-  };
-
-  const toggleStargazer = useCallback(() => {
-    setConstellationFocus((prev) => {
-      const next = !prev;
-      if (next) {
-        setShowStars(() => true);
-        setShowConstellations(() => true);
-        // Entering sky mode should reset single-object selection so the full sky can glow.
-        setSelConstellation(null);
-        setSelAsterism(null);
-      }
-      return next;
-    });
-  }, [setConstellationFocus, setShowStars, setShowConstellations, setSelConstellation, setSelAsterism]);
 
   // Selected moon info
   const selectedMoon = selPlanet !== null && selMoonIdx !== null
@@ -1145,112 +978,9 @@ export default function Panels(props: PanelProps) {
         </div>
       )}
 
-      {/* ── About / info (subtle; replaces duplicate top title watermark) ── */}
-      {!cinematic && (
-        <div
-          style={{
-            position: 'absolute',
-            top: safeAreaTop(12),
-            left: safeAreaLeft(12),
-            zIndex: Z.hud,
-            display: 'flex',
-            gap: 8,
-            alignItems: 'center',
-          }}
-        >
-          <button
-            type="button"
-            aria-label="About and data sources"
-            onClick={() => setShowInfo(true)}
-            style={controlChipStyle}
-          >
-            i
-          </button>
-          <button
-            type="button"
-            aria-label="Keyboard shortcuts"
-            title="Keyboard shortcuts (?)"
-            onClick={() => setShowShortcuts(true)}
-            style={controlChipStyle}
-          >
-            ?
-          </button>
-        </div>
-      )}
-
-      {!cinematic && !observatoryMode && (
-        <div
-          style={{
-            position: 'absolute',
-            top: safeAreaTop(12),
-            right: safeAreaRight(12),
-            zIndex: Z.hud,
-            display: 'flex',
-            gap: 8,
-            alignItems: 'center',
-          }}
-        >
-          <button
-            type="button"
-            onClick={onStartCinematic}
-            aria-label="Play the cinematic tour"
-            aria-keyshortcuts="f"
-            title="Cinematic tour (F)"
-            style={{
-              ...controlChipStyle,
-              color: 'rgba(255,255,255,0.58)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-              <path d="M4 2.5v11l9-5.5z" fill="currentColor" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            onClick={onRandomJump}
-            aria-label="Roll for a random destination"
-            title="Roll the dice"
-            style={{
-              ...controlChipStyle,
-              color: 'rgba(255,255,255,0.58)',
-              fontSize: 15,
-              fontWeight: 400,
-            }}
-          >
-            <DiceIcon size={18} />
-          </button>
-          <button
-            className={pulseSkyToggle ? 'sky-toggle-blink' : undefined}
-            onClick={toggleStargazer}
-            aria-label="Sky mode"
-            aria-pressed={constellationFocus}
-            aria-keyshortcuts="g"
-            title="Sky mode (G)"
-            style={{
-              ...controlChipStyle,
-              background: constellationFocus ? `rgba(${accentRgb},${ACTIVE_ALPHA.bg})` : controlChipStyle.background,
-              border: `1px solid ${constellationFocus ? `rgba(${accentRgb},${ACTIVE_ALPHA.border})` : 'rgba(255,255,255,0.12)'}`,
-              color: constellationFocus ? accent : 'rgba(255,255,255,0.58)',
-              fontSize: 15,
-              fontWeight: 400,
-            }}
-          >
-            <ConstellationIcon size={18} />
-          </button>
-        </div>
-      )}
-
-      {/* ── Zoom controls ── */}
-      {!cinematic && (
-        <ZoomControls
-          cams={cams}
-          cameraDistance={cameraDistance}
-          onPresetSelect={onPresetSelect}
-        />
-      )}
+      {/* HUD chips retired — all controls now live in the summoned Solar Arc
+          (rendered by Orrery). The About / Shortcuts dialogs below open via the
+          'orrery:open-info' / 'orrery:toggle-shortcuts' window events. */}
 
       {/* ── About dialog ── */}
       <AboutDialog

@@ -917,7 +917,7 @@ export default function Panels(props: PanelProps) {
       {/* ── Planet/Moon info card (hidden in observatory / cinematic — tour sets selPlanet for camera) ── */}
       {!cinematic && !observatoryMode && (selSun || sp || selectedMoon) && (
         <div
-          role="dialog"
+          role="region"
           aria-label={selectedMoon ? `${selectedMoon.name} details` : selSun ? 'Sun details' : `${sp!.name} details`}
           onPointerDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
@@ -1073,7 +1073,7 @@ export default function Panels(props: PanelProps) {
       {/* ── Selected NEO detail (hidden during cinematic tour) ── */}
       {selNeo && !cinematic && (
         <div
-          role="dialog"
+          role="region"
           aria-label={`${selNeo.name} details`}
           style={{
             position: 'absolute', bottom: mobile ? 64 : 56,

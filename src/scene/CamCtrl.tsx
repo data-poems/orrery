@@ -3,10 +3,9 @@
  * Sole writer of camera.position and OrbitControls.target during automated moves.
  */
 
-import { useEffect, useRef, useCallback, type ElementRef } from 'react';
+import { useEffect, useRef, useCallback, useState, type ElementRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { useXR } from '@react-three/xr';
 import * as THREE from 'three';
 import { ALL_BODIES } from '../data/planets';
 import { getMoonsForPlanet } from '../data/moons';
@@ -45,10 +44,24 @@ export default function CamCtrl({
   aimAtSphere,
   onUserGrabDuringCinematic,
 }: CamCtrlProps) {
-  const { camera } = useThree();
+  const { camera, gl } = useThree();
   // During an immersive WebXR session the headset is the sole driver of the
   // camera. Yield to it: stop writing camera.position and disable OrbitControls.
-  const inXR = useXR((s) => s.session != null);
+  // Detected via three's own WebXRManager events — no @react-three/xr import, so
+  // this controller stays in the bundle everyone downloads while the XR runtime
+  // does not (see scene/XRProvider).
+  const [inXR, setInXR] = useState(false);
+  useEffect(() => {
+    const xr = gl.xr;
+    const start = () => setInXR(true);
+    const end = () => setInXR(false);
+    xr.addEventListener('sessionstart', start);
+    xr.addEventListener('sessionend', end);
+    return () => {
+      xr.removeEventListener('sessionstart', start);
+      xr.removeEventListener('sessionend', end);
+    };
+  }, [gl]);
   const ctrlRef = useRef<ElementRef<typeof OrbitControls> | null>(null);
   const interactiveFreePreset = camPreset?.label === 'Stargazer';
   const tPos = useRef(new THREE.Vector3(...HOME_POS));

@@ -60,6 +60,15 @@ export default function LoadingScreen({
     ? Object.entries(loadingTasks).filter(([, done]) => !done).map(([k]) => k)
     : [];
 
+  // Drive the bar off real task completion when we have it (accumulates against
+  // the known loading tasks) instead of the coarse/jumpy progress prop.
+  const taskValues = loadingTasks ? Object.values(loadingTasks) : [];
+  const pct = ready
+    ? 100
+    : taskValues.length > 0
+      ? Math.round((taskValues.filter(Boolean).length / taskValues.length) * 100)
+      : progress;
+
   const handleReload = () => {
     if (retries >= MAX_RETRIES) {
       window.location.reload();
@@ -105,17 +114,23 @@ export default function LoadingScreen({
         {tagline}
       </div>
 
-      <div style={{
-        width: 80, height: 1,
-        background: 'rgba(255,255,255,0.08)',
-        position: 'relative',
-        overflow: 'hidden',
-        marginBottom: 28,
-      }}>
+      <div
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={pct}
+        style={{
+          width: 200, height: 2,
+          background: 'rgba(255,255,255,0.1)',
+          position: 'relative',
+          overflow: 'hidden',
+          marginBottom: 28,
+        }}
+      >
         <div style={{
           position: 'absolute', left: 0, top: 0, bottom: 0,
-          width: `${progress}%`,
-          background: 'rgba(255,255,255,0.25)',
+          width: `${pct}%`,
+          background: 'rgba(255,255,255,0.45)',
           transition: 'width 0.3s ease-out',
         }} />
       </div>

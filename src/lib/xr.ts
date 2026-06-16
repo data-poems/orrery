@@ -1,46 +1,47 @@
 /*
- * WebXR immersive mode (Apple Vision Pro Safari, Meta Quest browser, etc.).
+ * WebXR immersive mode feature-detection (Apple Vision Pro Safari, Meta Quest
+ * browser, etc.).
  *
- * Immersive WebXR is supported in Safari on visionOS 2+ (and in WebXR-capable
- * browsers generally) but NOT inside WKWebView — so this only lights up when
- * the app is opened in a real browser on a headset, never in the Capacitor iOS
- * shell. The "Enter VR" button is feature-detected (see useImmersiveVrSupported)
- * and stays hidden everywhere it can't work, so this is fully additive: the
- * phone/desktop/iOS/Android experience is unchanged.
- *
- * @react-three/xr v6 handles Vision Pro's gaze + pinch (transient-pointer)
- * input out of the box, so existing R3F onClick raycasting keeps working in the
- * immersive session.
+ * This module deliberately does NOT import @react-three/xr — that whole library
+ * (and its bundled room environments) is loaded lazily via scene/XRProvider,
+ * and only when a headset is actually present. Keeping the detection here
+ * dependency-free means the 99% of users on phones/desktops never download the
+ * XR runtime. Immersive WebXR also only works in a real browser on a headset,
+ * never inside the Capacitor WKWebView shell.
  */
 import { useEffect, useState } from 'react';
-import { createXRStore } from '@react-three/xr';
-
-// Single shared store: the <XR> provider inside <Canvas> and the "Enter VR"
-// button outside it must reference the same instance.
-export const xrStore = createXRStore({
-  // No emulated controller rays — Vision Pro uses transient-pointer (pinch),
-  // and we want gaze/pinch selection to map onto the existing onClick handlers.
-  controller: false,
-  hand: false,
-});
 
 /**
- * True only once the browser confirms an `immersive-vr` session is available.
- * Returns false during the async check and on every non-XR platform, so the
- * UI can gate the entry point without flashing it where it can't work.
+ * Tri-state immersive-vr support: `null` while the check is pending, then
+ * `true`/`false`.
+ *
+ * The pending state matters: it lets the caller withhold the scene's first
+ * mount until support is known, so the scene mounts ONCE in its final tree
+ * position (bare, or wrapped in the lazy XR provider) rather than mounting bare
+ * and then remounting under the provider when the async check resolves.
+ *
+ * Browsers with no `navigator.xr` resolve to `false` synchronously (via lazy
+ * initial state), so the 99% of users on phones/desktops see zero delay.
  */
-export function useImmersiveVrSupported(): boolean {
-  const [supported, setSupported] = useState(false);
+export function useImmersiveVrSupported(): boolean | null {
+  const [supported, setSupported] = useState<boolean | null>(() => {
+    const xr = typeof navigator !== 'undefined'
+      ? (navigator as Navigator & { xr?: XRSystem }).xr
+      : undefined;
+    return xr?.isSessionSupported ? null : false;
+  });
 
   useEffect(() => {
+    if (supported !== null) return; // already resolved (no navigator.xr)
     let cancelled = false;
     const xr = (navigator as Navigator & { xr?: XRSystem }).xr;
-    if (!xr?.isSessionSupported) return;
-    xr.isSessionSupported('immersive-vr')
-      .then((ok) => { if (!cancelled) setSupported(ok); })
-      .catch(() => { /* unsupported — leave false */ });
+    // Promise-wrap so every setState is async (no synchronous set in the effect
+    // body); a missing API resolves to false rather than setting state inline.
+    Promise.resolve(xr?.isSessionSupported?.('immersive-vr') ?? false)
+      .then((ok) => { if (!cancelled) setSupported(!!ok); })
+      .catch(() => { if (!cancelled) setSupported(false); });
     return () => { cancelled = true; };
-  }, []);
+  }, [supported]);
 
   return supported;
 }

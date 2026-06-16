@@ -8,7 +8,7 @@
  * Sky-mode hint and a Sky-toggle pulse.
  */
 
-import { useEffect, useState, useRef, useMemo, useCallback, Suspense } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback, Suspense, lazy } from 'react';
 import { Canvas } from '@react-three/fiber';
 import * as THREE from 'three';
 import { ALL_BODIES, CAMS, CAM_PRESET_LAYER_EFFECTS, camIndex } from './data/planets';
@@ -30,8 +30,11 @@ import { neoFeedUrlForDay } from './lib/neoFeed';
 import { OBSERVATORY_MODE } from './lib/mode';
 import { IS_ANDROID } from './lib/platform';
 import { PREFERS_REDUCED_MOTION } from './lib/motion';
-import { XR, XROrigin } from '@react-three/xr';
-import { xrStore, useImmersiveVrSupported } from './lib/xr';
+import { useImmersiveVrSupported } from './lib/xr';
+import type { XRStore } from './scene/XRProvider';
+// @react-three/xr lives only in this lazily-loaded module, mounted only when a
+// headset is detected — so non-XR users never download the XR runtime.
+const XRProvider = lazy(() => import('./scene/XRProvider'));
 
 /** Curated iconic constellations used by the random-tour dice. The full IAU
  *  list is 88 entries — picking uniformly across that bag drowned every other
@@ -162,6 +165,11 @@ function OrreryInner() {
   // Only true in a real WebXR browser on a headset (Vision Pro Safari, Quest);
   // always false on phone/desktop/iOS shell, so the entry point stays hidden.
   const vrSupported = useImmersiveVrSupported();
+  // Filled by the lazy XRProvider once it mounts (headset only); the Enter VR
+  // button reads it to start a session. xrReady gates the button so it can't
+  // be clicked before the lazy chunk has loaded and handed the store back.
+  const xrStoreRef = useRef<XRStore | null>(null);
+  const [xrReady, setXrReady] = useState(false);
   const neoCacheKey = useMemo(() => getTodayNeoCacheKey(), []);
   const initialNeoCache = useMemo(() => readNeoCache(neoCacheKey), [neoCacheKey]);
   const [neos, setNeos] = useState<NEO[]>(() => initialNeoCache ?? []);
@@ -1031,6 +1039,51 @@ function OrreryInner() {
     };
   }, [canvasCreated, reloadLoadingTasks]);
 
+  // Extracted so it can render either bare or wrapped in the lazy XRProvider
+  // without duplicating the prop list.
+  const sceneEl = (
+    <Scene
+      jd={jd} T={T} simTime={simTime}
+      onLoadComplete={completeLoadingTask}
+      neos={showNeo ? neos : []} selNeo={selNeo} setSelNeo={handleNeoSelect}
+      selPlanet={selPlanet} setSelPlanet={handlePlanetSelect}
+      focusTarget={focusTarget}
+      onPositionsUpdate={handlePositionsUpdate}
+      showDwarf={showDwarf}
+      showStars={showStars}
+      showConstellations={showConstellations}
+      constellationRevealTick={constellationRevealTick}
+      showAsterisms={showAsterisms}
+      showAsteroidBelt={showAsteroidBelt}
+      showComets={showComets}
+      showMeteors={showMeteors}
+      showSatellites={showSatellites}
+      showDeepSpace={showDeepSpace}
+      onConstellationSelect={(id) => { setSelConstellation(prev => prev === id ? null : id); }}
+      onAsterismSelect={(name) => { setSelAsterism(prev => prev === name ? null : name); }}
+      selConstellationId={selConstellation}
+      accentColor={theme.uiAccent}
+      aimAtSphere={aimAtSphere}
+      constellationFocus={constellationFocus}
+      cinematic={cinematic}
+      cinematicRotateSpeed={cinematicRotateSpeed}
+      onMoonSelect={handleMoonSelect}
+      selMoonIdx={selMoonIdx}
+      onCameraDistance={setCameraDistance}
+      cameraDistance={cameraDistance}
+      camPreset={camPreset}
+      showBodyGlyphs={camPreset?.label === 'Stargazer'}
+      selComet={selComet} setSelComet={setSelComet}
+      selMeteor={selMeteor} setSelMeteor={setSelMeteor}
+      selSatellite={selSatellite} setSelSatellite={setSelSatellite}
+      selSpacecraft={selSpacecraft} setSelSpacecraft={setSelSpacecraft}
+      selNearStar={selNearStar} setSelNearStar={setSelNearStar}
+      selGalaxy={selGalaxy} setSelGalaxy={setSelGalaxy}
+      onSunSelect={handleSunSelect}
+      onUserGrabDuringCinematic={handleUserGrabDuringCinematic}
+    />
+  );
+
   return (
     <div
       style={{
@@ -1084,66 +1137,29 @@ function OrreryInner() {
         }}
       >
         <Suspense fallback={null}>
-         <XR store={xrStore}>
-          {/* Seat the immersive viewer at the default 'Inner' vantage so an
-              entering headset frames the system, not the inside of the Sun.
-              Comfort scale/placement is intentionally first-guess — tune on a
-              real Vision Pro. No effect outside an XR session. */}
-          <XROrigin position={[0, 3, 4]} />
-          <Scene
-            jd={jd} T={T} simTime={simTime}
-            onLoadComplete={completeLoadingTask}
-            neos={showNeo ? neos : []} selNeo={selNeo} setSelNeo={handleNeoSelect}
-            selPlanet={selPlanet} setSelPlanet={handlePlanetSelect}
-            focusTarget={focusTarget}
-            onPositionsUpdate={handlePositionsUpdate}
-            showDwarf={showDwarf}
-            showStars={showStars}
-            showConstellations={showConstellations}
-            constellationRevealTick={constellationRevealTick}
-            showAsterisms={showAsterisms}
-            showAsteroidBelt={showAsteroidBelt}
-            showComets={showComets}
-            showMeteors={showMeteors}
-            showSatellites={showSatellites}
-            showDeepSpace={showDeepSpace}
-            onConstellationSelect={(id) => { setSelConstellation(prev => prev === id ? null : id); }}
-            onAsterismSelect={(name) => { setSelAsterism(prev => prev === name ? null : name); }}
-            selConstellationId={selConstellation}
-            accentColor={theme.uiAccent}
-            aimAtSphere={aimAtSphere}
-            constellationFocus={constellationFocus}
-            cinematic={cinematic}
-            cinematicRotateSpeed={cinematicRotateSpeed}
-            onMoonSelect={handleMoonSelect}
-            selMoonIdx={selMoonIdx}
-            onCameraDistance={setCameraDistance}
-            cameraDistance={cameraDistance}
-            camPreset={camPreset}
-            showBodyGlyphs={camPreset?.label === 'Stargazer'}
-            selComet={selComet} setSelComet={setSelComet}
-            selMeteor={selMeteor} setSelMeteor={setSelMeteor}
-            selSatellite={selSatellite} setSelSatellite={setSelSatellite}
-            selSpacecraft={selSpacecraft} setSelSpacecraft={setSelSpacecraft}
-            selNearStar={selNearStar} setSelNearStar={setSelNearStar}
-            selGalaxy={selGalaxy} setSelGalaxy={setSelGalaxy}
-            onSunSelect={handleSunSelect}
-            onUserGrabDuringCinematic={handleUserGrabDuringCinematic}
-          />
-         </XR>
+          {/* null = XR support check still pending (XR-capable browsers only);
+              withholding the first mount until it resolves keeps Scene from
+              mounting bare and then remounting under XRProvider. */}
+          {vrSupported === null ? null
+            : vrSupported ? (
+              <XRProvider onStoreReady={(s) => { xrStoreRef.current = s; setXrReady(true); }}>
+                {sceneEl}
+              </XRProvider>
+            ) : sceneEl}
         </Suspense>
       </Canvas>
 
-      {vrSupported && (
+      {vrSupported === true && (
         <button
           type="button"
+          disabled={!xrReady}
           onClick={() => {
             // Leave the auto-tour before handing the camera to the headset —
             // otherwise the cinematic keeps driving presets the XR camera
             // ignores, and the view looks frozen.
             setCinematic(false);
             setPanelOpen(false);
-            void xrStore.enterVR();
+            void xrStoreRef.current?.enterVR();
           }}
           aria-label="Enter immersive VR"
           style={{
@@ -1161,7 +1177,8 @@ function OrreryInner() {
             fontSize: 14,
             letterSpacing: 1.6,
             textTransform: 'uppercase',
-            cursor: 'pointer',
+            cursor: xrReady ? 'pointer' : 'default',
+            opacity: xrReady ? 1 : 0.5,
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
           }}

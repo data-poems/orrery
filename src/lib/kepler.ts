@@ -45,6 +45,8 @@ export interface CamPreset {
   /** When true with `follow`, camera position equals followed body's position
    *  (with a tiny epsilon offset for OrbitControls). Used for Earth Observer mode. */
   observe?: boolean;
+  /** Snappier settle toward this preset (used by the Sun Fan summon zoom). */
+  fastApproach?: boolean;
 }
 
 export interface FocusTarget {

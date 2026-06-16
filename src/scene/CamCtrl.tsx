@@ -243,6 +243,8 @@ export default function CamCtrl({
 
     let smoothBase = cinematic ? 0.45 : observeMode ? 0.5 : 1.0;
     if (cinematic) smoothBase = 0.6;
+    // Snappier zoom when summoning the Sun Fan.
+    if (camPreset?.fastApproach && !cinematic) smoothBase = 3.2;
 
     const smoothBoost = cinematic
       ? (remainDist > 10000 ? 0.35 : remainDist > 1000 ? 0.2 : remainDist > 100 ? 0.1 : 0)

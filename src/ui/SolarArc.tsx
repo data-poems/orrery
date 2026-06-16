@@ -127,17 +127,19 @@ export default function SolarArc({ open, onDismiss, accent, accentRgb, onAction,
         onClick={e => e.stopPropagation()}
         style={{ position: 'absolute', left: '50%', top: ANCHOR_TOP, width: 0, height: 0 }}
       >
-        {/* the sun: Back (submenu) / Close (top level) */}
+        {/* The real (WebGL) sun is the ball — this is a transparent hit-target
+            over it that acts as Back (submenu) / Close (top level). */}
         <button
           type="button"
           onClick={back}
           aria-label={level ? 'Back' : 'Close controls'}
           style={{
             position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)',
-            width: 88, height: 88, borderRadius: '50%', border: 'none', cursor: 'pointer',
-            background: 'radial-gradient(circle at 38% 34%, #fff0cf, #f5a834 58%, #c8761b)',
-            boxShadow: '0 0 34px rgba(245,168,52,0.6), 0 0 80px rgba(245,168,52,0.3)',
-            display: 'grid', placeItems: 'center', color: '#3a2406', fontSize: 30,
+            width: 110, height: 110, borderRadius: '50%', cursor: 'pointer',
+            background: 'transparent', border: 'none',
+            display: 'grid', placeItems: 'center',
+            color: '#2a1a04', fontSize: 30, fontWeight: 500,
+            textShadow: '0 0 6px rgba(255,220,150,0.7)',
           }}
         >
           <span aria-hidden="true">{level ? '‹' : '×'}</span>

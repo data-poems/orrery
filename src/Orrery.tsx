@@ -1341,12 +1341,15 @@ function OrreryInner() {
           onClick={(e) => { e.stopPropagation(); summonArc(); }}
           aria-label="Open controls"
           style={{
-            position: 'fixed', bottom: 'calc(env(safe-area-inset-bottom,0px) + 24px)', left: '50%',
-            transform: 'translateX(-50%)', zIndex: 30, width: 44, height: 44, borderRadius: '50%',
-            background: `rgba(${accentRgb},0.14)`, border: `1px solid rgba(${accentRgb},0.45)`,
+            // Sits where the sun lands after the summon zoom (50%, 78%), so
+            // tapping it reads as zooming into the sun. Small + idle-faded so it
+            // stays out of the way otherwise.
+            position: 'fixed', top: '78%', left: '50%',
+            transform: 'translate(-50%,-50%)', zIndex: 30, width: 40, height: 40, borderRadius: '50%',
+            background: `rgba(${accentRgb},0.12)`, border: `1px solid rgba(${accentRgb},0.4)`,
             color: theme.uiAccent, cursor: hudActive ? 'pointer' : 'default', display: 'grid', placeItems: 'center',
             backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-            opacity: hudActive ? 1 : 0,
+            opacity: hudActive ? 0.85 : 0,
             pointerEvents: hudActive ? 'auto' : 'none',
             transition: 'opacity 0.6s ease',
           }}

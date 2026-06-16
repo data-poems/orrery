@@ -102,7 +102,7 @@ export const CAMS: CamPreset[] = [
   // Framing for the Sun Fan control surface: sun small and low, sky above for
   // the fanned controls. Appended (never reordered) so cinematicSteps indices
   // stay valid. Not bound to a number key; summoned via the control hub.
-  { key: 'u', label: 'SunHub', pos: [0, 1.1, 3.2], tgt: [0, 1.1, 0] },
+  { key: 'u', label: 'SunHub', pos: [0, 1.1, 3.2], tgt: [0, 1.1, 0], fastApproach: true },
 ];
 
 const CAM_INDEX: Record<string, number> = Object.fromEntries(CAMS.map((c, i) => [c.label, i]));

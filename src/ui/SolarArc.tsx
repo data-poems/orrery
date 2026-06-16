@@ -1,14 +1,14 @@
 /*
- * Solar Arc — the summoned radial control surface (DOM overlay, no R3F).
+ * Sun Fan — the summoned control surface (DOM overlay, no R3F).
  *
- * Ported from the verified sunhub/bottom-bloom prototypes
- * (prototypes/controls/). A hub anchored at lower-center blooms its primary
- * controls in an upward arc; selecting a primary with sub-options replaces the
- * arc in place with that primary's sub-options (the hub becomes Back). Built
- * and verified with headless-Chrome screenshots of the running app.
+ * Concept: clicking/zooming to the sun fans the controls out in a semicircle
+ * ABOVE it. The sun itself is the anchor and the Back/Close affordance; the
+ * controls radiate upward like rays. Selecting a primary with sub-options
+ * replaces the fan in place with that primary's sub-options.
  *
- * Contract: the parent owns dismissal. onAction emits semantic strings; the
- * parent decides whether to close (navigation) or keep open (toggles).
+ * Anchored to a fixed screen point that matches where the sun sits at the
+ * 'Sun' camera preset (summoning zooms there), so no per-frame projection.
+ * Built + verified with headless-Chrome screenshots of the running app.
  */
 import { useEffect, useState } from 'react';
 import { PREFERS_REDUCED_MOTION } from '../lib/motion';
@@ -51,14 +51,15 @@ const PRIMARIES: ReadonlyArray<Primary> = [
   ] },
 ];
 
-const R = 150;            // ring radius, px
+const R = 190;          // fan radius, px
+const SPAN_DEG = 144;   // fan angular span, centered straight up
+// The sun sits a little below mid-screen at the 'Sun' preset; the fan opens
+// upward from here. Tunable against a screenshot.
+const ANCHOR_TOP = '78%';
 
 export default function SolarArc({ open, onDismiss, accent, accentRgb, onAction, layerState }: SolarArcProps) {
-  // level: null = primaries; otherwise the key of the open primary.
   const [level, setLevel] = useState<string | null>(null);
   const [focus, setFocus] = useState(0);
-  // reset to top level whenever the arc (re)opens — render-time guard avoids
-  // setState-in-effect (the repo's lint forbids it).
   const [prevOpen, setPrevOpen] = useState(open);
   if (open !== prevOpen) {
     setPrevOpen(open);
@@ -104,9 +105,10 @@ export default function SolarArc({ open, onDismiss, accent, accentRgb, onAction,
   if (!open) return null;
 
   const n = items.length;
-  // Full ring around a centered hub — clearest to see and hit, and handles a
-  // variable count of sub-items cleanly. Top slot is straight up (-90deg).
-  const step = 360 / n;
+  // Fan across an upward arc centered on straight-up (-90deg), so every node
+  // sits clearly ABOVE the sun (not beside it).
+  const startDeg = -90 - SPAN_DEG / 2;
+  const step = n > 1 ? SPAN_DEG / (n - 1) : 0;
 
   return (
     <div
@@ -115,37 +117,38 @@ export default function SolarArc({ open, onDismiss, accent, accentRgb, onAction,
       onClick={onDismiss}
       style={{
         position: 'fixed', inset: 0, zIndex: 60,
-        // Heavy dim: this is a modal control surface, so the scene recedes and
-        // the menu reads clearly regardless of constellation clutter behind it.
-        background: 'rgba(2,3,8,0.78)',
-        backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)',
-        display: 'grid', placeItems: 'center',
+        // Bright near the sun (the anchor), darker toward the edges so the
+        // fanned controls read clearly over any starfield/constellation clutter.
+        background: 'radial-gradient(ellipse 60% 55% at 50% 78%, rgba(2,3,8,0.32), rgba(2,3,8,0.9))',
         fontFamily: "'Cormorant Garamond','Garamond','Georgia',serif",
       }}
     >
-      <div onClick={e => e.stopPropagation()} style={{ position: 'relative', width: 0, height: 0 }}>
-        {/* hub: Back (in a submenu) or Close (top level), with a persistent label */}
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ position: 'absolute', left: '50%', top: ANCHOR_TOP, width: 0, height: 0 }}
+      >
+        {/* the sun: Back (submenu) / Close (top level) */}
         <button
           type="button"
           onClick={back}
           aria-label={level ? 'Back' : 'Close controls'}
           style={{
             position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)',
-            width: 72, height: 72, borderRadius: '50%', border: 'none', cursor: 'pointer',
-            background: 'radial-gradient(circle at 38% 34%, #ffe9b8, #f0a338 60%, #c8761b)',
-            boxShadow: '0 0 26px rgba(240,163,56,0.55), 0 0 60px rgba(240,163,56,0.25)',
-            display: 'grid', placeItems: 'center', color: '#3a2406', fontSize: 26, fontWeight: 400,
+            width: 88, height: 88, borderRadius: '50%', border: 'none', cursor: 'pointer',
+            background: 'radial-gradient(circle at 38% 34%, #fff0cf, #f5a834 58%, #c8761b)',
+            boxShadow: '0 0 34px rgba(245,168,52,0.6), 0 0 80px rgba(245,168,52,0.3)',
+            display: 'grid', placeItems: 'center', color: '#3a2406', fontSize: 30,
           }}
         >
           <span aria-hidden="true">{level ? '‹' : '×'}</span>
         </button>
         <div style={{
-          position: 'absolute', left: '50%', top: 'calc(50% + 50px)', transform: 'translateX(-50%)',
+          position: 'absolute', left: '50%', top: 'calc(50% + 58px)', transform: 'translateX(-50%)',
           fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', whiteSpace: 'nowrap',
-          color: level ? `rgba(${accentRgb},0.9)` : 'rgba(255,255,255,0.5)',
+          color: level ? accent : 'rgba(255,255,255,0.55)',
         }}>{level ? `‹ ${activePrimary?.label ?? ''}` : 'Close'}</div>
         {items.map((it, i) => {
-          const ang = (-90 + step * i) * Math.PI / 180;
+          const ang = (startDeg + step * i) * Math.PI / 180;
           const x = Math.cos(ang) * R;
           const y = Math.sin(ang) * R;
           const focused = i === focus;
@@ -160,14 +163,15 @@ export default function SolarArc({ open, onDismiss, accent, accentRgb, onAction,
               style={{
                 position: 'absolute', left: '50%', top: '50%',
                 transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
-                width: 66, height: 66, borderRadius: '50%', cursor: 'pointer',
+                width: 64, height: 64, borderRadius: '50%', cursor: 'pointer',
                 display: 'grid', placeItems: 'center',
-                background: it.lit ? `rgba(${accentRgb},0.3)` : 'rgba(255,255,255,0.12)',
+                background: it.lit ? `rgba(${accentRgb},0.3)` : 'rgba(10,14,28,0.82)',
                 border: `2px solid ${focused ? accent : it.lit ? `rgba(${accentRgb},0.7)` : 'rgba(255,255,255,0.3)'}`,
-                boxShadow: focused ? `0 0 0 3px rgba(${accentRgb},0.5), 0 0 22px rgba(${accentRgb},0.5)` : '0 2px 10px rgba(0,0,0,0.4)',
+                boxShadow: focused ? `0 0 0 3px rgba(${accentRgb},0.5), 0 0 22px rgba(${accentRgb},0.5)` : '0 2px 12px rgba(0,0,0,0.55)',
                 color: it.lit ? accent : '#f3f7ff',
+                backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
                 fontSize: it.icon ? 22 : 12, fontFamily: 'inherit',
-                transition: PREFERS_REDUCED_MOTION ? 'none' : 'box-shadow 0.2s, border-color 0.2s, background 0.2s, transform 0.2s',
+                transition: PREFERS_REDUCED_MOTION ? 'none' : 'box-shadow 0.2s, border-color 0.2s, background 0.2s',
               }}
             >
               <span aria-hidden={it.icon ? 'true' : undefined} style={it.icon ? undefined : { padding: '0 4px', textAlign: 'center', lineHeight: 1.05, fontSize: 12 }}>

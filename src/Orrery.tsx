@@ -1017,7 +1017,25 @@ function OrreryInner() {
     if (cinematic) exitCinematic();
   }, [cinematic, exitCinematic]);
 
-  // Solar Arc action dispatch (no camera move — pure overlay).
+  // Sun Fan: clicking/zooming to the sun fans the controls above it. Summon
+  // zooms to the 'Sun' preset (a fixed framing the fan is anchored to) and
+  // remembers where we were; dismiss restores that view so you're never stuck.
+  const arcPrevCamIdx = useRef(0);
+  const summonArc = useCallback(() => {
+    if (OBSERVATORY_MODE || arcOpen) return;
+    arcPrevCamIdx.current = camIdx;
+    setCinematic(false);
+    jumpToPreset('SunHub');
+    setArcOpen(true);
+  }, [arcOpen, camIdx, jumpToPreset]);
+  const dismissArc = useCallback(() => {
+    setArcOpen(false);
+    const prev = arcPrevCamIdx.current;
+    if (prev >= 0 && prev !== camIndex('SunHub')) handlePresetSelect(prev);
+    else jumpToPreset('System');
+  }, [handlePresetSelect, jumpToPreset]);
+
+  // Solar Arc action dispatch (no camera move beyond the summon zoom).
   const handleArcAction = useCallback((action: string, arg?: string) => {
     switch (action) {
       case 'tour': setArcOpen(false); startCinematicTour(); break;
@@ -1156,7 +1174,7 @@ function OrreryInner() {
       selSpacecraft={selSpacecraft} setSelSpacecraft={setSelSpacecraft}
       selNearStar={selNearStar} setSelNearStar={setSelNearStar}
       selGalaxy={selGalaxy} setSelGalaxy={setSelGalaxy}
-      onSunSelect={handleSunSelect}
+      onSunSelect={() => { if (!cinematic) summonArc(); }}
       onUserGrabDuringCinematic={handleUserGrabDuringCinematic}
     />
   );
@@ -1320,7 +1338,7 @@ function OrreryInner() {
       {!OBSERVATORY_MODE && !arcOpen && (
         <button
           type="button"
-          onClick={(e) => { e.stopPropagation(); setArcOpen(true); }}
+          onClick={(e) => { e.stopPropagation(); summonArc(); }}
           aria-label="Open controls"
           style={{
             position: 'fixed', bottom: 'calc(env(safe-area-inset-bottom,0px) + 24px)', left: '50%',
@@ -1344,7 +1362,7 @@ function OrreryInner() {
       )}
       <SolarArc
         open={arcOpen}
-        onDismiss={() => setArcOpen(false)}
+        onDismiss={dismissArc}
         accent={theme.uiAccent}
         accentRgb={accentRgb}
         onAction={handleArcAction}

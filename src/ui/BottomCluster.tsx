@@ -22,6 +22,49 @@ function GearIcon() {
   );
 }
 
+// All cluster glyphs are SVGs on the same centered 24×24 box, so they align
+// pixel-perfectly with the gear (text glyphs sat on the font baseline and read
+// off-center next to it).
+function MinusIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={1.8} strokeLinecap="round" aria-hidden="true">
+      <line x1="6" y1="12" x2="18" y2="12" />
+    </svg>
+  );
+}
+function PlusIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={1.8} strokeLinecap="round" aria-hidden="true">
+      <line x1="6" y1="12" x2="18" y2="12" />
+      <line x1="12" y1="6" x2="12" y2="18" />
+    </svg>
+  );
+}
+function StarIcon() {
+  return (
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 2 C 13 9 15 11 22 12 C 15 13 13 15 12 22 C 11 15 9 13 2 12 C 9 11 11 9 12 2 Z" />
+    </svg>
+  );
+}
+function DiceIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={1.5} aria-hidden="true">
+      <rect x="4" y="4" width="16" height="16" rx="3.5" />
+      <g fill="currentColor" stroke="none">
+        <circle cx="8.5" cy="8.5" r="1.3" />
+        <circle cx="15.5" cy="8.5" r="1.3" />
+        <circle cx="12" cy="12" r="1.3" />
+        <circle cx="8.5" cy="15.5" r="1.3" />
+        <circle cx="15.5" cy="15.5" r="1.3" />
+      </g>
+    </svg>
+  );
+}
+
 export interface BottomClusterProps {
   visible: boolean;
   /** Brief reveal cue on the Sky tile after the cinematic tour lands. */
@@ -76,7 +119,7 @@ function Tile({ label, glyph, onClick, size, accent, accentRgb, disabled, active
         transition: PREFERS_REDUCED_MOTION ? 'none' : 'opacity 0.18s, color 0.18s, border-color 0.18s, background 0.18s',
       }}
     >
-      <span aria-hidden="true" className={glyphClass}>{glyph}</span>
+      <span aria-hidden="true" className={glyphClass} style={{ display: 'grid', placeItems: 'center', lineHeight: 0 }}>{glyph}</span>
     </button>
   );
 }
@@ -106,16 +149,16 @@ export default function BottomCluster({
       {/* panel (gear) · zoom out · stargaze (sky) · zoom in · dice */}
       <Tile label="Open controls" glyph={<GearIcon />} size={size} accent={accent} accentRgb={accentRgb}
         onClick={() => onAction('controls')} />
-      <Tile label="Zoom out" glyph={'−'} size={size} accent={accent} accentRgb={accentRgb}
+      <Tile label="Zoom out" glyph={<MinusIcon />} size={size} accent={accent} accentRgb={accentRgb}
         disabled={atOutermost} onClick={() => onAction('zoom', 'out')} />
-      <Tile label="Stargaze — sky and constellations" glyph={'✦'} size={size} accent={accent} accentRgb={accentRgb}
+      <Tile label="Stargaze — sky and constellations" glyph={<StarIcon />} size={size} accent={accent} accentRgb={accentRgb}
         active={skyActive} pressed={skyActive}
         className={pulse ? 'sky-toggle-blink' : undefined}
         glyphClass={skyActive ? 'orrery-twinkle' : undefined}
         onClick={() => onAction('toggleSky')} />
-      <Tile label="Zoom in" glyph={'+'} size={size} accent={accent} accentRgb={accentRgb}
+      <Tile label="Zoom in" glyph={<PlusIcon />} size={size} accent={accent} accentRgb={accentRgb}
         disabled={atInnermost} onClick={() => onAction('zoom', 'in')} />
-      <Tile label="Random destination" glyph={'⚄'} size={size} accent={accent} accentRgb={accentRgb}
+      <Tile label="Random destination" glyph={<DiceIcon />} size={size} accent={accent} accentRgb={accentRgb}
         onClick={() => onAction('dice')} />
     </nav>
   );

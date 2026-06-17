@@ -1021,7 +1021,8 @@ function OrreryInner() {
           setAimAtSphere(null);
           return;
         }
-        navigateBack();
+        // A selected body dismisses in place (no zoom-out); clear any sky-object
+        // selection too. With nothing selected, Escape steps back a level.
         setSelNeo(null);
         setSelComet(null);
         setSelMeteor(null);
@@ -1029,12 +1030,17 @@ function OrreryInner() {
         setSelSpacecraft(null);
         setSelNearStar(null);
         setSelGalaxy(null);
+        if (selPlanet !== null || selSun || selMoonIdx !== null) {
+          dismissSelection();
+        } else {
+          navigateBack();
+        }
       }
       if (k === ' ') { e.preventDefault(); setPlaying(p => !p); }
     };
     window.addEventListener('keydown', fn);
     return () => window.removeEventListener('keydown', fn);
-  }, [cinematic, panelOpen, navigateBack, handlePresetSelect, exitCinematic, startCinematicTour]);
+  }, [cinematic, panelOpen, navigateBack, handlePresetSelect, exitCinematic, startCinematicTour, selPlanet, selSun, selMoonIdx, dismissSelection]);
 
   // Exit cinematic mode on click
   const handleCinematicClick = useCallback(() => {
@@ -1249,10 +1255,10 @@ function OrreryInner() {
           setSelSpacecraft(null);
           setSelNearStar(null);
           setSelGalaxy(null);
-          // Clicking empty space backs out of a focused body — the previously
-          // only exits were the small Back button and Escape.
+          // Clicking empty space dismisses a focused body in place — no zoom-out
+          // (use the − tile or breadcrumb to actually zoom out).
           if (!cinematic && (selPlanet !== null || selSun || selMoonIdx !== null)) {
-            navigateBack();
+            dismissSelection();
           }
         }}
       >

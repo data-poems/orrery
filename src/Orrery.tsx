@@ -25,6 +25,7 @@ import { getConstellationCentroid, getConstellationCentroidCached, prefetchConst
 import Scene from './scene/Scene';
 import Panels from './ui/Panels';
 import SidePanel from './ui/SidePanel';
+import BottomCluster from './ui/BottomCluster';
 import LoadingScreen from './ui/LoadingScreen';
 import OrreryDiagOverlay from './ui/OrreryDiagOverlay';
 import { neoFeedUrlForDay } from './lib/neoFeed';
@@ -36,6 +37,25 @@ import type { XRStore } from './scene/XRProvider';
 // @react-three/xr lives only in this lazily-loaded module, mounted only when a
 // headset is detected — so non-XR users never download the XR runtime.
 const XRProvider = lazy(() => import('./scene/XRProvider'));
+
+/** Scale ladder for the zoom tiles / +- stepping (innermost → outermost). */
+const ZOOM_LADDER = ['Sun', 'Inner', 'System', 'Outer', 'Kuiper', 'Oort', 'Stellar'] as const;
+
+/** Nearest ladder rung for a camera distance (log-distance match). 0 = Sun
+ *  (innermost), ZOOM_LADDER.length-1 = Stellar (outermost). Shared by the zoom
+ *  action and the bottom-cluster grey-out so they always agree. */
+function zoomRungFor(cameraDistance: number): number {
+  let cur = 0, best = Infinity;
+  for (let i = 0; i < ZOOM_LADDER.length; i++) {
+    const ci = camIndex(ZOOM_LADDER[i]);
+    if (ci < 0) continue;
+    const [x, y, z] = CAMS[ci].pos;
+    const d = Math.sqrt(x * x + y * y + z * z);
+    const diff = Math.abs(Math.log10(d) - Math.log10(Math.max(0.01, cameraDistance)));
+    if (diff < best) { best = diff; cur = i; }
+  }
+  return cur;
+}
 
 /** Curated iconic constellations used by the random-tour dice. The full IAU
  *  list is 88 entries — picking uniformly across that bag drowned every other
@@ -463,6 +483,8 @@ function OrreryInner() {
   useEffect(() => {
     if (!OBSERVATORY_MODE || !sceneReady || observatoryEntered.current) return;
     observatoryEntered.current = true;
+    // One-time observatory entry, guarded by the ref above — not a cascading render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     exitCinematic({ kind: 'preset', label: 'Earth Observer' });
   }, [sceneReady, exitCinematic]);
 
@@ -953,7 +975,7 @@ function OrreryInner() {
       }
 
       if (k === 'm') {
-        if (!cinematic) setPanelOpen(p => !p);
+        if (!cinematic) window.dispatchEvent(new CustomEvent('orrery:toggle-controls'));
         return;
       }
       if (k === 'n') setShowNeo(p => !p);
@@ -1015,26 +1037,15 @@ function OrreryInner() {
     if (cinematic) exitCinematic();
   }, [cinematic, exitCinematic]);
 
-  // SidePanel action dispatch. The panel manages its own open/close.
-  const ZOOM_LADDER = ['Sun', 'Inner', 'System', 'Outer', 'Kuiper', 'Oort', 'Stellar'];
+  // Control-surface action dispatch (bottom cluster + side panel).
   const handleArcAction = useCallback((action: string, arg?: string) => {
     switch (action) {
       case 'tour': startCinematicTour(); break;
       case 'dice': triggerRandomJump(); break;
       case 'preset': if (arg) jumpToPreset(arg); break;
       case 'zoom': {
-        // Step the scale ladder by nearest current rung (by camera distance).
-        const dists = ZOOM_LADDER.map(l => {
-          const i = camIndex(l);
-          if (i < 0) return Infinity;
-          const [x, y, z] = CAMS[i].pos;
-          return Math.sqrt(x * x + y * y + z * z);
-        });
-        let cur = 0, best = Infinity;
-        dists.forEach((d, i) => {
-          const diff = Math.abs(Math.log10(d) - Math.log10(Math.max(0.01, cameraDistance)));
-          if (diff < best) { best = diff; cur = i; }
-        });
+        // Step the scale ladder from the nearest current rung (by camera distance).
+        const cur = zoomRungFor(cameraDistance);
         const next = Math.max(0, Math.min(ZOOM_LADDER.length - 1, cur + (arg === 'in' ? -1 : 1)));
         if (next !== cur) jumpToPreset(ZOOM_LADDER[next]);
         break;
@@ -1055,16 +1066,21 @@ function OrreryInner() {
         else if (arg === 'deepSpace') setShowDeepSpace(p => !p);
         else if (arg === 'asterisms') setShowAsterisms(p => !p);
         break;
+      case 'controls': window.dispatchEvent(new CustomEvent('orrery:toggle-controls')); break;
       case 'info': window.dispatchEvent(new CustomEvent('orrery:open-info')); break;
       case 'shortcuts': window.dispatchEvent(new CustomEvent('orrery:toggle-shortcuts')); break;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startCinematicTour, triggerRandomJump, jumpToPreset, cameraDistance]);
   const arcLayerState = useMemo(() => ({
     sky: constellationFocus,
     neo: showNeo, dwarf: showDwarf, comets: showComets, meteors: showMeteors,
     satellites: showSatellites, deepSpace: showDeepSpace, asterisms: showAsterisms,
   }), [constellationFocus, showNeo, showDwarf, showComets, showMeteors, showSatellites, showDeepSpace, showAsterisms]);
+
+  // Current zoom-ladder rung drives the +/- grey-out on the bottom cluster.
+  const zoomRung = useMemo(() => zoomRungFor(cameraDistance), [cameraDistance]);
+  const atInnermost = zoomRung === 0;
+  const atOutermost = zoomRung === ZOOM_LADDER.length - 1;
 
   // Wake the HUD on any interaction; fade out after idle. setState only on edges.
   useEffect(() => {
@@ -1335,12 +1351,23 @@ function OrreryInner() {
 
       {!OBSERVATORY_MODE && (
         <SidePanel
+          accent={theme.uiAccent}
+          accentRgb={accentRgb}
+          onAction={handleArcAction}
+          layerState={arcLayerState}
+        />
+      )}
+
+      {!OBSERVATORY_MODE && !cinematic && (
+        <BottomCluster
           visible={hudActive}
           pulse={pulseSkyToggle}
           accent={theme.uiAccent}
           accentRgb={accentRgb}
           onAction={handleArcAction}
-          layerState={arcLayerState}
+          atInnermost={atInnermost}
+          atOutermost={atOutermost}
+          skyActive={constellationFocus}
         />
       )}
 

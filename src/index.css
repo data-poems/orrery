@@ -69,6 +69,17 @@ a:focus-visible,
   to   { opacity: 1; }
 }
 
+/* Soft twinkle for the Sky tile glyph while sky mode is active. Slow opacity
+   breathe — well under WCAG 2.3.1 flash limits; neutralized by reduced-motion. */
+.orrery-twinkle {
+  animation: orrery-twinkle 2.6s ease-in-out infinite;
+}
+
+@keyframes orrery-twinkle {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.5; }
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

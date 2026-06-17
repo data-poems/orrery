@@ -1,14 +1,26 @@
 /*
  * BottomCluster — the front-page control tiles.
  *
- * A compact, idle-fading pill centered on the bottom edge: zoom out / in,
- * cinematic tour, random destination, sky toggle, and open-full-controls. The
- * zoom tiles grey out at the ends of the scale ladder (− at the outermost rung,
- * + at the innermost). This is the primary control surface; the full SidePanel
- * opens from the trailing ≡ tile. No emoji — serif glyphs only.
+ * A compact, idle-fading pill centered on the bottom edge, left → right:
+ * controls (gear) · zoom out · stargaze/sky · zoom in · dice. Stargaze sits dead
+ * center, flanked by the zoom pair; the gear opens the full SidePanel and the
+ * dice rolls a random destination. The zoom tiles grey out at the ends of the
+ * scale ladder (− at the outermost rung, + at the innermost). Glyphs are serif
+ * text (no emoji); the gear is an inline monochrome SVG.
  */
 import { useIsMobile, Z } from './styles';
 import { PREFERS_REDUCED_MOTION } from '../lib/motion';
+
+/** Inline monochrome gear (currentColor) — avoids the ⚙ emoji-presentation risk. */
+function GearIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+  );
+}
 
 export interface BottomClusterProps {
   visible: boolean;
@@ -26,7 +38,7 @@ export interface BottomClusterProps {
 
 interface TileProps {
   label: string;
-  glyph: string;
+  glyph: React.ReactNode;
   onClick: () => void;
   size: number;
   accent: string;
@@ -91,21 +103,20 @@ export default function BottomCluster({
         transition: PREFERS_REDUCED_MOTION ? 'none' : 'opacity 0.6s ease',
       }}
     >
+      {/* panel (gear) · zoom out · stargaze (sky) · zoom in · dice */}
+      <Tile label="Open controls" glyph={<GearIcon />} size={size} accent={accent} accentRgb={accentRgb}
+        onClick={() => onAction('controls')} />
       <Tile label="Zoom out" glyph={'−'} size={size} accent={accent} accentRgb={accentRgb}
         disabled={atOutermost} onClick={() => onAction('zoom', 'out')} />
-      <Tile label="Zoom in" glyph={'+'} size={size} accent={accent} accentRgb={accentRgb}
-        disabled={atInnermost} onClick={() => onAction('zoom', 'in')} />
-      <Tile label="Cinematic tour" glyph={'▶'} size={size} accent={accent} accentRgb={accentRgb}
-        onClick={() => onAction('tour')} />
-      <Tile label="Random destination" glyph={'⚄'} size={size} accent={accent} accentRgb={accentRgb}
-        onClick={() => onAction('dice')} />
-      <Tile label="Sky and constellations" glyph={'✦'} size={size} accent={accent} accentRgb={accentRgb}
+      <Tile label="Stargaze — sky and constellations" glyph={'✦'} size={size} accent={accent} accentRgb={accentRgb}
         active={skyActive} pressed={skyActive}
         className={pulse ? 'sky-toggle-blink' : undefined}
         glyphClass={skyActive ? 'orrery-twinkle' : undefined}
         onClick={() => onAction('toggleSky')} />
-      <Tile label="Open controls" glyph={'≡'} size={size} accent={accent} accentRgb={accentRgb}
-        onClick={() => onAction('controls')} />
+      <Tile label="Zoom in" glyph={'+'} size={size} accent={accent} accentRgb={accentRgb}
+        disabled={atInnermost} onClick={() => onAction('zoom', 'in')} />
+      <Tile label="Random destination" glyph={'⚄'} size={size} accent={accent} accentRgb={accentRgb}
+        onClick={() => onAction('dice')} />
     </nav>
   );
 }

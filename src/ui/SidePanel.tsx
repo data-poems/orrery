@@ -130,6 +130,13 @@ export default function SidePanel({ accent, onAction, layerState }: SidePanelPro
           </button>
         </div>
 
+        <h3 style={heading}>Explore</h3>
+        <button type="button" style={row(false)} onClick={() => act('tour', undefined, true)}>
+          <span aria-hidden="true" style={glyphCell}>▶</span>
+          <span style={labelCell}>Cinematic tour</span>
+          <span style={markCell} />
+        </button>
+
         <h3 style={heading}>Scale</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
           {VIEW_PRESETS.map(p => (

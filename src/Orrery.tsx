@@ -967,7 +967,7 @@ function OrreryInner() {
           if (next) {
             setShowStars(true);
             setShowConstellations(true);
-            // Keep keyboard shortcut behavior aligned with Sky chip behavior.
+            // Keep this aligned with the SidePanel Sky toggle behavior.
             setSelConstellation(null);
             setSelAsterism(null);
             setAimAtSphere(null);
@@ -1015,7 +1015,7 @@ function OrreryInner() {
     if (cinematic) exitCinematic();
   }, [cinematic, exitCinematic]);
 
-  // Control Bar action dispatch. The bar manages its own expand/collapse.
+  // SidePanel action dispatch. The panel manages its own open/close.
   const ZOOM_LADDER = ['Sun', 'Inner', 'System', 'Outer', 'Kuiper', 'Oort', 'Stellar'];
   const handleArcAction = useCallback((action: string, arg?: string) => {
     switch (action) {
@@ -1312,7 +1312,6 @@ function OrreryInner() {
         panelOpen={panelOpen}
         setPanelOpen={setPanelOpen}
         cinematic={cinematic}
-        pulseSkyToggle={pulseSkyToggle}
         navStack={navStack}
         navigateBack={navigateBack}
         navigateToLevel={navigateToLevel}
@@ -1337,6 +1336,7 @@ function OrreryInner() {
       {!OBSERVATORY_MODE && (
         <SidePanel
           visible={hudActive}
+          pulse={pulseSkyToggle}
           accent={theme.uiAccent}
           accentRgb={accentRgb}
           onAction={handleArcAction}

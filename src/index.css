@@ -25,7 +25,8 @@ canvas {
 
 button { font-family: inherit; }
 
-/* Pulse the Sky toggle briefly after tour handoff. */
+/* Pulse the controls edge handle briefly after the cinematic tour hands off,
+   drawing the eye to where sky/constellation controls now live. */
 .sky-toggle-blink {
   animation: orrery-sky-toggle-blink 0.9s step-end infinite;
 }
@@ -75,7 +76,3 @@ a:focus-visible,
     transition-duration: 0.01ms !important;
   }
 }
-
-/* Hide scrollbar on the drawer's scrolling sections */
-[aria-label="Display layers"]::-webkit-scrollbar,
-[aria-label="Celestial bodies"]::-webkit-scrollbar { display: none; }

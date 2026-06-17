@@ -6,11 +6,13 @@
  * sections; a light backdrop closes on click-out. Right edge keeps it clear of
  * the left-edge BodyStats readout. Replaces the bottom ControlBar.
  */
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { PREFERS_REDUCED_MOTION } from '../lib/motion';
 
 export interface SidePanelProps {
   visible: boolean;
+  /** Briefly blink the edge handle (cinematic-landing "Sky mode" reveal cue). */
+  pulse?: boolean;
   accent: string;
   accentRgb: string;
   onAction: (action: string, arg?: string) => void;
@@ -28,8 +30,40 @@ const LAYERS: ReadonlyArray<{ label: string; arg: string }> = [
   { label: 'Asterisms', arg: 'asterisms' },
 ];
 
-export default function SidePanel({ visible, accent, accentRgb, onAction, layerState }: SidePanelProps) {
+export default function SidePanel({ visible, pulse, accent, accentRgb, onAction, layerState }: SidePanelProps) {
   const [open, setOpen] = useState(false);
+  // The reveal pulse forces the handle visible even if the HUD has idle-faded.
+  const handleVisible = visible || !!pulse;
+  const asideRef = useRef<HTMLElement>(null);
+  const handleRef = useRef<HTMLButtonElement>(null);
+
+  // While open: focus into the panel, trap Tab, close on Escape, and restore
+  // focus to the edge handle on close. Mirrors the AboutDialog dialog pattern.
+  useEffect(() => {
+    if (!open) return;
+    const focusables = () => asideRef.current
+      ? Array.from(asideRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+      : [];
+    focusables()[0]?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.preventDefault(); setOpen(false); return; }
+      if (e.key !== 'Tab') return;
+      const f = focusables();
+      if (f.length === 0) return;
+      const first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      // Intentionally the live handle: it remounts on close, so focus the
+      // current node, not a snapshot from when the panel opened.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      handleRef.current?.focus();
+    };
+  }, [open]);
 
   const sectionLabel: React.CSSProperties = {
     color: 'rgba(255,255,255,0.45)', fontSize: 10, letterSpacing: 2,
@@ -59,16 +93,19 @@ export default function SidePanel({ visible, accent, accentRgb, onAction, layerS
       {/* edge handle (idle-fades; hidden while open) */}
       {!open && (
         <button
+          ref={handleRef}
           type="button"
           aria-label="Open controls"
+          inert={!handleVisible}
+          className={pulse ? 'sky-toggle-blink' : undefined}
           onClick={(e) => { e.stopPropagation(); setOpen(true); }}
           style={{
-            position: 'fixed', right: 0, top: '50%', transform: 'translateY(-50%)', zIndex: 36,
+            position: 'fixed', right: 'env(safe-area-inset-right, 0px)', top: '50%', transform: 'translateY(-50%)', zIndex: 36,
             width: 30, height: 64, borderRadius: '10px 0 0 10px',
             background: `rgba(${accentRgb},0.16)`, border: `1px solid rgba(${accentRgb},0.42)`, borderRight: 'none',
-            color: accent, cursor: visible ? 'pointer' : 'default', display: 'grid', placeItems: 'center',
+            color: accent, cursor: handleVisible ? 'pointer' : 'default', display: 'grid', placeItems: 'center',
             backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-            opacity: visible ? 0.9 : 0, pointerEvents: visible ? 'auto' : 'none',
+            opacity: handleVisible ? 0.9 : 0, pointerEvents: handleVisible ? 'auto' : 'none',
             transition: 'opacity 0.6s ease', fontFamily: "'Cormorant Garamond',serif", fontSize: 18,
           }}
         >
@@ -86,15 +123,19 @@ export default function SidePanel({ visible, accent, accentRgb, onAction, layerS
 
       {/* the panel */}
       <aside
+        ref={asideRef}
         role="dialog"
+        aria-modal="true"
         aria-label="Controls"
         aria-hidden={!open}
+        inert={!open}
         onClick={(e) => e.stopPropagation()}
         style={{
           position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 46,
           width: 'min(86vw, 320px)',
           padding: '20px 18px calc(env(safe-area-inset-bottom,0px) + 20px)',
           paddingTop: 'calc(env(safe-area-inset-top,0px) + 20px)',
+          paddingRight: 'calc(18px + env(safe-area-inset-right,0px))',
           background: 'rgba(8,11,22,0.92)', borderLeft: '1px solid rgba(255,255,255,0.12)',
           backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
           overflowY: 'auto',

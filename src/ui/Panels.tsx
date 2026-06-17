@@ -14,7 +14,7 @@ import { jdToDate } from '../lib/kepler';
 import { ALL_BODIES } from '../data/planets';
 import { getMoonsForPlanet } from '../data/moons';
 import { useTheme } from '../lib/themes';
-import { bokehCard, useIsMobile, Z, BLUR } from './styles';
+import { bokehCard, useIsMobile, useIsCompact, Z, BLUR } from './styles';
 import { PREFERS_REDUCED_MOTION } from '../lib/motion';
 import BodyStats from './BodyStats';
 import type { CometDef } from '../data/comets';
@@ -504,6 +504,7 @@ export default function Panels(props: PanelProps) {
   const accent = theme.uiAccent;
   const accentRgb = theme.uiAccentRgb;
   const mobile = useIsMobile();
+  const compact = useIsCompact();
   const [showInfo, setShowInfo] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   // Pale Blue Dot: a single quiet Sagan caption the first time you pull the
@@ -813,6 +814,7 @@ export default function Panels(props: PanelProps) {
       {/* ── Planet/Moon info card (hidden in observatory / cinematic — tour sets selPlanet for camera) ── */}
       {!cinematic && !observatoryMode && (selSun || sp || selectedMoon) && (
         <BodyStats
+          key={selectedMoon ? `m${selectedMoon.name}` : selSun ? 'sun' : sp!.name}
           name={selectedMoon ? selectedMoon.name : selSun ? 'Sun' : sp!.name}
           subtitle={selectedMoon ? `Moon of ${sp!.name}` : selSun ? 'G-type main-sequence star (Sol)' : sp!.type}
           color={selectedMoon ? selectedMoon.color : selSun ? '#ffca74' : sp!.color}
@@ -825,7 +827,7 @@ export default function Panels(props: PanelProps) {
           accent={accent}
           accentRgb={accentRgb}
           onBack={props.onDismissSelection}
-          mobile={mobile}
+          compact={compact}
         />
       )}
 

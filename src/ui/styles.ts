@@ -49,13 +49,23 @@ export const ACTIVE_ALPHA = {
 // ─── Responsive hook ────────────────────────────────────────────────────────────
 
 export function useIsMobile(): boolean {
-  const [mobile, setMobile] = useState(
-    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  return useMaxWidth(768);
+}
+
+/** True at or below tablet width — used for the compact body readout (chip). */
+export function useIsCompact(): boolean {
+  return useMaxWidth(1024);
+}
+
+function useMaxWidth(px: number): boolean {
+  const [match, setMatch] = useState(
+    typeof window !== 'undefined' ? window.innerWidth < px : false
   );
   useEffect(() => {
-    const fn = () => setMobile(window.innerWidth < 768);
+    const fn = () => setMatch(window.innerWidth < px);
+    fn();
     window.addEventListener('resize', fn);
     return () => window.removeEventListener('resize', fn);
-  }, []);
-  return mobile;
+  }, [px]);
+  return match;
 }

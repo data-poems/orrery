@@ -16,6 +16,18 @@ if (import.meta.env.DEV) {
   console.info('[Orrery] bundle stamp', __ORRERY_BUILD_STAMP__);
 }
 
+// @react-three/fiber 9 still constructs THREE.Clock internally, which three r183
+// flags as deprecated (steering toward THREE.Timer). It's a benign, one-time
+// notice we can't control from app code — filter just that line so it doesn't
+// clutter the console. Remove once r3f moves to Timer.
+{
+  const warn = console.warn.bind(console);
+  console.warn = (...args: unknown[]) => {
+    if (typeof args[0] === 'string' && args[0].includes('THREE.Clock') && args[0].includes('deprecated')) return;
+    warn(...args);
+  };
+}
+
 if (OBSERVATORY_MODE) {
   document.title = 'Observatory';
 }

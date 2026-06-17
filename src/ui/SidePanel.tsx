@@ -1,18 +1,19 @@
 /*
- * SidePanel — the controls as a slide-in panel from the right edge.
+ * SidePanel — the full controls as a slide-in panel from the right edge.
  *
- * At rest: a slim handle on the right edge (idle-fades via `visible`). Tapping
- * it slides a panel in from the right holding the controls grouped into
- * sections; a light backdrop closes on click-out. Right edge keeps it clear of
- * the left-edge BodyStats readout. Replaces the bottom ControlBar.
+ * Opened by the bottom cluster's ≡ tile (or the `m` key) via the
+ * `orrery:toggle-controls` window event — there's no edge handle anymore. A
+ * light backdrop closes on click-out; Escape closes and restores focus. The
+ * common controls (zoom, tour, dice, sky) live on the BottomCluster; this panel
+ * holds the rest: scale presets, sky, the layer toggles, and About.
+ *
+ * Interior is a single aligned grid: every row is [glyph | label | indicator]
+ * so labels and ●/○ markers line up regardless of text length.
  */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { PREFERS_REDUCED_MOTION } from '../lib/motion';
 
 export interface SidePanelProps {
-  visible: boolean;
-  /** Briefly blink the edge handle (cinematic-landing "Sky mode" reveal cue). */
-  pulse?: boolean;
   accent: string;
   accentRgb: string;
   onAction: (action: string, arg?: string) => void;
@@ -30,19 +31,23 @@ const LAYERS: ReadonlyArray<{ label: string; arg: string }> = [
   { label: 'Asterisms', arg: 'asterisms' },
 ];
 
-export default function SidePanel({ visible, pulse, accent, accentRgb, onAction, layerState }: SidePanelProps) {
+export default function SidePanel({ accent, onAction, layerState }: SidePanelProps) {
   const [open, setOpen] = useState(false);
-  // The reveal pulse forces the handle visible even if the HUD has idle-faded.
-  const handleVisible = visible || !!pulse;
-  const asideRef = useRef<HTMLElement>(null);
-  const handleRef = useRef<HTMLButtonElement>(null);
 
-  // While open: focus into the panel, trap Tab, close on Escape, and restore
-  // focus to the edge handle on close. Mirrors the AboutDialog dialog pattern.
+  // Open/close via the shared window event (bottom-cluster ≡ tile, m key).
+  useEffect(() => {
+    const onToggle = () => setOpen(o => !o);
+    window.addEventListener('orrery:toggle-controls', onToggle);
+    return () => window.removeEventListener('orrery:toggle-controls', onToggle);
+  }, []);
+
+  // While open: focus into the panel, trap Tab, close on Escape, restore focus.
   useEffect(() => {
     if (!open) return;
-    const focusables = () => asideRef.current
-      ? Array.from(asideRef.current.querySelectorAll<HTMLElement>(
+    const prev = document.activeElement as HTMLElement | null;
+    const root = document.getElementById('orrery-controls-panel');
+    const focusables = () => root
+      ? Array.from(root.querySelectorAll<HTMLElement>(
           'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'))
       : [];
     focusables()[0]?.focus();
@@ -58,62 +63,31 @@ export default function SidePanel({ visible, pulse, accent, accentRgb, onAction,
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('keydown', onKey);
-      // Intentionally the live handle: it remounts on close, so focus the
-      // current node, not a snapshot from when the panel opened.
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      handleRef.current?.focus();
+      prev?.focus?.();
     };
   }, [open]);
 
-  const sectionLabel: React.CSSProperties = {
-    color: 'rgba(255,255,255,0.45)', fontSize: 10, letterSpacing: 2,
-    textTransform: 'uppercase', margin: '18px 0 8px',
+  const heading: React.CSSProperties = {
+    color: 'rgba(255,255,255,0.45)', fontSize: 10, letterSpacing: 2, fontWeight: 400,
+    textTransform: 'uppercase', margin: '20px 0 8px',
   };
-  // Minimal rows: transparent at rest, hairline separators, accent only when
-  // active. Avoids the heavy "menu of boxes" look.
-  const rowBtn = (active: boolean): React.CSSProperties => ({
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
-    padding: '9px 2px', cursor: 'pointer', fontFamily: 'inherit',
-    fontSize: 14, letterSpacing: 0.4, textAlign: 'left',
+  // Aligned 3-column row: [28px glyph][flex label][22px indicator].
+  const row = (active: boolean): React.CSSProperties => ({
+    display: 'flex', alignItems: 'center', gap: 12, width: '100%', height: 48,
+    padding: '0 4px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
     background: 'transparent', border: 'none',
     borderBottom: '1px solid rgba(255,255,255,0.07)',
-    color: active ? accent : 'rgba(255,255,255,0.82)',
+    color: active ? accent : 'rgba(255,255,255,0.85)',
     transition: PREFERS_REDUCED_MOTION ? 'none' : 'color 0.18s',
   });
-  const iconBtn: React.CSSProperties = {
-    width: 40, height: 40, borderRadius: 8, cursor: 'pointer', display: 'grid', placeItems: 'center',
-    background: 'transparent', border: '1px solid rgba(255,255,255,0.16)', color: 'rgba(255,255,255,0.85)',
-    fontFamily: 'inherit', fontSize: 18,
-  };
+  const glyphCell: React.CSSProperties = { width: 28, flexShrink: 0, display: 'grid', placeItems: 'center', fontSize: 15 };
+  const labelCell: React.CSSProperties = { flex: 1, fontSize: 14, letterSpacing: 0.4 };
+  const markCell: React.CSSProperties = { width: 22, flexShrink: 0, textAlign: 'center', fontSize: 15 };
 
   const act = (a: string, arg?: string, close = false) => { onAction(a, arg); if (close) setOpen(false); };
 
   return (
     <>
-      {/* edge handle (idle-fades; hidden while open) */}
-      {!open && (
-        <button
-          ref={handleRef}
-          type="button"
-          aria-label="Open controls"
-          inert={!handleVisible}
-          className={pulse ? 'sky-toggle-blink' : undefined}
-          onClick={(e) => { e.stopPropagation(); setOpen(true); }}
-          style={{
-            position: 'fixed', right: 'env(safe-area-inset-right, 0px)', top: '50%', transform: 'translateY(-50%)', zIndex: 36,
-            width: 30, height: 64, borderRadius: '10px 0 0 10px',
-            background: `rgba(${accentRgb},0.16)`, border: `1px solid rgba(${accentRgb},0.42)`, borderRight: 'none',
-            color: accent, cursor: handleVisible ? 'pointer' : 'default', display: 'grid', placeItems: 'center',
-            backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-            opacity: handleVisible ? 0.9 : 0, pointerEvents: handleVisible ? 'auto' : 'none',
-            transition: 'opacity 0.6s ease', fontFamily: "'Cormorant Garamond',serif", fontSize: 18,
-          }}
-        >
-          <span aria-hidden="true">‹</span>
-        </button>
-      )}
-
-      {/* backdrop */}
       {open && (
         <div
           onClick={() => setOpen(false)}
@@ -121,9 +95,8 @@ export default function SidePanel({ visible, pulse, accent, accentRgb, onAction,
         />
       )}
 
-      {/* the panel */}
       <aside
-        ref={asideRef}
+        id="orrery-controls-panel"
         role="dialog"
         aria-modal="true"
         aria-label="Controls"
@@ -148,45 +121,57 @@ export default function SidePanel({ visible, pulse, accent, accentRgb, onAction,
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: 20, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' }}>Controls</span>
           <button type="button" aria-label="Close controls" onClick={() => setOpen(false)}
-            style={{ ...iconBtn, width: 40, height: 40, fontSize: 22, color: 'rgba(255,255,255,0.7)' }}>
-            <span aria-hidden="true">×</span>
+            style={{
+              width: 44, height: 44, borderRadius: 8, cursor: 'pointer', display: 'grid', placeItems: 'center',
+              background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.7)',
+              fontFamily: 'inherit', fontSize: 22,
+            }}>
+            <span aria-hidden="true">{'×'}</span>
           </button>
         </div>
 
-        <div style={sectionLabel}>Explore</div>
-        <div style={{ display: 'grid', gap: 8 }}>
-          <button type="button" style={rowBtn(false)} onClick={() => act('tour', undefined, true)}>Cinematic tour <span aria-hidden="true">▶</span></button>
-          <button type="button" style={rowBtn(false)} onClick={() => act('dice', undefined, true)}>Random destination <span aria-hidden="true">⚄</span></button>
+        <h3 style={heading}>Scale</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
+          {VIEW_PRESETS.map(p => (
+            <button key={p} type="button" onClick={() => act('preset', p, true)}
+              style={{
+                height: 34, borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
+                fontSize: 11.5, letterSpacing: 0.3,
+                background: 'transparent', border: '1px solid rgba(255,255,255,0.16)', color: 'rgba(255,255,255,0.85)',
+              }}>{p}</button>
+          ))}
         </div>
 
-        <div style={sectionLabel}>Scale</div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button type="button" aria-label="Zoom out" style={iconBtn} onClick={() => act('zoom', 'out')}>−</button>
-          <button type="button" aria-label="Zoom in" style={iconBtn} onClick={() => act('zoom', 'in')}>+</button>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, flex: 1 }}>
-            {VIEW_PRESETS.map(p => (
-              <button key={p} type="button" onClick={() => act('preset', p, true)}
-                style={{ ...iconBtn, width: 'auto', height: 30, padding: '0 10px', fontSize: 12, letterSpacing: 0.5 }}>{p}</button>
-            ))}
-          </div>
-        </div>
+        <h3 style={heading}>Sky</h3>
+        <button type="button" style={row(!!layerState.sky)} onClick={() => act('toggleSky')} aria-pressed={!!layerState.sky}>
+          <span aria-hidden="true" style={glyphCell}>✦</span>
+          <span style={labelCell}>Sky / constellations</span>
+          <span aria-hidden="true" style={markCell}>{layerState.sky ? '●' : '○'}</span>
+        </button>
 
-        <div style={sectionLabel}>Sky</div>
-        <button type="button" style={rowBtn(layerState.sky)} onClick={() => act('toggleSky')}>Sky / constellations <span aria-hidden="true">✦</span></button>
-
-        <div style={sectionLabel}>Layers</div>
-        <div style={{ display: 'grid', gap: 6 }}>
+        <h3 style={heading}>Layers</h3>
+        <div>
           {LAYERS.map(l => (
-            <button key={l.arg} type="button" style={rowBtn(!!layerState[l.arg])} onClick={() => act('layer', l.arg)}>
-              {l.label} <span aria-hidden="true">{layerState[l.arg] ? '●' : '○'}</span>
+            <button key={l.arg} type="button" style={row(!!layerState[l.arg])} onClick={() => act('layer', l.arg)} aria-pressed={!!layerState[l.arg]}>
+              <span aria-hidden="true" style={glyphCell} />
+              <span style={labelCell}>{l.label}</span>
+              <span aria-hidden="true" style={markCell}>{layerState[l.arg] ? '●' : '○'}</span>
             </button>
           ))}
         </div>
 
-        <div style={sectionLabel}>About</div>
-        <div style={{ display: 'grid', gap: 8 }}>
-          <button type="button" style={rowBtn(false)} onClick={() => act('info', undefined, true)}>About &amp; data sources</button>
-          <button type="button" style={rowBtn(false)} onClick={() => act('shortcuts', undefined, true)}>Keyboard shortcuts</button>
+        <h3 style={heading}>About</h3>
+        <div>
+          <button type="button" style={row(false)} onClick={() => act('info', undefined, true)}>
+            <span aria-hidden="true" style={glyphCell}>{'ⓘ'}</span>
+            <span style={labelCell}>About &amp; data sources</span>
+            <span style={markCell} />
+          </button>
+          <button type="button" style={row(false)} onClick={() => act('shortcuts', undefined, true)}>
+            <span aria-hidden="true" style={glyphCell}>{'⌘'}</span>
+            <span style={labelCell}>Keyboard shortcuts</span>
+            <span style={markCell} />
+          </button>
         </div>
       </aside>
     </>

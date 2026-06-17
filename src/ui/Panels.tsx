@@ -365,45 +365,46 @@ function ShortcutsSheet({ open, onClose, accent, accentRgb }: {
 
 // ─── Info panel — floating bokehCard for clicked sky / spacecraft objects ──────
 
+// Shared left-edge readout for selected sky objects \u2014 same quiet, transparent
+// container as BodyStats (no bottom modal). Title + subtitle + description and
+// optional children (stat rows).
+const infoShadow = '0 1px 10px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.9)';
 function InfoPanel({
-  sectionTitle, title, subtitle, description, accent, accentRgb, mobile, onClose, closeLabel, placement = 'right', children,
+  sectionTitle, title, subtitle, description, accentRgb, mobile, onClose, closeLabel, children,
 }: {
   sectionTitle: string; title: string; subtitle: string; description: string;
-  accent: string; accentRgb: string; mobile: boolean;
+  accent?: string; accentRgb: string; mobile: boolean;
   onClose: () => void; closeLabel: string;
-  placement?: 'left' | 'right';
   children?: React.ReactNode;
 }) {
   return (
     <div
+      role="region"
+      aria-label={`${title} details`}
       onClick={e => e.stopPropagation()}
-      onTouchStart={e => e.stopPropagation()}
-      style={mobile ? {
-        position: 'fixed', left: 8, right: 8, bottom: 12, top: 'auto',
-        maxHeight: '40vh', borderRadius: 12, overflowY: 'auto',
-        ...bokehCard, padding: '14px 18px', zIndex: Z.dialog,
-        pointerEvents: 'auto', touchAction: 'manipulation',
-      } : {
-        position: 'absolute', bottom: 16, [placement]: 16,
-        maxWidth: 360, width: '30vw', minWidth: 280,
-        maxHeight: 'calc(100vh - 32px)', overflowY: 'auto',
-        ...bokehCard, padding: '14px 20px', zIndex: Z.dialog,
-        pointerEvents: 'auto',
+      onPointerDown={e => e.stopPropagation()}
+      style={{
+        position: 'fixed', zIndex: Z.dialog, pointerEvents: 'auto',
+        left: mobile ? 'calc(env(safe-area-inset-left,0px) + 14px)' : 'calc(env(safe-area-inset-left,0px) + 26px)',
+        top: mobile ? 'calc(env(safe-area-inset-top,0px) + 64px)' : '50%',
+        transform: mobile ? 'none' : 'translateY(-50%)',
+        maxWidth: mobile ? '70vw' : 290, maxHeight: mobile ? '62vh' : 'calc(100vh - 80px)', overflowY: 'auto',
+        padding: mobile ? '14px 16px' : '18px 20px',
+        background: 'rgba(8,11,22,0.42)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14,
+        backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
+        fontFamily: "'Cormorant Garamond','Garamond','Georgia',serif",
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-        <div style={{
-          color: `rgba(${accentRgb},0.8)`, fontSize: 10, letterSpacing: 2,
-          textTransform: 'uppercase', fontWeight: 400,
-        }}>{sectionTitle}</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+        <div style={{ color: `rgba(${accentRgb},0.85)`, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', textShadow: infoShadow }}>{sectionTitle}</div>
         <Btn onClick={onClose} label={closeLabel}>{'\u00d7'}</Btn>
       </div>
-      <div style={{ color: accent, fontSize: 18, fontWeight: 500, letterSpacing: 1 }}>{title}</div>
+      <div style={{ color: '#fff', fontSize: mobile ? 24 : 30, fontWeight: 400, letterSpacing: 1, marginTop: 2, textShadow: infoShadow }}>{title}</div>
       {subtitle && (
-        <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 300, marginTop: 2, letterSpacing: 1 }}>{subtitle}</div>
+        <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 13, fontStyle: 'italic', marginTop: 2, letterSpacing: 0.5, textShadow: infoShadow }}>{subtitle}</div>
       )}
       {description && (
-        <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 300, marginTop: 10, lineHeight: 1.5, fontStyle: 'italic' }}>{description}</div>
+        <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 300, marginTop: 12, lineHeight: 1.55, fontStyle: 'italic', textShadow: infoShadow }}>{description}</div>
       )}
       {children}
     </div>
@@ -673,7 +674,6 @@ export default function Panels(props: PanelProps) {
           subtitle={`${selSpacecraft.status === 'active' ? 'Active' : 'Inactive'} \u00b7 Launched ${selSpacecraft.launchYear}`}
           description="" accent={accent} accentRgb={accentRgb} mobile={mobile}
           onClose={() => setSelSpacecraft(null)} closeLabel="Close spacecraft info"
-          placement="left"
         >
           <div style={{
             display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px',
@@ -698,7 +698,6 @@ export default function Panels(props: PanelProps) {
           mobile={mobile}
           onClose={() => setSelNearStar(null)}
           closeLabel="Close nearby star info"
-          placement="left"
         >
           <div style={{ marginTop: 10, color: 'rgba(255,255,255,0.72)', fontSize: 13 }}>
             Apparent magnitude <span style={{ color: '#fff' }}>{selNearStar.mag.toFixed(2)}</span>
@@ -717,7 +716,6 @@ export default function Panels(props: PanelProps) {
           mobile={mobile}
           onClose={() => setSelGalaxy(null)}
           closeLabel="Close galaxy info"
-          placement="left"
         >
           {selGalaxy.mag !== null && (
             <div style={{ marginTop: 10, color: 'rgba(255,255,255,0.72)', fontSize: 13 }}>
@@ -783,21 +781,28 @@ export default function Panels(props: PanelProps) {
         <div
           role="region"
           aria-label={`${selNeo.name} details`}
+          onClick={e => e.stopPropagation()}
+          onPointerDown={e => e.stopPropagation()}
           style={{
-            position: 'absolute', bottom: mobile ? 64 : 56,
-            left: '50%', transform: 'translateX(-50%)',
-            ...bokehCard, padding: '12px 18px', maxWidth: 420,
-            width: mobile ? 'calc(100vw - 16px)' : '90%', zIndex: Z.controls,
+            position: 'fixed', zIndex: Z.dialog, pointerEvents: 'auto',
+            left: mobile ? 'calc(env(safe-area-inset-left,0px) + 14px)' : 'calc(env(safe-area-inset-left,0px) + 26px)',
+            top: mobile ? 'calc(env(safe-area-inset-top,0px) + 64px)' : '50%',
+            transform: mobile ? 'none' : 'translateY(-50%)',
+            maxWidth: mobile ? '74vw' : 300, maxHeight: mobile ? '62vh' : 'calc(100vh - 80px)', overflowY: 'auto',
+            padding: mobile ? '14px 16px' : '18px 20px',
+            background: 'rgba(8,11,22,0.42)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14,
+            backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
+            fontFamily: "'Cormorant Garamond','Garamond','Georgia',serif",
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: '#fff', fontSize: 15, fontWeight: 600 }}>{selNeo.name}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+            <span style={{ color: '#fff', fontSize: mobile ? 22 : 27, fontWeight: 400, letterSpacing: 0.8, textShadow: infoShadow }}>{selNeo.name}</span>
             <Btn onClick={() => setSelNeo(null)} label="Close NEO details">{'\u2715'}</Btn>
           </div>
           {selNeo.hazardous && (
-            <div style={{ color: '#ff4444', fontSize: 10, letterSpacing: 1.5, marginTop: 2, textTransform: 'uppercase', fontWeight: 400 }}>Potentially Hazardous</div>
+            <div style={{ color: '#ff6a6a', fontSize: 10, letterSpacing: 1.5, marginTop: 2, textTransform: 'uppercase', fontWeight: 400, textShadow: infoShadow }}>Potentially Hazardous</div>
           )}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', marginTop: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', marginTop: 10 }}>
             <Stat label="Diameter" val={`${Math.round(selNeo.dMin)}\u2013${Math.round(selNeo.dMax)} m`} />
             <Stat label="Miss distance" val={`${selNeo.missLunar.toFixed(1)} LD`} />
             <Stat label="Velocity" val={`${selNeo.velKms.toFixed(1)} km/s`} />

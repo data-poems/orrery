@@ -5,7 +5,7 @@
  * plain text laid directly over the scene (a soft text-shadow keeps it legible
  * against the starfield). The scene already labels the body in 3D; this is the
  * detail. Clearing the selection is via empty-space click / Escape (handled by
- * the parent), with a small inline Back affordance as a fallback.
+ * the parent), or the close × in the upper-right corner.
  */
 import { PREFERS_REDUCED_MOTION } from '../lib/motion';
 
@@ -24,7 +24,7 @@ export interface BodyStatsProps {
 
 const shadow = '0 1px 10px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.9)';
 
-export default function BodyStats({ name, subtitle, color, stats, accent, accentRgb, onBack, mobile }: BodyStatsProps) {
+export default function BodyStats({ name, subtitle, color, stats, onBack, mobile }: BodyStatsProps) {
   return (
     <div
       onPointerDown={(e) => e.stopPropagation()}
@@ -47,13 +47,31 @@ export default function BodyStats({ name, subtitle, color, stats, accent, accent
         animation: PREFERS_REDUCED_MOTION ? undefined : 'orrery-fade-in 0.5s ease both',
       }}
     >
-      {/* name + type */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 2 }}>
-        <span style={{ width: 9, height: 9, borderRadius: '50%', background: color, boxShadow: `0 0 8px ${color}`, flexShrink: 0 }} />
-        <span style={{ color: '#fff', fontSize: mobile ? 26 : 34, fontWeight: 400, letterSpacing: 1.5, textShadow: shadow }}>{name}</span>
-      </div>
-      <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 13, fontStyle: 'italic', letterSpacing: 0.5, marginBottom: 14, textShadow: shadow }}>
-        {subtitle}
+      {/* close — upper-right corner */}
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onBack(); }}
+        aria-label="Close"
+        style={{
+          position: 'absolute', top: 4, right: 4, width: 44, height: 44,
+          display: 'grid', placeItems: 'center', padding: 0,
+          background: 'none', border: 'none', cursor: 'pointer',
+          color: 'rgba(255,255,255,0.7)', fontFamily: 'inherit', fontSize: 22, lineHeight: 1,
+          textShadow: shadow,
+        }}
+      >
+        <span aria-hidden="true">{'×'}</span>
+      </button>
+
+      {/* name + type (right padding leaves room for the close ×) */}
+      <div style={{ paddingRight: 30 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 2 }}>
+          <span style={{ width: 9, height: 9, borderRadius: '50%', background: color, boxShadow: `0 0 8px ${color}`, flexShrink: 0 }} />
+          <span style={{ color: '#fff', fontSize: mobile ? 26 : 34, fontWeight: 400, letterSpacing: 1.5, textShadow: shadow }}>{name}</span>
+        </div>
+        <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 13, fontStyle: 'italic', letterSpacing: 0.5, marginBottom: 14, textShadow: shadow }}>
+          {subtitle}
+        </div>
       </div>
 
       {/* stats as plain label / value rows */}
@@ -65,21 +83,6 @@ export default function BodyStats({ name, subtitle, color, stats, accent, accent
           </div>
         ))}
       </dl>
-
-      <button
-        type="button"
-        onClick={(e) => { e.stopPropagation(); onBack(); }}
-        style={{
-          marginTop: 16, background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-          color: accent, fontFamily: 'inherit', fontSize: 13, letterSpacing: 1.4,
-          textTransform: 'uppercase', textShadow: shadow,
-          minHeight: 44, display: 'inline-flex', alignItems: 'center',
-        }}
-        aria-label="Back"
-      >
-        <span aria-hidden="true" style={{ marginRight: 6 }}>‹</span> Back
-        <span style={{ marginLeft: 8, fontSize: 10, color: `rgba(${accentRgb},0.55)`, letterSpacing: 1 }}>· esc</span>
-      </button>
     </div>
   );
 }

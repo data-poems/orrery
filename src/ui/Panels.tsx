@@ -10,6 +10,7 @@
 
 import { useEffect, useState, useRef, Fragment } from 'react';
 import type { NEO, CamPreset } from '../lib/kepler';
+import { jdToDate } from '../lib/kepler';
 import { ALL_BODIES } from '../data/planets';
 import { getMoonsForPlanet } from '../data/moons';
 import { useTheme } from '../lib/themes';
@@ -435,7 +436,6 @@ export interface PanelProps {
   selAsterism: string | null; setSelAsterism: (name: string | null) => void;
   panelOpen: boolean; setPanelOpen: (fn: boolean | ((p: boolean) => boolean)) => void;
   cinematic: boolean;
-  pulseSkyToggle?: boolean;
   navStack: string[];
   navigateBack: () => void;
   navigateToLevel: (level: number) => void;
@@ -482,7 +482,7 @@ export default function Panels(props: PanelProps) {
     cinematic,
     navStack,
     selMoonIdx, cameraDistance,
-    selComet, selMeteor, selSatellite,
+    selComet, setSelComet, selMeteor, setSelMeteor, selSatellite, setSelSatellite,
     setShowDeepSpace: _setShowDeepSpace,
     selSun,
     selSpacecraft, setSelSpacecraft,
@@ -517,7 +517,7 @@ export default function Panels(props: PanelProps) {
     const hide = window.setTimeout(() => setPaleBlueDot(false), 9000);
     return () => { window.clearTimeout(show); window.clearTimeout(hide); };
   }, [cameraDistance, observatoryMode]);
-  // The Solar Arc + '?' shortcut open these dialogs via window events.
+  // The SidePanel + '?' shortcut open these dialogs via window events.
   useEffect(() => {
     const toggleShortcuts = () => setShowShortcuts(s => !s);
     const openInfo = () => setShowInfo(true);
@@ -725,6 +725,70 @@ export default function Panels(props: PanelProps) {
         </InfoPanel>
       )}
 
+      {selComet && !cinematic && (
+        <InfoPanel
+          sectionTitle="Comet"
+          title={selComet.name}
+          subtitle={`${selComet.designation} · ${selComet.type === 'P' ? 'Periodic' : 'Long-period'} comet`}
+          description=""
+          accent={accent} accentRgb={accentRgb} mobile={mobile}
+          onClose={() => setSelComet(null)} closeLabel="Close comet info"
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', marginTop: 12 }}>
+            <Stat label="Perihelion" val={`${selComet.q.toFixed(3)} AU`} />
+            <Stat label="Eccentricity" val={selComet.e.toFixed(4)} />
+            <Stat label="Inclination" val={`${selComet.i.toFixed(2)}°`} />
+            <Stat label="Asc. node" val={`${selComet.om.toFixed(2)}°`} />
+            <Stat label="Arg. perihelion" val={`${selComet.w.toFixed(2)}°`} />
+            <Stat label="Abs. magnitude" val={selComet.H.toFixed(1)} />
+            <Stat label="Perihelion date" val={jdToDate(selComet.tp_jd).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })} />
+            <Stat label="Orbit" val="shown in scene" c={accent} />
+          </div>
+        </InfoPanel>
+      )}
+
+      {selMeteor && !cinematic && (
+        <InfoPanel
+          sectionTitle="Meteor shower"
+          title={selMeteor.name}
+          subtitle={`IAU ${selMeteor.code} · #${selMeteor.iauNo}`}
+          description=""
+          accent={accent} accentRgb={accentRgb} mobile={mobile}
+          onClose={() => setSelMeteor(null)} closeLabel="Close meteor shower info"
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', marginTop: 12 }}>
+            <Stat label="Radiant RA" val={`${selMeteor.ra.toFixed(1)}°`} />
+            <Stat label="Radiant Dec" val={`${selMeteor.dec.toFixed(1)}°`} />
+            <Stat label="Velocity" val={`${selMeteor.vg.toFixed(1)} km/s`} />
+            <Stat label="Peak (sol. long.)" val={`${selMeteor.solarLonPeak.toFixed(1)}°`} />
+            <Stat label="Active window" val={`${selMeteor.solarLonStart.toFixed(1)}–${selMeteor.solarLonEnd.toFixed(1)}°`} />
+            <Stat label="Parent body" val={selMeteor.parent || 'unknown'} />
+          </div>
+        </InfoPanel>
+      )}
+
+      {selSatellite && !cinematic && (() => {
+        const rOrbit = 6371 + selSatellite.alt;            // km from Earth centre
+        const periodMin = (2 * Math.PI * Math.sqrt((rOrbit ** 3) / 398600)) / 60;
+        return (
+          <InfoPanel
+            sectionTitle="Satellite"
+            title={selSatellite.name}
+            subtitle={`NORAD ${selSatellite.noradId}`}
+            description=""
+            accent={accent} accentRgb={accentRgb} mobile={mobile}
+            onClose={() => setSelSatellite(null)} closeLabel="Close satellite info"
+          >
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', marginTop: 12 }}>
+              <Stat label="Altitude" val={`${selSatellite.alt.toFixed(0)} km`} />
+              <Stat label="Velocity" val={`${selSatellite.vel.toFixed(2)} km/s`} />
+              <Stat label="Period (approx)" val={`${periodMin.toFixed(0)} min`} />
+              <Stat label="Orbits / day" val={(1440 / periodMin).toFixed(1)} />
+            </div>
+          </InfoPanel>
+        );
+      })()}
+
       {/* ── Background blur overlay when body selected (hidden in observatory / cinematic) ── */}
       {sp && !observatoryMode && !cinematic && (
         <div
@@ -766,7 +830,7 @@ export default function Panels(props: PanelProps) {
         <div
           role="status"
           style={{
-            position: 'absolute', bottom: mobile ? 120 : 108, left: '50%', transform: 'translateX(-50%)',
+            position: 'absolute', bottom: safeAreaBottom(mobile ? 120 : 108), left: '50%', transform: 'translateX(-50%)',
             ...bokehCard, padding: '10px 16px', zIndex: Z.controls, maxWidth: 360, textAlign: 'center',
           }}
         >
@@ -858,9 +922,9 @@ export default function Panels(props: PanelProps) {
         </div>
       )}
 
-      {/* HUD chips retired — all controls now live in the summoned Solar Arc
-          (rendered by Orrery). The About / Shortcuts dialogs below open via the
-          'orrery:open-info' / 'orrery:toggle-shortcuts' window events. */}
+      {/* Controls live in the SidePanel (rendered by Orrery). The About /
+          Shortcuts dialogs below open via the 'orrery:open-info' /
+          'orrery:toggle-shortcuts' window events. */}
 
       {/* ── About dialog ── */}
       <AboutDialog

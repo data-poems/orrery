@@ -68,6 +68,33 @@ export function julianDate(date: Date): number {
   return d + Math.floor((153 * mm + 2) / 5) + 365 * yy + Math.floor(yy / 4) - Math.floor(yy / 100) + Math.floor(yy / 400) - 32045;
 }
 
+/**
+ * Astronomical Julian Date → UTC Date (Fliegel/Richards). Expects a true
+ * astronomical JD (noon-based, e.g. catalog `tp_jd` / `epoch_jd` values), so a
+ * perihelion time converts to its real calendar date.
+ */
+export function jdToDate(jd: number): Date {
+  const J = jd + 0.5;
+  const Z = Math.floor(J);
+  const F = J - Z;
+  let A = Z;
+  if (Z >= 2299161) {
+    const alpha = Math.floor((Z - 1867216.25) / 36524.25);
+    A = Z + 1 + alpha - Math.floor(alpha / 4);
+  }
+  const B = A + 1524;
+  const C = Math.floor((B - 122.1) / 365.25);
+  const D = Math.floor(365.25 * C);
+  const E = Math.floor((B - D) / 30.6001);
+  const dayF = B - D - Math.floor(30.6001 * E) + F;
+  const day = Math.floor(dayF);
+  const month = E < 14 ? E - 1 : E - 13;
+  const year = month > 2 ? C - 4716 : C - 4715;
+  const frac = dayF - day;
+  const ms = Math.round(frac * 86400000);
+  return new Date(Date.UTC(year, month - 1, day) + ms);
+}
+
 // ─── Kepler's equation (Newton-Raphson) ─────────────────────────────────────────
 
 function solveKepler(M_deg: number, e: number): number {

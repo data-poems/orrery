@@ -386,10 +386,12 @@ function InfoPanel({
       onPointerDown={e => e.stopPropagation()}
       style={{
         position: 'fixed', zIndex: Z.dialog, pointerEvents: 'auto',
+        // Mobile: bottom-anchored above the control cluster (clears screen-center).
         left: mobile ? 'calc(env(safe-area-inset-left,0px) + 14px)' : 'calc(env(safe-area-inset-left,0px) + 26px)',
-        top: mobile ? 'calc(env(safe-area-inset-top,0px) + 64px)' : '50%',
+        top: mobile ? 'auto' : '50%',
+        bottom: mobile ? 'calc(env(safe-area-inset-bottom,0px) + 92px)' : 'auto',
         transform: mobile ? 'none' : 'translateY(-50%)',
-        maxWidth: mobile ? '70vw' : 290, maxHeight: mobile ? '62vh' : 'calc(100vh - 80px)', overflowY: 'auto',
+        maxWidth: mobile ? 'calc(100vw - 28px)' : 290, maxHeight: mobile ? '48vh' : 'calc(100vh - 80px)', overflowY: 'auto',
         padding: mobile ? '14px 16px' : '18px 20px',
         background: 'rgba(8,11,22,0.42)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14,
         backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
@@ -438,6 +440,7 @@ export interface PanelProps {
   cinematic: boolean;
   navStack: string[];
   navigateBack: () => void;
+  onDismissSelection: () => void;
   navigateToLevel: (level: number) => void;
   selMoonIdx: number | null;
   cameraDistance: number;
@@ -821,7 +824,7 @@ export default function Panels(props: PanelProps) {
           ] : planetStats}
           accent={accent}
           accentRgb={accentRgb}
-          onBack={props.navigateBack}
+          onBack={props.onDismissSelection}
           mobile={mobile}
         />
       )}
@@ -849,10 +852,12 @@ export default function Panels(props: PanelProps) {
           onPointerDown={e => e.stopPropagation()}
           style={{
             position: 'fixed', zIndex: Z.dialog, pointerEvents: 'auto',
+            // Mobile: bottom-anchored above the control cluster (clears screen-center).
             left: mobile ? 'calc(env(safe-area-inset-left,0px) + 14px)' : 'calc(env(safe-area-inset-left,0px) + 26px)',
-            top: mobile ? 'calc(env(safe-area-inset-top,0px) + 64px)' : '50%',
+            top: mobile ? 'auto' : '50%',
+            bottom: mobile ? 'calc(env(safe-area-inset-bottom,0px) + 92px)' : 'auto',
             transform: mobile ? 'none' : 'translateY(-50%)',
-            maxWidth: mobile ? '74vw' : 300, maxHeight: mobile ? '62vh' : 'calc(100vh - 80px)', overflowY: 'auto',
+            maxWidth: mobile ? 'calc(100vw - 28px)' : 300, maxHeight: mobile ? '48vh' : 'calc(100vh - 80px)', overflowY: 'auto',
             padding: mobile ? '14px 16px' : '18px 20px',
             background: 'rgba(8,11,22,0.42)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14,
             backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',

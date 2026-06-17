@@ -31,11 +31,16 @@ export default function BodyStats({ name, subtitle, color, stats, onBack, mobile
       onClick={(e) => e.stopPropagation()}
       style={{
         position: 'fixed',
+        // Mobile: anchored to the bottom, above the control cluster, so it never
+        // covers the body at screen-center. Desktop: quiet left-edge column.
         left: mobile ? 'calc(env(safe-area-inset-left,0px) + 14px)' : 'calc(env(safe-area-inset-left,0px) + 26px)',
-        top: mobile ? 'calc(env(safe-area-inset-top,0px) + 64px)' : '50%',
+        top: mobile ? 'auto' : '50%',
+        bottom: mobile ? 'calc(env(safe-area-inset-bottom,0px) + 92px)' : 'auto',
         transform: mobile ? 'none' : 'translateY(-50%)',
         zIndex: 28,
-        maxWidth: mobile ? '70vw' : 280,
+        maxWidth: mobile ? 'calc(100vw - 28px)' : 280,
+        maxHeight: mobile ? '48vh' : 'none',
+        overflowY: mobile ? 'auto' : 'visible',
         pointerEvents: 'auto',
         // Subtle transparent container — readable, but the scene shows through.
         padding: mobile ? '14px 16px' : '18px 20px',

@@ -649,6 +649,16 @@ function OrreryInner() {
     }
   }, [cinematic, navStack, selMoonIdx, selPlanet, selSun, exitCinematic]);
 
+  // Close the selected-body card without moving the camera (unlike navigateBack,
+  // which zooms back out to the containing scale level). Used by the card's × so
+  // you can dismiss the readout and stay where you are.
+  const dismissSelection = useCallback(() => {
+    setSelPlanet(null);
+    setSelSun(false);
+    setSelMoonIdx(null);
+    setFocusTarget(null);
+  }, []);
+
   // Navigate to a specific breadcrumb level
   const navigateToLevel = useCallback((level: number) => {
     if (level === 0) {
@@ -1330,6 +1340,7 @@ function OrreryInner() {
         cinematic={cinematic}
         navStack={navStack}
         navigateBack={navigateBack}
+        onDismissSelection={dismissSelection}
         navigateToLevel={navigateToLevel}
         selMoonIdx={selMoonIdx}
         cameraDistance={cameraDistance}

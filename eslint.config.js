@@ -6,7 +6,9 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // dist = web build output; android/ios hold generated native bundles
+  // (e.g. Capacitor's native-bridge.js) that should never be linted.
+  globalIgnores(['dist', 'android', 'ios']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

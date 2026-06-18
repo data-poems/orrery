@@ -11,10 +11,23 @@ import { useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { XR, XROrigin, createXRStore } from '@react-three/xr';
 
-// Created once when this lazy module first loads (headset only). No emulated
-// controller rays — Vision Pro uses transient-pointer (pinch), which
-// @react-three/xr v6 maps onto the existing onClick raycasting.
-const xrStore = createXRStore({ controller: false, hand: false });
+// Created once when this lazy module first loads (headset only). Every WebXR
+// input modality is enabled so the scene is interactive on any headset, not
+// just Vision Pro:
+//   • controller       — Quest, Pico, HTC Vive, PCVR motion controllers
+//   • hand             — Quest & Vision Pro articulated hand tracking
+//   • transientPointer — Vision Pro (and Quest) pinch / tap-to-select
+//   • gaze             — fallback for devices with no controllers or hands
+// @react-three/xr only instantiates the input sources the live session
+// actually reports, so turning them all on is purely additive — a Vision Pro
+// (no controllers) renders no controller ray, a Quest gets its controllers,
+// and each modality maps its select onto the existing onClick raycasting.
+const xrStore = createXRStore({
+  controller: true,
+  hand: true,
+  transientPointer: true,
+  gaze: true,
+});
 
 export type XRStore = typeof xrStore;
 

@@ -5,7 +5,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue.svg)](https://www.typescriptlang.org/)
 [![Three.js](https://img.shields.io/badge/Three.js-r183-black.svg)](https://threejs.org/)
 
-From Earth to the Oort Cloud. Interactive, 41,000 stars, 88 constellations, real data, mostly live. Fake scales.
+From Earth to the Oort Cloud. Interactive, 41,000 stars, 88 constellations, real data, mostly live. Fake scales. Now in VR on Vision Pro, Quest, and more.
 
 **[orrery.solar](https://orrery.solar)**
 
@@ -31,6 +31,7 @@ From Earth to the Oort Cloud. Interactive, 41,000 stars, 88 constellations, real
 
 ### Features
 
+- WebXR immersive mode: an **Enter VR** button appears on any WebXR headset and drops you inside the system — Apple Vision Pro (Safari), Meta Quest, Pico, and PCVR — with motion controllers, hand tracking, or pinch-to-select, whichever the headset reports
 - Cinematic opening tour: deep space down to Earth
 - Stargazer mode with immersive constellation + starfield emphasis
 - Deep Space layer (Oort Cloud, spacecraft, nearby star markers, galaxy markers) can be toggled independently

@@ -281,6 +281,12 @@ function OrreryInner() {
   const [constellationRevealTick, setConstellationRevealTick] = useState(0);
   const positionsRef = useRef(new Map<number, [number, number, number]>());
   const skyCueTimeoutsRef = useRef<number[]>([]);
+  // Guards the tour's auto-end against the interval double-firing exitCinematic
+  // (one more 500ms tick can land between setCinematic(false) and effect cleanup).
+  const tourEndedRef = useRef(false);
+  // Set when the tour should land on the Sun; consumed once cinematic ends so the
+  // preset settles like a normal selection (zooming mid-exit doesn't take).
+  const pendingSunZoomRef = useRef(false);
 
   const clearSkyCueTimeouts = useCallback(() => {
     skyCueTimeoutsRef.current.forEach((id) => window.clearTimeout(id));
@@ -426,6 +432,7 @@ function OrreryInner() {
   const startCinematicTour = useCallback(() => {
     cinematicIdx.current = 0;
     cinematicStart.current = Date.now();
+    tourEndedRef.current = false;
     setPanelOpen(false);
     // Invalidate pending dice aim BEFORE clearing aimAtSphere so a slow Promise
     // resolve gated by `lastTourPickRef.current === aimTicket` can't re-set it.
@@ -441,13 +448,17 @@ function OrreryInner() {
     if (!cinematic || !sceneReady) return;
 
     const id = setInterval(() => {
-      if (tabHiddenRef.current) return;
+      if (tabHiddenRef.current || tourEndedRef.current) return;
       const elapsed = Date.now() - cinematicStart.current;
       const dur = cinematicSteps[cinematicIdx.current].duration;
       if (elapsed >= dur) {
         const next = cinematicIdx.current + 1;
         if (next >= cinematicSteps.length) {
-          exitCinematic();
+          // End the intro tour by zooming to the Sun. Guard against a second
+          // tick firing before this effect's cleanup runs.
+          tourEndedRef.current = true;
+          pendingSunZoomRef.current = true;
+          exitCinematic({ kind: 'preset', label: 'Sun' });
         } else {
           cinematicIdx.current = next;
           cinematicStart.current = Date.now();
@@ -774,6 +785,16 @@ function OrreryInner() {
     if (idx >= 0) handlePresetSelect(idx);
   }, [handlePresetSelect]);
 
+  // Once the tour has actually left cinematic, settle on the Sun preset (post-exit
+  // so it applies like a normal selection — mid-exit the camera follows the tour's
+  // lingering focusTarget instead). Covers the auto-end path.
+  useEffect(() => {
+    if (cinematic || !pendingSunZoomRef.current) return;
+    pendingSunZoomRef.current = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    jumpToPreset('Sun');
+  }, [cinematic, jumpToPreset]);
+
   const handleSunSelect = useCallback(() => {
     if (cinematic) return;
     setSelSun(true);
@@ -945,7 +966,7 @@ function OrreryInner() {
       const k = e.key.toLowerCase();
 
       const isPresetKey = (e.key >= '1' && e.key <= '9') || e.key === '0' || e.key === '-' || e.key === '=';
-      const isInteractiveShortcut = isPresetKey || ['m', 'n', 'd', 's', 'l', 'a', 'g', 'k', 'c', 'r', 'i', 'o', 'escape', ' '].includes(k);
+      const isInteractiveShortcut = isPresetKey || ['m', 'n', 'd', 's', 'l', 'a', 'g', 'c', 'r', 'i', 'o', 'escape', ' '].includes(k);
 
       if (k === 'f') {
         startCinematicTour();
@@ -1042,16 +1063,27 @@ function OrreryInner() {
     return () => window.removeEventListener('keydown', fn);
   }, [cinematic, panelOpen, navigateBack, handlePresetSelect, exitCinematic, startCinematicTour, selPlanet, selSun, selMoonIdx, dismissSelection]);
 
-  // Exit cinematic mode on click
+  // Clicking during the tour exits and zooms to the Sun. exitCinematic first
+  // clears the tour's focusTarget, then jumpToPreset settles the Sun preset —
+  // the same proven order as pressing a preset key during the tour.
   const handleCinematicClick = useCallback(() => {
-    if (cinematic) exitCinematic();
-  }, [cinematic, exitCinematic]);
+    if (!cinematic) return;
+    tourEndedRef.current = true;
+    exitCinematic({ kind: 'preset', label: 'Sun' });
+    jumpToPreset('Sun');
+  }, [cinematic, exitCinematic, jumpToPreset]);
 
   const accentRgb = theme.uiAccentRgb;
 
+  // A tap fires OrbitControls' "start" (this) on pointer-down before the click
+  // handler runs, so it must also land on the Sun — otherwise it would exit to
+  // Earth first and the click handler would no-op.
   const handleUserGrabDuringCinematic = useCallback(() => {
-    if (cinematic) exitCinematic();
-  }, [cinematic, exitCinematic]);
+    if (!cinematic) return;
+    tourEndedRef.current = true;
+    exitCinematic({ kind: 'preset', label: 'Sun' });
+    jumpToPreset('Sun');
+  }, [cinematic, exitCinematic, jumpToPreset]);
 
   // Control-surface action dispatch (bottom cluster + side panel).
   const handleArcAction = useCallback((action: string, arg?: string) => {
@@ -1252,13 +1284,15 @@ function OrreryInner() {
           setCanvasCreated(true);
           if (cinematic) startCinematicTour();
         }}
-        onPointerMissed={OBSERVATORY_MODE ? () => {
+        onPointerMissed={OBSERVATORY_MODE ? (e) => {
+          if (e.button !== 0) return; // left-click only; right-click zooms out
           setSelConstellation(null);
           setSelAsterism(null);
           setSelNearStar(null);
           setSelGalaxy(null);
           setAimAtSphere(null);
-        } : () => {
+        } : (e) => {
+          if (e.button !== 0) return; // left-click only; right-click zooms out (onContextMenu)
           setSelSpacecraft(null);
           setSelNearStar(null);
           setSelGalaxy(null);

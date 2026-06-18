@@ -39,13 +39,6 @@ export const BLUR = {
   bokeh: 32,
 } as const;
 
-/** White-on-dark alpha tiers for foreground text and dividers. */
-/** Accent overlay alphas for selected/active states. */
-export const ACTIVE_ALPHA = {
-  border: 0.3,
-  bg: 0.15,
-} as const;
-
 // ─── Responsive hook ────────────────────────────────────────────────────────────
 
 export function useIsMobile(): boolean {
@@ -58,14 +51,16 @@ export function useIsCompact(): boolean {
 }
 
 function useMaxWidth(px: number): boolean {
+  // matchMedia fires once per breakpoint crossing (not every resize pixel) and
+  // is pinch-zoom safe on iOS, unlike window.innerWidth.
   const [match, setMatch] = useState(
-    typeof window !== 'undefined' ? window.innerWidth < px : false
+    () => typeof window !== 'undefined' ? window.matchMedia(`(max-width: ${px}px)`).matches : false
   );
   useEffect(() => {
-    const fn = () => setMatch(window.innerWidth < px);
-    fn();
-    window.addEventListener('resize', fn);
-    return () => window.removeEventListener('resize', fn);
+    const mq = window.matchMedia(`(max-width: ${px}px)`);
+    const fn = (e: MediaQueryListEvent) => setMatch(e.matches);
+    mq.addEventListener('change', fn);
+    return () => mq.removeEventListener('change', fn);
   }, [px]);
   return match;
 }

@@ -72,6 +72,7 @@ export default function CamCtrl({
   const lastDistanceReportRef = useRef(0);
   const lastDistanceValueRef = useRef(0);
   const presetTrackPos = useRef(new THREE.Vector3());
+  const newTargetRef = useRef(new THREE.Vector3());
   const lastTargetChange = useRef(0);
   const phaseRef = useRef<CamPhase>('idle');
   const frameSinceTargetRef = useRef(0);
@@ -241,8 +242,7 @@ export default function CamCtrl({
     else phase = 'idle';
     phaseRef.current = phase;
 
-    let smoothBase = cinematic ? 0.45 : observeMode ? 0.5 : 1.0;
-    if (cinematic) smoothBase = 0.6;
+    const smoothBase = cinematic ? 0.6 : observeMode ? 0.5 : 1.0;
 
     const smoothBoost = cinematic
       ? (remainDist > 10000 ? 0.35 : remainDist > 1000 ? 0.2 : remainDist > 100 ? 0.1 : 0)
@@ -278,7 +278,7 @@ export default function CamCtrl({
     } else if (trackIdx !== null) {
       const pp = positions.get(trackIdx);
       if (pp) {
-        const newTarget = new THREE.Vector3(...pp);
+        const newTarget = newTargetRef.current.set(...pp);
 
         if (settling.current || (observeMode && !observeUserTook.current)) {
           const off = focusTarget !== null ? computeFocusOffset(pp) : camPreset ? computePresetFollowOffset(pp, camPreset) : null;

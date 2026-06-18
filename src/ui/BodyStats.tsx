@@ -80,12 +80,12 @@ export default function BodyStats({ name, subtitle, color, stats, onBack, compac
           {dot}
           <span style={{ color: '#fff', fontSize: 18, letterSpacing: 0.8, textShadow: shadow, flexShrink: 0 }}>{name}</span>
           <span style={{ color: 'rgba(255,255,255,0.62)', fontSize: 12, fontStyle: 'italic', textShadow: shadow, flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{subtitle}</span>
-          <button type="button" onClick={(e) => { e.stopPropagation(); setExpanded(false); }} aria-label="Collapse" aria-expanded
-            style={{ flexShrink: 0, width: 36, height: 36, margin: '-6px 0', padding: 0, display: 'grid', placeItems: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', fontFamily: 'inherit', fontSize: 16, textShadow: shadow }}>
+          <button type="button" onClick={(e) => { e.stopPropagation(); setExpanded(false); }} aria-label="Collapse" aria-expanded={true}
+            style={{ flexShrink: 0, width: 44, height: 44, margin: '-9px 0', padding: 0, display: 'grid', placeItems: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', fontFamily: 'inherit', fontSize: 16, textShadow: shadow }}>
             <span aria-hidden="true">{'⌃'}</span>
           </button>
           <button type="button" onClick={(e) => { e.stopPropagation(); onBack(); }} aria-label="Close"
-            style={{ flexShrink: 0, width: 40, height: 36, margin: '-6px -6px -6px 0', padding: 0, display: 'grid', placeItems: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', fontFamily: 'inherit', fontSize: 22, lineHeight: 1, textShadow: shadow }}>
+            style={{ flexShrink: 0, width: 44, height: 44, margin: '-9px -8px -9px 0', padding: 0, display: 'grid', placeItems: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', fontFamily: 'inherit', fontSize: 22, lineHeight: 1, textShadow: shadow }}>
             <span aria-hidden="true">{'×'}</span>
           </button>
         </div>

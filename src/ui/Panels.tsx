@@ -331,7 +331,8 @@ function ShortcutsSheet({ open, onClose, accent, accentRgb }: {
           onClick={onClose}
           aria-label="Close keyboard shortcuts"
           style={{
-            position: 'absolute', top: 14, right: 16,
+            position: 'absolute', top: 8, right: 10,
+            width: 44, height: 44, display: 'grid', placeItems: 'center', padding: 0,
             background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)',
             fontSize: 22, lineHeight: 1, cursor: 'pointer',
           }}

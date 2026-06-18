@@ -189,7 +189,12 @@ export default function CamCtrl({
       const ctrl = ctrlRef.current;
       if (ctrl) ctrl.target.copy(tLook.current);
     }
-  }, [focusTarget, camPreset, cinematic, computeFocusOffset, computePresetFollowOffset, aimAtSphere, planAimAtSphere, positions]);
+    // `positions` is intentionally NOT a dep: it's a new Map every sim tick, so
+    // including it re-fired this effect every frame and kept resetting settling.
+    // We only need the body's position at the moment the target changes; the
+    // per-frame loop tracks the live position thereafter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusTarget, camPreset, cinematic, computeFocusOffset, computePresetFollowOffset, aimAtSphere, planAimAtSphere]);
 
   useEffect(() => {
     const ctrl = ctrlRef.current;

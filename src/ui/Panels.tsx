@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useState, useRef, Fragment } from 'react';
-import type { NEO, CamPreset } from '../lib/kepler';
+import type { NEO } from '../lib/kepler';
 import { jdToDate } from '../lib/kepler';
 import { ALL_BODIES } from '../data/planets';
 import { getMoonsForPlanet } from '../data/moons';
@@ -417,42 +417,24 @@ function InfoPanel({
 
 // ─── Panel props ────────────────────────────────────────────────────────────────
 
+// Only what Panels actually renders. Controls/layers/playback now live in
+// BottomCluster and SidePanel, which receive their own props from Orrery.
 export interface PanelProps {
-  simTime: Date;
   moon: { name: string; ill: number };
   solarWind: string | null;
-  speed: number; setSpeed: (fn: (s: number) => number) => void;
-  playing: boolean; setPlaying: (fn: (p: boolean) => boolean) => void;
-  selPlanet: number | null; setSelPlanet: (i: number | null) => void;
-  neos: NEO[]; neoStatus: 'loading' | 'loaded' | 'error'; selNeo: NEO | null; setSelNeo: (n: NEO | null) => void;
-  showNeo: boolean; setShowNeo: (fn: (p: boolean) => boolean) => void;
-  showDwarf: boolean; setShowDwarf: (fn: (p: boolean) => boolean) => void;
-  showStars: boolean; setShowStars: (fn: (p: boolean) => boolean) => void;
-  showConstellations: boolean; setShowConstellations: (fn: (p: boolean) => boolean) => void;
-  showAsterisms: boolean; setShowAsterisms: (fn: (p: boolean) => boolean) => void;
-  constellationFocus: boolean; setConstellationFocus: (fn: (p: boolean) => boolean) => void;
-  showAsteroidBelt: boolean; setShowAsteroidBelt: (fn: (p: boolean) => boolean) => void;
-  showComets: boolean; setShowComets: (fn: (p: boolean) => boolean) => void;
-  showMeteors: boolean; setShowMeteors: (fn: (p: boolean) => boolean) => void;
-  showSatellites: boolean; setShowSatellites: (fn: (p: boolean) => boolean) => void;
+  selPlanet: number | null;
+  neoStatus: 'loading' | 'loaded' | 'error'; selNeo: NEO | null; setSelNeo: (n: NEO | null) => void;
+  showNeo: boolean;
   selConstellation: string | null; setSelConstellation: (id: string | null) => void;
   selAsterism: string | null; setSelAsterism: (name: string | null) => void;
-  panelOpen: boolean; setPanelOpen: (fn: boolean | ((p: boolean) => boolean)) => void;
   cinematic: boolean;
   navStack: string[];
-  navigateBack: () => void;
   onDismissSelection: () => void;
-  navigateToLevel: (level: number) => void;
   selMoonIdx: number | null;
   cameraDistance: number;
-  cams: CamPreset[];
-  camIdx: number;
-  onPresetSelect: (i: number) => void;
-  onMoonSelect?: (planetIdx: number, moonIdx: number) => void;
   selComet: CometDef | null; setSelComet: (c: CometDef | null) => void;
   selMeteor: MeteorShower | null; setSelMeteor: (m: MeteorShower | null) => void;
   selSatellite: SatellitePosition | null; setSelSatellite: (s: SatellitePosition | null) => void;
-  showDeepSpace: boolean; setShowDeepSpace: (fn: (p: boolean) => boolean) => void;
   selSun: boolean;
   selSpacecraft: import('../data/deepspace').Spacecraft | null;
   setSelSpacecraft: (s: import('../data/deepspace').Spacecraft | null) => void;
@@ -461,44 +443,23 @@ export interface PanelProps {
   selGalaxy: GalaxyMarker | null;
   setSelGalaxy: (g: GalaxyMarker | null) => void;
   currentAreaLabel: string;
-  onRandomJump: () => void;
-  onStartCinematic: () => void;
 }
 
 export default function Panels(props: PanelProps) {
   const {
-    simTime: _simTime, moon, solarWind, speed: _speed,
-    selPlanet, setSelPlanet: _setSelPlanet, neos: _neos, neoStatus, selNeo, setSelNeo,
-    showNeo,
-    setShowNeo: _setShowNeo,
-    setShowDwarf: _setShowDwarf,
-    showStars: _showStars, setShowStars: _setShowStars,
-    showConstellations: _showConstellations, setShowConstellations: _setShowConstellations,
-    setShowAsterisms: _setShowAsterisms,
-    setConstellationFocus: _setConstellationFocus,
-    setShowAsteroidBelt: _setShowAsteroidBelt,
-    setShowComets: _setShowComets,
-    setShowMeteors: _setShowMeteors,
-    setShowSatellites: _setShowSatellites,
+    moon, solarWind,
+    selPlanet, neoStatus, selNeo, setSelNeo, showNeo,
     selConstellation, setSelConstellation,
     selAsterism, setSelAsterism,
-    panelOpen: _panelOpen, setPanelOpen: _setPanelOpen,
-    cinematic,
-    navStack,
+    cinematic, navStack,
     selMoonIdx, cameraDistance,
     selComet, setSelComet, selMeteor, setSelMeteor, selSatellite, setSelSatellite,
-    setShowDeepSpace: _setShowDeepSpace,
     selSun,
     selSpacecraft, setSelSpacecraft,
     selNearStar, setSelNearStar,
     selGalaxy, setSelGalaxy,
     currentAreaLabel,
   } = props;
-  void _setShowNeo; void _simTime; void _speed; void _setSelPlanet; void _neos; void _setShowDwarf; void _showStars; void _showConstellations;
-  void _setShowAsterisms; void _setShowAsteroidBelt; void _setShowComets;
-  void _setShowMeteors; void _setShowSatellites;
-  void _panelOpen; void _setPanelOpen; void _setShowDeepSpace;
-  void _setShowStars; void _setShowConstellations; void _setConstellationFocus;
 
   const observatoryMode = OBSERVATORY_MODE;
   const { theme } = useTheme();

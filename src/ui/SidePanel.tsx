@@ -15,7 +15,6 @@ import { PREFERS_REDUCED_MOTION } from '../lib/motion';
 
 export interface SidePanelProps {
   accent: string;
-  accentRgb: string;
   onAction: (action: string, arg?: string) => void;
   layerState: Record<string, boolean>;
 }

@@ -228,7 +228,7 @@ function OrreryInner() {
   const [selMeteor, setSelMeteor] = useState<MeteorShower | null>(null);
   const [selSatellite, setSelSatellite] = useState<SatellitePosition | null>(null);
   const [constellationFocus, setConstellationFocus] = useState(OBSERVATORY_MODE);
-  const [speed, setSpeed] = useState(1);
+  const [speed] = useState(1);
   const [simTime, setSimTime] = useState(new Date());
   const [playing, setPlaying] = useState(true);
   const [focusTarget, setFocusTarget] = useState<FocusTarget | null>(null);
@@ -669,21 +669,6 @@ function OrreryInner() {
     setSelMoonIdx(null);
     setFocusTarget(null);
   }, []);
-
-  // Navigate to a specific breadcrumb level
-  const navigateToLevel = useCallback((level: number) => {
-    if (level === 0) {
-      setSelSun(false);
-      setSelPlanet(null);
-      setSelMoonIdx(null);
-      setFocusTarget(null);
-      setNavStack(['Solar System']);
-    } else if (level === 1 && navStack.length > 2) {
-      setSelMoonIdx(null);
-      setFocusTarget(prev => prev ? { planetIdx: prev.planetIdx, pos: prev.pos } : null);
-      setNavStack(prev => prev.slice(0, 2));
-    }
-  }, [navStack]);
 
   // Planet selection auto-focuses camera and pushes to nav stack
   const handlePlanetSelect = useCallback((idx: number | null) => {
@@ -1364,37 +1349,17 @@ function OrreryInner() {
       />
 
       <Panels
-        simTime={simTime} moon={moon} solarWind={solarWind}
-        speed={speed} setSpeed={setSpeed}
-        playing={playing} setPlaying={setPlaying}
-        selPlanet={selPlanet} setSelPlanet={handlePlanetSelect}
-        neos={neos} neoStatus={neoStatus} selNeo={selNeo} setSelNeo={handleNeoSelect}
-        showNeo={showNeo} setShowNeo={setShowNeo}
-        showDwarf={showDwarf} setShowDwarf={setShowDwarf}
-        showStars={showStars} setShowStars={setShowStars}
-        showConstellations={showConstellations} setShowConstellations={setShowConstellations}
-        showAsterisms={showAsterisms} setShowAsterisms={setShowAsterisms}
-        showAsteroidBelt={showAsteroidBelt} setShowAsteroidBelt={setShowAsteroidBelt}
-        showComets={showComets} setShowComets={setShowComets}
-        showMeteors={showMeteors} setShowMeteors={setShowMeteors}
-        showSatellites={showSatellites} setShowSatellites={setShowSatellites}
-        showDeepSpace={showDeepSpace} setShowDeepSpace={setShowDeepSpace}
+        moon={moon} solarWind={solarWind}
+        selPlanet={selPlanet}
+        neoStatus={neoStatus} selNeo={selNeo} setSelNeo={handleNeoSelect}
+        showNeo={showNeo}
         selConstellation={selConstellation} setSelConstellation={setSelConstellation}
         selAsterism={selAsterism} setSelAsterism={setSelAsterism}
-        constellationFocus={constellationFocus} setConstellationFocus={setConstellationFocus}
-        panelOpen={panelOpen}
-        setPanelOpen={setPanelOpen}
         cinematic={cinematic}
         navStack={navStack}
-        navigateBack={navigateBack}
         onDismissSelection={dismissSelection}
-        navigateToLevel={navigateToLevel}
         selMoonIdx={selMoonIdx}
         cameraDistance={cameraDistance}
-        cams={CAMS}
-        camIdx={camIdx}
-        onPresetSelect={handlePresetSelect}
-        onMoonSelect={handleMoonSelect}
         selComet={selComet} setSelComet={setSelComet}
         selMeteor={selMeteor} setSelMeteor={setSelMeteor}
         selSatellite={selSatellite} setSelSatellite={setSelSatellite}
@@ -1403,14 +1368,11 @@ function OrreryInner() {
         selGalaxy={selGalaxy} setSelGalaxy={setSelGalaxy}
         selSun={selSun}
         currentAreaLabel={currentAreaLabel}
-        onRandomJump={triggerRandomJump}
-        onStartCinematic={startCinematicTour}
       />
 
       {!OBSERVATORY_MODE && (
         <SidePanel
           accent={theme.uiAccent}
-          accentRgb={accentRgb}
           onAction={handleArcAction}
           layerState={arcLayerState}
         />

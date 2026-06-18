@@ -1224,6 +1224,13 @@ function OrreryInner() {
         fontFamily: "'Cormorant Garamond','Garamond','Baskerville','Georgia',serif",
       }}
       onClick={handleCinematicClick}
+      onContextMenu={(e) => {
+        // Right-click zooms out: step back from a focused body, else step the
+        // scale ladder outward. (Closing a body just closes — never zooms.)
+        e.preventDefault();
+        if (selPlanet !== null || selSun || selMoonIdx !== null) navigateBack();
+        else handleArcAction('zoom', 'out');
+      }}
     >
       <Canvas
         key={canvasKey}

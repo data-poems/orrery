@@ -115,9 +115,6 @@ export default function Scene({
   // day elapsed — at real-time speed that's never, and planet clicks could not
   // focus the camera (focusTarget needs a position from that map).
   const lastNotifyTRef = useRef(Number.NEGATIVE_INFINITY);
-  // Solid bodies share one group so constellation labels can occlude against
-  // them (a label behind Venus/the Sun is hidden, not drawn over the disk).
-  const bodiesRef = useRef<THREE.Group>(null);
 
   const positions = useMemo(() => {
     const m = new Map<number, [number, number, number]>();
@@ -142,60 +139,57 @@ export default function Scene({
     <>
       <color attach="background" args={['#000000']} />
       <ambientLight intensity={0.35} />
+      {!OBSERVATORY_MODE && <Sun cameraDistance={cameraDistance} showGlyphOverlay={showBodyGlyphs} onSelect={onSunSelect} />}
       {!OBSERVATORY_MODE && <AUGrid cameraDistance={cameraDistance} />}
       <Suspense fallback={null}>
         <RealAsteroidBelt jd={jd} visible={showAsteroidBelt} onLoad={() => onLoadComplete?.('asteroids')} />
       </Suspense>
-      {/* Solid bodies in one group — constellation labels occlude against it. */}
-      <group ref={bodiesRef}>
-        {!OBSERVATORY_MODE && <Sun cameraDistance={cameraDistance} showGlyphOverlay={showBodyGlyphs} onSelect={onSunSelect} />}
-        {!OBSERVATORY_MODE && visibleBodies.map((p) => {
-          const bodyIdx = ALL_BODIES.indexOf(p);
-          return (
-            <Suspense key={p.name} fallback={null}>
-            <group>
-              <OrbitRing
-                planet={p} T={T}
-                dim={selPlanet !== null && selPlanet !== bodyIdx}
-                highlighted={selPlanet === bodyIdx}
-                cameraDistance={cameraDistance}
-              />
-              <Planet
-                planet={p} T={T}
-                selected={selPlanet === bodyIdx}
-                onSelect={() => setSelPlanet(bodyIdx)}
-                hovered={hov === bodyIdx}
-                onHover={h => setHov(h ? bodyIdx : null)}
-                moonFocused={focusTarget?.planetIdx === bodyIdx && focusTarget?.moonIdx !== undefined}
-                showGlyphOverlay={showBodyGlyphs}
-              />
-            </group>
-            </Suspense>
-          );
-        })}
-        {/* Render moons for all visible bodies */}
-        {!OBSERVATORY_MODE && visibleBodies.map((body) => {
-          const bodyIdx = ALL_BODIES.indexOf(body);
-          const moons = getMoonsForPlanet(bodyIdx);
-          const parentPos = positions.get(bodyIdx);
-          if (!parentPos || moons.length === 0) return null;
-          const isFocused = selPlanet === bodyIdx;
-          return moons.map((moon, mIdx) => (
-            <group key={moon.name}>
-              {isFocused && <SatelliteOrbit moon={moon} parentPos={parentPos} />}
-              <MoonSatellite
-                moon={moon}
-                parentPos={parentPos}
-                jd={jd}
-                selected={isFocused && selMoonIdx === mIdx}
-                onSelect={onMoonSelect ? () => onMoonSelect(bodyIdx, mIdx) : undefined}
-                hovered={isFocused && hovMoon === mIdx}
-                onHover={(h) => setHovMoon(h ? mIdx : null)}
-              />
-            </group>
-          ));
-        })}
-      </group>
+      {!OBSERVATORY_MODE && visibleBodies.map((p) => {
+        const bodyIdx = ALL_BODIES.indexOf(p);
+        return (
+          <Suspense key={p.name} fallback={null}>
+          <group>
+            <OrbitRing
+              planet={p} T={T}
+              dim={selPlanet !== null && selPlanet !== bodyIdx}
+              highlighted={selPlanet === bodyIdx}
+              cameraDistance={cameraDistance}
+            />
+            <Planet
+              planet={p} T={T}
+              selected={selPlanet === bodyIdx}
+              onSelect={() => setSelPlanet(bodyIdx)}
+              hovered={hov === bodyIdx}
+              onHover={h => setHov(h ? bodyIdx : null)}
+              moonFocused={focusTarget?.planetIdx === bodyIdx && focusTarget?.moonIdx !== undefined}
+              showGlyphOverlay={showBodyGlyphs}
+            />
+          </group>
+          </Suspense>
+        );
+      })}
+      {/* Render moons for all visible bodies */}
+      {!OBSERVATORY_MODE && visibleBodies.map((body) => {
+        const bodyIdx = ALL_BODIES.indexOf(body);
+        const moons = getMoonsForPlanet(bodyIdx);
+        const parentPos = positions.get(bodyIdx);
+        if (!parentPos || moons.length === 0) return null;
+        const isFocused = selPlanet === bodyIdx;
+        return moons.map((moon, mIdx) => (
+          <group key={moon.name}>
+            {isFocused && <SatelliteOrbit moon={moon} parentPos={parentPos} />}
+            <MoonSatellite
+              moon={moon}
+              parentPos={parentPos}
+              jd={jd}
+              selected={isFocused && selMoonIdx === mIdx}
+              onSelect={onMoonSelect ? () => onMoonSelect(bodyIdx, mIdx) : undefined}
+              hovered={isFocused && hovMoon === mIdx}
+              onHover={(h) => setHovMoon(h ? mIdx : null)}
+            />
+          </group>
+        ));
+      })}
       {!OBSERVATORY_MODE && neos.map(neo => (
         <group key={neo.id}>
           <NeoDot
@@ -216,7 +210,7 @@ export default function Scene({
           immersive={immersiveSky}
         />
         <ConstellationLines visible={showConstellations && cameraDistance < 600} focus={constellationFocus} revealTick={constellationRevealTick} onLoad={() => onLoadComplete?.('constellationLines')} selectedId={selConstellationId} />
-        <ConstellationLabels visible={showConstellations && cameraDistance < 600} focus={constellationFocus} revealTick={constellationRevealTick} onSelect={onConstellationSelect} onLoad={() => onLoadComplete?.('constellations')} selectedId={selConstellationId} accent={accentColor} occludeRefs={[bodiesRef]} />
+        <ConstellationLabels visible={showConstellations && cameraDistance < 600} focus={constellationFocus} revealTick={constellationRevealTick} onSelect={onConstellationSelect} onLoad={() => onLoadComplete?.('constellations')} selectedId={selConstellationId} accent={accentColor} />
         <AsterismField visible={showAsterisms && cameraDistance < 600} onSelect={onAsterismSelect} />
       </Suspense>
       <CometField

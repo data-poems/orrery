@@ -835,7 +835,7 @@ function useConstellationCentroids(): ConstellationCentroid[] {
   return centroids;
 }
 
-export function ConstellationLabels({ visible, focus, tourPulse = false, revealTick, onSelect, onLoad, selectedId, accent, occludeRefs }: { visible: boolean; focus?: boolean; tourPulse?: boolean; revealTick?: number; onSelect?: (id: string) => void; onLoad?: () => void; selectedId: string | null; accent: string; occludeRefs?: React.RefObject<THREE.Object3D | null>[] }) {
+export function ConstellationLabels({ visible, focus, tourPulse = false, revealTick, onSelect, onLoad, selectedId, accent }: { visible: boolean; focus?: boolean; tourPulse?: boolean; revealTick?: number; onSelect?: (id: string) => void; onLoad?: () => void; selectedId: string | null; accent: string }) {
   const centroids = useConstellationCentroids();
   const isMobile = useIsMobile();
   const glyphSize = isMobile ? 32 : 48;
@@ -950,7 +950,6 @@ export function ConstellationLabels({ visible, focus, tourPulse = false, revealT
               <Html
                 center
                 {...(focus ? {} : { distanceFactor: 80 })}
-                {...(occludeRefs && occludeRefs.length ? { occlude: occludeRefs as React.RefObject<THREE.Object3D>[] } : {})}
                 style={{ pointerEvents: onSelect ? 'auto' : 'none' }}
                 zIndexRange={[1, 0]}
               >

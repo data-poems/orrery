@@ -163,6 +163,7 @@ export default function Scene({
               onHover={h => setHov(h ? bodyIdx : null)}
               moonFocused={focusTarget?.planetIdx === bodyIdx && focusTarget?.moonIdx !== undefined}
               showGlyphOverlay={showBodyGlyphs}
+              innerMoonA={(() => { const ms = getMoonsForPlanet(bodyIdx); return ms.length ? Math.min(...ms.map(m => m.a)) : undefined; })()}
             />
           </group>
           </Suspense>

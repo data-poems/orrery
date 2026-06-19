@@ -226,10 +226,15 @@ function SaturnRings({ radius }: { radius: number }) {
 
 // ─── Planet ─────────────────────────────────────────────────────────────────────
 
-export function Planet({ planet, T, selected, onSelect, hovered, onHover, moonFocused, showGlyphOverlay = false }: {
+export function Planet({ planet, T, selected, onSelect, hovered, onHover, moonFocused, showGlyphOverlay = false, innerMoonA }: {
   planet: PlanetDef; T: number; selected: boolean; onSelect: () => void;
   hovered: boolean; onHover: (h: boolean) => void; moonFocused?: boolean;
   showGlyphOverlay?: boolean;
+  /** Orbital distance (AU) of this planet's innermost moon, if any. The invisible
+   *  click sphere is capped just inside this so it never swallows the moons —
+   *  otherwise the planet's hit proxy intercepts every moon tap (stopPropagation)
+   *  and you can't select a moon by clicking it. */
+  innerMoonA?: number;
 }) {
   const ref = useRef<THREE.Mesh>(null);
   const hitRef = useRef<THREE.Mesh>(null);
@@ -275,7 +280,10 @@ export function Planet({ planet, T, selected, onSelect, hovered, onHover, moonFo
     // sphere first. Clamp radius so the pick proxy can never envelop camera.
     const minPhysicalRadius = Math.max(r * 1.05, 0.035);
     const cameraSafeMax = Math.max(minPhysicalRadius, distanceToCamera * 0.85);
-    hitRef.current.scale.setScalar(Math.min(desiredRadius, cameraSafeMax));
+    // Never let the hit sphere reach this planet's innermost moon — otherwise the
+    // planet's pick proxy is hit first and its stopPropagation eats the moon tap.
+    const moonClearance = innerMoonA !== undefined ? innerMoonA * 0.85 : Infinity;
+    hitRef.current.scale.setScalar(Math.min(desiredRadius, cameraSafeMax, moonClearance));
   });
 
   return (

@@ -268,7 +268,7 @@ const SHORTCUTS: ReadonlyArray<{ keys: string; label: string }> = [
   { keys: '1 – =', label: 'Jump to a scale preset' },
   { keys: 'M', label: 'Toggle the side drawer' },
   { keys: 'Esc', label: 'Back / clear selection' },
-  { keys: 'N · D', label: 'Near-Earth objects · dwarf planets' },
+  { keys: 'N · D · B', label: 'Near-Earth objects · dwarf planets · asteroid belt' },
   { keys: 'S · L · A', label: 'Stars · constellation lines · asterisms' },
   { keys: 'C · R · I', label: 'Comets · meteor showers · satellites' },
   { keys: 'O', label: 'Deep space (spacecraft, galaxies)' },

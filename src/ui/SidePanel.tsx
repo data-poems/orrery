@@ -23,6 +23,7 @@ const VIEW_PRESETS = ['Inner', 'System', 'Outer', 'Kuiper', 'Oort'] as const;
 const LAYERS: ReadonlyArray<{ label: string; arg: string }> = [
   { label: 'Near-Earth objects', arg: 'neo' },
   { label: 'Dwarf planets', arg: 'dwarf' },
+  { label: 'Asteroid belt', arg: 'asteroidBelt' },
   { label: 'Comets', arg: 'comets' },
   { label: 'Meteor showers', arg: 'meteors' },
   { label: 'Satellites', arg: 'satellites' },

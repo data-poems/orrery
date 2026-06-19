@@ -889,7 +889,7 @@ function OrreryInner() {
       const k = e.key.toLowerCase();
 
       const isPresetKey = (e.key >= '1' && e.key <= '9') || e.key === '0' || e.key === '-' || e.key === '=';
-      const isInteractiveShortcut = isPresetKey || ['m', 'n', 'd', 's', 'l', 'a', 'g', 'c', 'r', 'i', 'o', 'escape', ' '].includes(k);
+      const isInteractiveShortcut = isPresetKey || ['m', 'n', 'd', 'b', 's', 'l', 'a', 'g', 'c', 'r', 'i', 'o', 'escape', ' '].includes(k);
 
       if (k === 'f') {
         startCinematicTour();
@@ -934,6 +934,7 @@ function OrreryInner() {
       }
       if (k === 'n') setShowNeo(p => !p);
       if (k === 'd') setShowDwarf(p => !p);
+      if (k === 'b') setShowAsteroidBelt(p => !p);
       if (k === 's') setShowStars(p => !p);
       if (k === 'l') setShowConstellations(p => !p);
       if (k === 'a') setShowAsterisms(p => !p);
@@ -1031,6 +1032,7 @@ function OrreryInner() {
       case 'layer':
         if (arg === 'neo') setShowNeo(p => !p);
         else if (arg === 'dwarf') setShowDwarf(p => !p);
+        else if (arg === 'asteroidBelt') setShowAsteroidBelt(p => !p);
         else if (arg === 'comets') setShowComets(p => !p);
         else if (arg === 'meteors') setShowMeteors(p => !p);
         else if (arg === 'satellites') setShowSatellites(p => !p);
@@ -1044,9 +1046,10 @@ function OrreryInner() {
   }, [startCinematicTour, triggerRandomJump, jumpToPreset, cameraDistance]);
   const arcLayerState = useMemo(() => ({
     sky: constellationFocus,
-    neo: showNeo, dwarf: showDwarf, comets: showComets, meteors: showMeteors,
+    neo: showNeo, dwarf: showDwarf, asteroidBelt: showAsteroidBelt,
+    comets: showComets, meteors: showMeteors,
     satellites: showSatellites, deepSpace: showDeepSpace, asterisms: showAsterisms,
-  }), [constellationFocus, showNeo, showDwarf, showComets, showMeteors, showSatellites, showDeepSpace, showAsterisms]);
+  }), [constellationFocus, showNeo, showDwarf, showAsteroidBelt, showComets, showMeteors, showSatellites, showDeepSpace, showAsterisms]);
 
   // Current zoom-ladder rung drives the +/- grey-out on the bottom cluster.
   const zoomRung = useMemo(() => zoomRungFor(cameraDistance), [cameraDistance]);

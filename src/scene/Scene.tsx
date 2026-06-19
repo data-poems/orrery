@@ -91,6 +91,7 @@ export interface SceneProps {
    * orient the user toward a rolled constellation.
    */
   aimAtSphere?: [number, number, number] | null;
+  pointFocus?: { pos: [number, number, number]; dist: number } | null;
   onUserGrabDuringCinematic?: () => void;
 }
 
@@ -103,6 +104,7 @@ export default function Scene({
   showBodyGlyphs = false,
   selComet, setSelComet, selMeteor, setSelMeteor, selSatellite, setSelSatellite,
   selSpacecraft, setSelSpacecraft, selNearStar, setSelNearStar, selGalaxy, setSelGalaxy, onSunSelect, aimAtSphere,
+  pointFocus,
   onConstellationSelect, onAsterismSelect,
   selConstellationId, accentColor, onUserGrabDuringCinematic,
 }: SceneProps) {
@@ -258,6 +260,7 @@ export default function Scene({
         cinematicRotateSpeed={cinematicRotateSpeed}
         onCameraDistance={handleCameraDistance}
         aimAtSphere={aimAtSphere}
+        pointFocus={pointFocus}
         onUserGrabDuringCinematic={onUserGrabDuringCinematic}
         jd={jd}
       />

@@ -21,6 +21,7 @@ import type { CometDef } from './data/comets';
 import type { MeteorShower } from './scene/Meteors';
 import type { SatellitePosition } from './lib/satellites';
 import type { Spacecraft, NearStar, GalaxyMarker } from './data/deepspace';
+import { SPACECRAFT, heliocentricXYZ } from './data/deepspace';
 import Scene from './scene/Scene';
 import Panels from './ui/Panels';
 import SidePanel from './ui/SidePanel';
@@ -198,6 +199,9 @@ function OrreryInner() {
   const [showDeepSpace, setShowDeepSpace] = useState(OBSERVATORY_MODE);
   const [selSun, setSelSun] = useState(false);
   const [aimAtSphere, setAimAtSphere] = useState<[number, number, number] | null>(null);
+  // Fly-to-any-point focus for non-planet bodies (spacecraft, comets, asteroids).
+  // Cleared by the planet/preset focus handlers so a body focus always wins.
+  const [pointFocus, setPointFocus] = useState<{ pos: [number, number, number]; dist: number } | null>(null);
   // Tracks the most recent dice-roll target key. Used to gate async constellation
   // centroid resolves so a stale Promise can't clobber a newer roll, and to invalidate
   // pending aim resolves whenever the cinematic enters/exits or the user picks a
@@ -320,6 +324,7 @@ function OrreryInner() {
     // after cinematic exit can't pull the camera to a stale constellation.
     lastTourPickRef.current = null;
     setAimAtSphere(null);
+    setPointFocus(null);
 
     const earthPlanetExit = target.kind === 'planet' && target.idx === 2;
     if (earthPlanetExit) {
@@ -419,6 +424,7 @@ function OrreryInner() {
     // resolve gated by `lastTourPickRef.current === aimTicket` can't re-set it.
     lastTourPickRef.current = null;
     setAimAtSphere(null);
+    setPointFocus(null);
     applyCinematicStep(0);
     setCinematic(true);
   }, [applyCinematicStep, setPanelOpen]);
@@ -472,7 +478,7 @@ function OrreryInner() {
   // handler runs on this path. Other focus handlers clear aimAtSphere themselves.
   const handleConstellationSelect = useCallback((id: string) => {
     if (selConstellation === id) { setSelConstellation(null); setAimAtSphere(null); }
-    else setSelConstellation(id);
+    else { setSelConstellation(id); setPointFocus(null); }
   }, [selConstellation]);
 
   useEffect(() => {
@@ -676,6 +682,7 @@ function OrreryInner() {
     setSelSun(false);
     setSelMoonIdx(null);
     setFocusTarget(null);
+    setPointFocus(null);
   }, []);
 
   // Planet selection auto-focuses camera and pushes to nav stack
@@ -689,6 +696,7 @@ function OrreryInner() {
       setSelGalaxy(null);
       setSelConstellation(null);
       setAimAtSphere(null);
+      setPointFocus(null);
       setSelPlanet(idx);
       setSelMoonIdx(null);
       setCamIdx(-1);
@@ -726,6 +734,7 @@ function OrreryInner() {
     setSelGalaxy(null);
     setSelConstellation(null);
     setAimAtSphere(null);
+    setPointFocus(null);
     setSelPlanet(planetIdx);
     setSelMoonIdx(moonIdx);
     setCamIdx(-1);
@@ -749,6 +758,7 @@ function OrreryInner() {
     setSelMoonIdx(null);
     setSelConstellation(null);
     setAimAtSphere(null);
+    setPointFocus(null);
     setCinematic(false);
     if (preset.follow !== undefined) {
       const pos = positionsRef.current.get(preset.follow);
@@ -784,6 +794,7 @@ function OrreryInner() {
     setSelMoonIdx(null);
     setSelPlanet(null);
     setFocusTarget(null);
+    setPointFocus(null);
     setNavStack(['Solar System', 'Sun']);
     jumpToPreset('Sun');
   }, [cinematic, jumpToPreset]);
@@ -810,7 +821,16 @@ function OrreryInner() {
     type Target =
       | { kind: 'preset'; label: string; key: string }
       | { kind: 'planet'; planetIdx: number; key: string }
-      | { kind: 'moon'; planetIdx: number; moonIdx: number; key: string };
+      | { kind: 'moon'; planetIdx: number; moonIdx: number; key: string }
+      | { kind: 'spacecraft'; craftIdx: number; key: string };
+
+    // The pool stays planet/moon-heavy on purpose: those read as "stellar bodies."
+    // A few active spacecraft sprinkle in the occasional "wow, a probe out past the
+    // planets" without dominating. Sky-pinned objects (constellations, near-stars,
+    // galaxies) stay out — they don't fly-to/center as a destination.
+    const activeCraft = SPACECRAFT
+      .map((c, i) => ({ c, i }))
+      .filter(({ c }) => c.status === 'active');
 
     const destinations: Target[] = [
       { kind: 'preset', label: 'Sun', key: 'preset:Sun' },
@@ -822,6 +842,7 @@ function OrreryInner() {
       ...planetIndices.map<Target>((planetIdx) => ({ kind: 'planet', planetIdx, key: `planet:${planetIdx}` })),
       ...dwarfIndices.map<Target>((planetIdx) => ({ kind: 'planet', planetIdx, key: `planet:${planetIdx}` })),
       ...moonTargets.map<Target>((m) => ({ ...m, key: `moon:${m.planetIdx}:${m.moonIdx}` })),
+      ...activeCraft.map<Target>(({ i }) => ({ kind: 'spacecraft', craftIdx: i, key: `spacecraft:${i}` })),
     ];
 
     let target = destinations[Math.floor(Math.random() * destinations.length)];
@@ -875,6 +896,25 @@ function OrreryInner() {
         setAimAtSphere(null);
         handleMoonSelect(target.planetIdx, target.moonIdx);
         return;
+      case 'spacecraft': {
+        clearObjectSelections();
+        disableSkyTourLayers();
+        setAimAtSphere(null);
+        const craft = SPACECRAFT[target.craftIdx];
+        // Spacecraft live at their true heliocentric distance (tens to ~165 AU);
+        // fly to a static point just off the marker. Their layer must be on or the
+        // starburst won't render where the camera lands.
+        const pos = heliocentricXYZ(craft.ra, craft.dec, craft.distAU);
+        setCamIdx(-1);
+        setSelPlanet(null);
+        setSelMoonIdx(null);
+        setFocusTarget(null);
+        setShowDeepSpace(true);
+        setSelSpacecraft(craft);
+        setPointFocus({ pos, dist: 10 });
+        setNavStack(['Solar System', 'Deep Space', craft.name]);
+        return;
+      }
     }
   }, [cinematic, handleMoonSelect, handlePlanetSelect, handleSunSelect, jumpToPreset]);
 
@@ -1163,6 +1203,7 @@ function OrreryInner() {
       selConstellationId={selConstellation}
       accentColor={theme.uiAccent}
       aimAtSphere={aimAtSphere}
+      pointFocus={pointFocus}
       constellationFocus={constellationFocus}
       cinematic={cinematic}
       cinematicRotateSpeed={cinematicRotateSpeed}

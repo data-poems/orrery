@@ -33,6 +33,12 @@ export interface CamCtrlProps {
   aimAtSphere?: [number, number, number] | null;
   onUserGrabDuringCinematic?: () => void;
   jd: number;
+  /** Fly-to-any-point focus for non-planet bodies (spacecraft, comets,
+   *  asteroids). `pos` is a heliocentric world position; `dist` is how far the
+   *  camera should sit from it. Treated as a static target — the settling lerp
+   *  frames it like a preset, no per-frame tracking. Lower precedence than a
+   *  planet focusTarget, so callers clear focusTarget when setting this. */
+  pointFocus?: { pos: [number, number, number]; dist: number } | null;
 }
 
 export default function CamCtrl({
@@ -45,8 +51,9 @@ export default function CamCtrl({
   aimAtSphere,
   onUserGrabDuringCinematic,
   jd,
+  pointFocus,
 }: CamCtrlProps) {
-  const { camera, gl } = useThree();
+  const { camera, gl, scene, raycaster } = useThree();
   // During an immersive WebXR session the headset is the sole driver of the
   // camera. Yield to it: stop writing camera.position and disable OrbitControls.
   // Detected via three's own WebXRManager events — no @react-three/xr import, so
@@ -180,6 +187,13 @@ export default function CamCtrl({
         }
       }
       phaseRef.current = 'settling';
+    } else if (pointFocus) {
+      const [ox, oy, oz] = offsetFromAngle(pointFocus.dist, 0.7, 0.4);
+      tPos.current.set(pointFocus.pos[0] + ox, pointFocus.pos[1] + oy, pointFocus.pos[2] + oz);
+      tLook.current.set(...pointFocus.pos);
+      phaseRef.current = 'settling';
+      const ctrl = ctrlRef.current;
+      if (ctrl) ctrl.target.copy(tLook.current);
     } else if (camPreset?.follow !== undefined) {
       const pp = positions.get(camPreset.follow);
       if (pp) {
@@ -215,7 +229,7 @@ export default function CamCtrl({
     // We only need the body's position at the moment the target changes; the
     // per-frame loop tracks the live position thereafter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusTarget, camPreset, cinematic, computeFocusOffset, computePresetFollowOffset, aimAtSphere, planAimAtSphere]);
+  }, [focusTarget, camPreset, cinematic, computeFocusOffset, computePresetFollowOffset, aimAtSphere, planAimAtSphere, pointFocus, offsetFromAngle]);
 
   useEffect(() => {
     const ctrl = ctrlRef.current;
@@ -367,6 +381,60 @@ export default function CamCtrl({
         phase: phaseRef.current,
         cinematic,
       });
+      // Dev-only canvas probe for headless repro of click/focus bugs. Gated on the
+      // diag flag so the default Orrery path is untouched in production. Exposes the
+      // live focus state and a world→CSS-pixel projector so a test harness can click
+      // a body by index without guessing coordinates. Remove with the harness.
+      const rect = gl.domElement.getBoundingClientRect();
+      (window as unknown as { __orreryProbe?: unknown }).__orreryProbe = {
+        focusPlanetIdx: focusTarget?.planetIdx ?? null,
+        focusMoonIdx: focusTarget?.moonIdx ?? null,
+        pointFocus: pointFocus ? { pos: pointFocus.pos, dist: pointFocus.dist } : null,
+        phase: phaseRef.current,
+        cameraDistance: camera.position.length(),
+        camPos: [camera.position.x, camera.position.y, camera.position.z],
+        bodyScreen: (idx: number) => {
+          const p = positions.get(idx);
+          if (!p) return null;
+          const v = new THREE.Vector3(p[0], p[1], p[2]).project(camera);
+          if (v.z > 1) return null; // behind camera
+          return {
+            x: rect.left + (v.x * 0.5 + 0.5) * rect.width,
+            y: rect.top + (-v.y * 0.5 + 0.5) * rect.height,
+            onscreen: v.x >= -1 && v.x <= 1 && v.y >= -1 && v.y <= 1,
+          };
+        },
+        raycastAt: (cssX: number, cssY: number) => {
+          const ndc = new THREE.Vector2(
+            ((cssX - rect.left) / rect.width) * 2 - 1,
+            -(((cssY - rect.top) / rect.height) * 2 - 1),
+          );
+          raycaster.setFromCamera(ndc, camera);
+          const hits = raycaster.intersectObjects(scene.children, true);
+          return hits.slice(0, 6).map((h) => ({
+            dist: Math.round(h.distance * 1000) / 1000,
+            order: h.object.renderOrder,
+            type: h.object.type,
+            hasClick: typeof (h.object as unknown as { __r3f?: { handlers?: { onClick?: unknown } } }).__r3f?.handlers?.onClick === 'function',
+          }));
+        },
+        moonScreen: (planetIdx: number, moonIdx: number) => {
+          const pp = positions.get(planetIdx);
+          if (!pp) return null;
+          const moons = getMoonsForPlanet(planetIdx);
+          const moon = moons[moonIdx];
+          if (!moon) return null;
+          const mp = moonPositionAt(moon, pp, jdRef.current);
+          const v = new THREE.Vector3(mp[0], mp[1], mp[2]).project(camera);
+          if (v.z > 1) return null;
+          return {
+            name: moon.name,
+            x: rect.left + (v.x * 0.5 + 0.5) * rect.width,
+            y: rect.top + (-v.y * 0.5 + 0.5) * rect.height,
+            onscreen: v.x >= -1 && v.x <= 1 && v.y >= -1 && v.y <= 1,
+          };
+        },
+      };
     }
 
     ctrl.update();

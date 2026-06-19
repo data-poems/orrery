@@ -4,11 +4,11 @@
  * Desktop (> tablet): a quiet transparent column down the LEFT edge.
  * Mobile / tablet: a tiny name CHIP pinned to the bottom (above the control
  * cluster) — tap it to expand into a compact info bar with the stats laid out
- * horizontally. Expanded, a labeled action row carries two explicit controls:
- * "Collapse" (back to the chip) and "Back" (clear the selection). Keeps the
- * whole center open until you want detail. Back (also empty-space tap, Escape)
- * leaves the camera where it is — no zoom-out. Starts collapsed on each new
- * selection (keyed by parent).
+ * horizontally. Expanded, two icon tiles: a chevron-down that just collapses the
+ * bar back to the chip, and an arrow-left "Back" that zooms out of the body
+ * (onBack → navigateBack) to the containing scale level. Empty-space tap and
+ * Escape still dismiss in place, leaving the camera where it is. Starts collapsed
+ * on each new selection (keyed by parent).
  */
 import { useEffect, useState } from 'react';
 import { PREFERS_REDUCED_MOTION } from '../lib/motion';
@@ -138,7 +138,7 @@ export default function BodyStats({ name, subtitle, color, stats, accent, accent
             style={{ ...iconTile, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.16)', color: 'rgba(255,255,255,0.82)' }}>
             <ChevronDownIcon />
           </button>
-          <button type="button" onClick={(e) => { e.stopPropagation(); onBack(); }} aria-label="Back to solar system view"
+          <button type="button" onClick={(e) => { e.stopPropagation(); onBack(); }} aria-label="Back (zoom out)"
             style={{ ...iconTile, background: `rgba(${accentRgb},0.12)`, border: `1px solid rgba(${accentRgb},0.5)`, color: accent }}>
             <ArrowLeftIcon />
           </button>
@@ -172,7 +172,7 @@ export default function BodyStats({ name, subtitle, color, stats, accent, accent
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); onBack(); }}
-        aria-label="Back to solar system view"
+        aria-label="Back (zoom out)"
         style={{
           position: 'absolute', top: 6, right: 6, width: 40, height: 40,
           display: 'grid', placeItems: 'center', padding: 0, borderRadius: 9,

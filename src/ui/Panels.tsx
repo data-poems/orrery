@@ -429,7 +429,8 @@ export interface PanelProps {
   selAsterism: string | null; setSelAsterism: (name: string | null) => void;
   cinematic: boolean;
   navStack: string[];
-  onDismissSelection: () => void;
+  /** Zoom back out to the containing scale level (the body card's Back button). */
+  onZoomOut: () => void;
   selMoonIdx: number | null;
   cameraDistance: number;
   selComet: CometDef | null; setSelComet: (c: CometDef | null) => void;
@@ -790,7 +791,7 @@ export default function Panels(props: PanelProps) {
           ] : planetStats}
           accent={accent}
           accentRgb={accentRgb}
-          onBack={props.onDismissSelection}
+          onBack={props.onZoomOut}
           compact={compact}
           hudVisible={hudVisible}
         />

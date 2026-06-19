@@ -267,9 +267,6 @@ function OrreryInner() {
   // Guards the tour's auto-end against the interval double-firing exitCinematic
   // (one more 500ms tick can land between setCinematic(false) and effect cleanup).
   const tourEndedRef = useRef(false);
-  // Set when the tour should land on the Sun; consumed once cinematic ends so the
-  // preset settles like a normal selection (zooming mid-exit doesn't take).
-  const pendingSunZoomRef = useRef(false);
 
   const clearSkyCueTimeouts = useCallback(() => {
     skyCueTimeoutsRef.current.forEach((id) => window.clearTimeout(id));
@@ -437,11 +434,12 @@ function OrreryInner() {
       if (elapsed >= dur) {
         const next = cinematicIdx.current + 1;
         if (next >= cinematicSteps.length) {
-          // End the intro tour by zooming to the Sun. Guard against a second
-          // tick firing before this effect's cleanup runs.
+          // A natural finish ends on Earth — its climactic constellation reveal
+          // (exitCinematic's default Earth target). Only a tap-to-interrupt goes
+          // to the Sun (handleCinematicClick). Guard against a second tick firing
+          // before this effect's cleanup runs.
           tourEndedRef.current = true;
-          pendingSunZoomRef.current = true;
-          exitCinematic({ kind: 'preset', label: 'Sun' });
+          exitCinematic();
         } else {
           cinematicIdx.current = next;
           cinematicStart.current = Date.now();
@@ -752,16 +750,6 @@ function OrreryInner() {
     const idx = camIndex(label);
     if (idx >= 0) handlePresetSelect(idx);
   }, [handlePresetSelect]);
-
-  // Once the tour has actually left cinematic, settle on the Sun preset (post-exit
-  // so it applies like a normal selection — mid-exit the camera follows the tour's
-  // lingering focusTarget instead). Covers the auto-end path.
-  useEffect(() => {
-    if (cinematic || !pendingSunZoomRef.current) return;
-    pendingSunZoomRef.current = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    jumpToPreset('Sun');
-  }, [cinematic, jumpToPreset]);
 
   const handleSunSelect = useCallback(() => {
     if (cinematic) return;
@@ -1298,7 +1286,7 @@ function OrreryInner() {
         selAsterism={selAsterism} setSelAsterism={setSelAsterism}
         cinematic={cinematic}
         navStack={navStack}
-        onDismissSelection={dismissSelection}
+        onZoomOut={navigateBack}
         selMoonIdx={selMoonIdx}
         cameraDistance={cameraDistance}
         selComet={selComet} setSelComet={setSelComet}

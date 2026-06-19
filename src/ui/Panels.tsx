@@ -443,6 +443,8 @@ export interface PanelProps {
   selGalaxy: GalaxyMarker | null;
   setSelGalaxy: (g: GalaxyMarker | null) => void;
   currentAreaLabel: string;
+  /** Mirrors the HUD idle state: false fades the body readout out with the controls. */
+  hudVisible: boolean;
 }
 
 export default function Panels(props: PanelProps) {
@@ -458,7 +460,7 @@ export default function Panels(props: PanelProps) {
     selSpacecraft, setSelSpacecraft,
     selNearStar, setSelNearStar,
     selGalaxy, setSelGalaxy,
-    currentAreaLabel,
+    currentAreaLabel, hudVisible,
   } = props;
 
   const observatoryMode = OBSERVATORY_MODE;
@@ -790,6 +792,7 @@ export default function Panels(props: PanelProps) {
           accentRgb={accentRgb}
           onBack={props.onDismissSelection}
           compact={compact}
+          hudVisible={hudVisible}
         />
       )}
 

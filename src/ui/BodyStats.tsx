@@ -10,7 +10,7 @@
  * leaves the camera where it is — no zoom-out. Starts collapsed on each new
  * selection (keyed by parent).
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PREFERS_REDUCED_MOTION } from '../lib/motion';
 
 export interface BodyStat { label: string; value: string }
@@ -25,6 +25,9 @@ export interface BodyStatsProps {
   onBack: () => void;
   /** Compact (mobile/tablet) chip+bar form vs the desktop left-edge column. */
   compact: boolean;
+  /** HUD idle state — false fades the readout out with the controls; it returns on
+   *  any interaction (the parent flips this back true on wake). Defaults to shown. */
+  hudVisible?: boolean;
 }
 
 const shadow = '0 1px 10px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.9)';
@@ -54,8 +57,22 @@ function ArrowLeftIcon({ size = 18 }: { size?: number }) {
   );
 }
 
-export default function BodyStats({ name, subtitle, color, stats, accent, accentRgb, onBack, compact }: BodyStatsProps) {
+export default function BodyStats({ name, subtitle, color, stats, accent, accentRgb, onBack, compact, hudVisible = true }: BodyStatsProps) {
   const [expanded, setExpanded] = useState(false);
+  // Drive entrance + idle fade through one opacity transition (replaces the
+  // orrery-fade-in keyframe, whose `both` fill would pin opacity and block the
+  // idle fade-out). `entered` flips on after first paint so the readout fades in;
+  // `hudVisible` then fades it out with the controls on idle and back on wake.
+  const [entered, setEntered] = useState(PREFERS_REDUCED_MOTION);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setEntered(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+  const shown = entered && hudVisible;
+  const fade = {
+    opacity: shown ? 1 : 0,
+    pointerEvents: hudVisible ? 'auto' : 'none',
+  } as const;
   const dot = <span style={{ width: 9, height: 9, borderRadius: '50%', background: color, boxShadow: `0 0 8px ${color}`, flexShrink: 0 }} />;
 
   // ── Mobile / tablet: collapsible chip ───────────────────────────────────────
@@ -68,14 +85,14 @@ export default function BodyStats({ name, subtitle, color, stats, accent, accent
           // Collapsed, the chip floats ABOVE the BottomCluster (+84px). Opened, it
           // morphs downward to the bottom edge (+20px) and overlaps the cluster —
           // fine, since the controls idle-fade while you're reading the detail.
-          position: 'fixed', zIndex: 28, pointerEvents: 'auto',
+          position: 'fixed', zIndex: 28,
           left: '50%', transform: 'translateX(-50%)',
           bottom: expanded
             ? 'calc(env(safe-area-inset-bottom,0px) + 20px)'
             : 'calc(env(safe-area-inset-bottom,0px) + 84px)',
-          transition: PREFERS_REDUCED_MOTION ? undefined : 'bottom 0.32s cubic-bezier(0.4,0,0.2,1)',
+          ...fade,
+          transition: PREFERS_REDUCED_MOTION ? undefined : 'opacity 0.5s ease, bottom 0.32s cubic-bezier(0.4,0,0.2,1)',
           maxWidth: 'min(94vw, 560px)',
-          animation: PREFERS_REDUCED_MOTION ? undefined : 'orrery-fade-in 0.4s ease both',
         }}
       >
         {children}
@@ -145,10 +162,11 @@ export default function BodyStats({ name, subtitle, color, stats, accent, accent
       onClick={(e) => e.stopPropagation()}
       style={{
         position: 'fixed', left: 'calc(env(safe-area-inset-left,0px) + 26px)', top: '50%',
-        transform: 'translateY(-50%)', zIndex: 28, maxWidth: 280, pointerEvents: 'auto',
+        transform: 'translateY(-50%)', zIndex: 28, maxWidth: 280,
         padding: '18px 20px', borderRadius: 14, ...surface,
         background: 'rgba(8,11,22,0.42)',
-        animation: PREFERS_REDUCED_MOTION ? undefined : 'orrery-fade-in 0.5s ease both',
+        ...fade,
+        transition: PREFERS_REDUCED_MOTION ? undefined : 'opacity 0.5s ease',
       }}
     >
       <button

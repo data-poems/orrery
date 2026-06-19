@@ -1309,6 +1309,7 @@ function OrreryInner() {
         selGalaxy={selGalaxy} setSelGalaxy={setSelGalaxy}
         selSun={selSun}
         currentAreaLabel={currentAreaLabel}
+        hudVisible={hudActive}
       />
 
       {!OBSERVATORY_MODE && (

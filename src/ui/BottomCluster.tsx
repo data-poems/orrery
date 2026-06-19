@@ -2,11 +2,12 @@
  * BottomCluster — the front-page control tiles.
  *
  * A compact, idle-fading pill centered on the bottom edge, left → right:
- * controls (gear) · zoom out · stargaze/sky · zoom in · dice. Stargaze sits dead
- * center, flanked by the zoom pair; the gear opens the full SidePanel and the
- * dice rolls a random destination. The zoom tiles grey out at the ends of the
- * scale ladder (− at the outermost rung, + at the innermost). Glyphs are serif
- * text (no emoji); the gear is an inline monochrome SVG.
+ * controls (gear) · zoom out · stargaze/sky · zoom in · dice · ambient tour.
+ * Stargaze sits dead center, flanked by the zoom pair; the gear opens the full
+ * SidePanel, the dice rolls one random destination, and the tour toggles a
+ * continuous cycle through the whole pool. The zoom tiles grey out at the ends of
+ * the scale ladder (− at the outermost rung, + at the innermost). Glyphs are
+ * inline monochrome SVGs (no emoji).
  */
 import { useIsMobile, Z } from './styles';
 import { PREFERS_REDUCED_MOTION } from '../lib/motion';
@@ -65,6 +66,19 @@ function DiceIcon() {
   );
 }
 
+/** Ambient-tour glyph: looping arrows — a continuous auto-cycle through bodies. */
+function TourIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 9a8 8 0 0 1 13.5-3.2L20 8" />
+      <path d="M20 4v4h-4" />
+      <path d="M20 15a8 8 0 0 1-13.5 3.2L4 16" />
+      <path d="M4 20v-4h4" />
+    </svg>
+  );
+}
+
 export interface BottomClusterProps {
   visible: boolean;
   /** Brief reveal cue on the Sky tile after the cinematic tour lands. */
@@ -77,6 +91,8 @@ export interface BottomClusterProps {
   /** At the outermost rung (Stellar) → zoom-out (−) is disabled. */
   atOutermost: boolean;
   skyActive: boolean;
+  /** Ambient tour running — the tour tile shows its pressed/active state. */
+  tourActive: boolean;
 }
 
 interface TileProps {
@@ -125,7 +141,7 @@ function Tile({ label, glyph, onClick, size, accent, accentRgb, disabled, active
 }
 
 export default function BottomCluster({
-  visible, pulse, accent, accentRgb, onAction, atInnermost, atOutermost, skyActive,
+  visible, pulse, accent, accentRgb, onAction, atInnermost, atOutermost, skyActive, tourActive,
 }: BottomClusterProps) {
   const mobile = useIsMobile();
   const size = mobile ? 44 : 48;
@@ -160,6 +176,10 @@ export default function BottomCluster({
         disabled={atInnermost} onClick={() => onAction('zoom', 'in')} />
       <Tile label="Random destination" glyph={<DiceIcon />} size={size} accent={accent} accentRgb={accentRgb}
         onClick={() => onAction('dice')} />
+      <Tile label={tourActive ? 'Stop ambient tour' : 'Start ambient tour'} glyph={<TourIcon />} size={size}
+        accent={accent} accentRgb={accentRgb} active={tourActive} pressed={tourActive}
+        glyphClass={tourActive ? 'orrery-twinkle' : undefined}
+        onClick={() => onAction('autotour')} />
     </nav>
   );
 }

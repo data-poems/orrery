@@ -38,6 +38,13 @@ import type { XRStore } from './scene/XRProvider';
 // headset is detected — so non-XR users never download the XR runtime.
 const XRProvider = lazy(() => import('./scene/XRProvider'));
 
+/** A single fly-to destination for the dice and the ambient tour. */
+type DiceTarget =
+  | { kind: 'preset'; label: string; key: string }
+  | { kind: 'planet'; planetIdx: number; key: string }
+  | { kind: 'moon'; planetIdx: number; moonIdx: number; key: string }
+  | { kind: 'spacecraft'; craftIdx: number; key: string };
+
 /** Scale ladder for the zoom tiles / +- stepping (innermost → outermost). */
 const ZOOM_LADDER = ['Sun', 'Inner', 'System', 'Outer', 'Kuiper', 'Oort', 'Stellar'] as const;
 
@@ -799,69 +806,52 @@ function OrreryInner() {
     jumpToPreset('Sun');
   }, [cinematic, jumpToPreset]);
 
-  const triggerRandomJump = useCallback(() => {
-    if (cinematic) return;
-
+  // Build a fresh destination pool. Pool stays planet/moon-heavy on purpose
+  // (those read as "stellar bodies"); a few active spacecraft sprinkle in the
+  // occasional "wow, a probe out past the planets." Sky-pinned objects
+  // (constellations, near-stars, galaxies) stay out — they don't fly-to/center as
+  // a destination. One random moon per planet is chosen per build, so repeated
+  // builds vary which moons appear. Shared by the dice (random pick) and the
+  // ambient tour (sequential cycle). Kuiper is always present, so a full tour
+  // cycle always features the Kuiper belt.
+  const buildDestinations = useCallback((): DiceTarget[] => {
     const planetIndices = [0, 1, 2, 3, 4, 5, 6, 7];
     const moonTargets = planetIndices.flatMap((planetIdx) => {
       const moons = getMoonsForPlanet(planetIdx);
       if (moons.length === 0) return [];
       return [{ kind: 'moon' as const, planetIdx, moonIdx: Math.floor(Math.random() * moons.length) }];
     });
-
-    // Dwarf planet indices: ALL_BODIES = [...PLANETS (0-7), ...DWARF_PLANETS (8-10)].
+    // ALL_BODIES = [...PLANETS (0-7), ...DWARF_PLANETS (8-10)].
     const dwarfIndices: number[] = [];
     for (let i = 8; i < ALL_BODIES.length; i++) dwarfIndices.push(i);
-
-    // Solar-system destinations only: presets, planets, dwarf planets, and moons.
-    // Sky destinations (constellations) were dropped from the dice — flying to a
-    // camera-pinned celestial-sphere target landed the camera in empty space.
-    // Spacecraft / near-stars / galaxies / deep-sky objects are excluded for the
-    // same reason; all remain selectable via direct click.
-    type Target =
-      | { kind: 'preset'; label: string; key: string }
-      | { kind: 'planet'; planetIdx: number; key: string }
-      | { kind: 'moon'; planetIdx: number; moonIdx: number; key: string }
-      | { kind: 'spacecraft'; craftIdx: number; key: string };
-
-    // The pool stays planet/moon-heavy on purpose: those read as "stellar bodies."
-    // A few active spacecraft sprinkle in the occasional "wow, a probe out past the
-    // planets" without dominating. Sky-pinned objects (constellations, near-stars,
-    // galaxies) stay out — they don't fly-to/center as a destination.
     const activeCraft = SPACECRAFT
       .map((c, i) => ({ c, i }))
       .filter(({ c }) => c.status === 'active');
 
-    const destinations: Target[] = [
+    return [
       { kind: 'preset', label: 'Sun', key: 'preset:Sun' },
       { kind: 'preset', label: 'Inner', key: 'preset:Inner' },
       { kind: 'preset', label: 'System', key: 'preset:System' },
       { kind: 'preset', label: 'Outer', key: 'preset:Outer' },
       { kind: 'preset', label: 'Kuiper', key: 'preset:Kuiper' },
       { kind: 'preset', label: 'Oort', key: 'preset:Oort' },
-      ...planetIndices.map<Target>((planetIdx) => ({ kind: 'planet', planetIdx, key: `planet:${planetIdx}` })),
-      ...dwarfIndices.map<Target>((planetIdx) => ({ kind: 'planet', planetIdx, key: `planet:${planetIdx}` })),
-      ...moonTargets.map<Target>((m) => ({ ...m, key: `moon:${m.planetIdx}:${m.moonIdx}` })),
-      ...activeCraft.map<Target>(({ i }) => ({ kind: 'spacecraft', craftIdx: i, key: `spacecraft:${i}` })),
+      ...planetIndices.map<DiceTarget>((planetIdx) => ({ kind: 'planet', planetIdx, key: `planet:${planetIdx}` })),
+      ...dwarfIndices.map<DiceTarget>((planetIdx) => ({ kind: 'planet', planetIdx, key: `planet:${planetIdx}` })),
+      ...moonTargets.map<DiceTarget>((m) => ({ ...m, key: `moon:${m.planetIdx}:${m.moonIdx}` })),
+      ...activeCraft.map<DiceTarget>(({ i }) => ({ kind: 'spacecraft', craftIdx: i, key: `spacecraft:${i}` })),
     ];
+  }, []);
 
-    let target = destinations[Math.floor(Math.random() * destinations.length)];
-    for (let i = 0; i < 3 && target.key === lastTourPickRef.current; i++) {
-      target = destinations[Math.floor(Math.random() * destinations.length)];
-    }
-    if (!target) return;
-    lastTourPickRef.current = target.key;
-
+  // Execute a jump to one destination. Shared by the dice and the ambient tour.
+  const goToTarget = useCallback((target: DiceTarget) => {
     const clearObjectSelections = () => {
       setSelSpacecraft(null);
       setSelNearStar(null);
       setSelGalaxy(null);
       setSelConstellation(null);
     };
-
-    // The dice never enables sky layers anymore, but a prior manual constellation
-    // selection might have. Reset them so a roll always lands on a clean
-    // solar-system view (no lingering focus-mode brightness).
+    // Reset sky layers so a jump always lands on a clean solar-system view (no
+    // lingering focus-mode brightness from a prior constellation selection).
     const disableSkyTourLayers = () => {
       setShowConstellations(false);
       setConstellationFocus(false);
@@ -869,21 +859,16 @@ function OrreryInner() {
       setSelAsterism(null);
     };
 
+    clearObjectSelections();
+    disableSkyTourLayers();
+    setAimAtSphere(null);
+
     switch (target.kind) {
       case 'preset':
-        clearObjectSelections();
-        disableSkyTourLayers();
-        setAimAtSphere(null);
-        if (target.label === 'Sun') {
-          handleSunSelect();
-        } else {
-          jumpToPreset(target.label);
-        }
+        if (target.label === 'Sun') handleSunSelect();
+        else jumpToPreset(target.label);
         return;
       case 'planet':
-        clearObjectSelections();
-        disableSkyTourLayers();
-        setAimAtSphere(null);
         // Dwarf planets are filtered out of `visibleBodies` unless `showDwarf`
         // is enabled; without this, focusing Eris/Pluto/Ceres lands the camera
         // on coordinates where no body is rendered.
@@ -891,15 +876,9 @@ function OrreryInner() {
         handlePlanetSelect(target.planetIdx);
         return;
       case 'moon':
-        clearObjectSelections();
-        disableSkyTourLayers();
-        setAimAtSphere(null);
         handleMoonSelect(target.planetIdx, target.moonIdx);
         return;
       case 'spacecraft': {
-        clearObjectSelections();
-        disableSkyTourLayers();
-        setAimAtSphere(null);
         const craft = SPACECRAFT[target.craftIdx];
         // Spacecraft live at their true heliocentric distance (tens to ~165 AU);
         // fly to a static point just off the marker. Their layer must be on or the
@@ -916,7 +895,56 @@ function OrreryInner() {
         return;
       }
     }
-  }, [cinematic, handleMoonSelect, handlePlanetSelect, handleSunSelect, jumpToPreset]);
+  }, [handleMoonSelect, handlePlanetSelect, handleSunSelect, jumpToPreset]);
+
+  const triggerRandomJump = useCallback(() => {
+    if (cinematic) return;
+    const destinations = buildDestinations();
+    let target = destinations[Math.floor(Math.random() * destinations.length)];
+    for (let i = 0; i < 3 && target.key === lastTourPickRef.current; i++) {
+      target = destinations[Math.floor(Math.random() * destinations.length)];
+    }
+    if (!target) return;
+    lastTourPickRef.current = target.key;
+    goToTarget(target);
+  }, [cinematic, buildDestinations, goToTarget]);
+
+  // Ambient tour — a manual-toggle "screensaver" that cycles a shuffled playlist
+  // of the whole pool, one stop every TOUR_STEP_MS, until toggled off. Each cycle
+  // reshuffles (and re-randomizes which moons appear). Pauses for the cinematic.
+  const [tourActive, setTourActive] = useState(false);
+  const tourPlaylistRef = useRef<DiceTarget[]>([]);
+  const tourIdxRef = useRef(0);
+  useEffect(() => {
+    if (!tourActive || cinematic || !sceneReady) return;
+    const TOUR_STEP_MS = 10000;
+    const advance = () => {
+      if (tabHiddenRef.current) return;
+      if (tourIdxRef.current >= tourPlaylistRef.current.length) {
+        // Fisher-Yates shuffle of a fresh pool.
+        const pool = buildDestinations();
+        for (let i = pool.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [pool[i], pool[j]] = [pool[j], pool[i]];
+        }
+        tourPlaylistRef.current = pool;
+        tourIdxRef.current = 0;
+      }
+      const t = tourPlaylistRef.current[tourIdxRef.current++];
+      if (t) { lastTourPickRef.current = t.key; goToTarget(t); }
+    };
+    // Force a reshuffle on (re)start, then jump immediately so the tour visibly
+    // begins the moment it's toggled on.
+    tourIdxRef.current = tourPlaylistRef.current.length;
+    advance();
+    const id = setInterval(advance, TOUR_STEP_MS);
+    return () => clearInterval(id);
+  }, [tourActive, cinematic, sceneReady, buildDestinations, goToTarget]);
+
+  const toggleTour = useCallback(() => {
+    if (cinematic) exitCinematic();
+    setTourActive((a) => !a);
+  }, [cinematic, exitCinematic]);
 
   const currentAreaLabel = useMemo(() => {
     if (cinematic) return '';
@@ -1068,6 +1096,7 @@ function OrreryInner() {
   const handleArcAction = useCallback((action: string, arg?: string) => {
     switch (action) {
       case 'tour': startCinematicTour(); break;
+      case 'autotour': toggleTour(); break;
       case 'dice': triggerRandomJump(); break;
       case 'preset': if (arg) jumpToPreset(arg); break;
       case 'zoom': {
@@ -1098,7 +1127,7 @@ function OrreryInner() {
       case 'info': window.dispatchEvent(new CustomEvent('orrery:open-info')); break;
       case 'shortcuts': window.dispatchEvent(new CustomEvent('orrery:toggle-shortcuts')); break;
     }
-  }, [startCinematicTour, triggerRandomJump, jumpToPreset, cameraDistance]);
+  }, [startCinematicTour, toggleTour, triggerRandomJump, jumpToPreset, cameraDistance]);
   const arcLayerState = useMemo(() => ({
     sky: constellationFocus,
     neo: showNeo, dwarf: showDwarf, asteroidBelt: showAsteroidBelt,
@@ -1386,6 +1415,7 @@ function OrreryInner() {
           atInnermost={atInnermost}
           atOutermost={atOutermost}
           skyActive={constellationFocus}
+          tourActive={tourActive}
         />
       )}
 

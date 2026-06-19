@@ -613,7 +613,10 @@ function OrreryInner() {
       exitCinematic();
       return;
     }
-    if (navStack.length <= 1) return;
+    // Bail only when there's genuinely nothing to go back from. The Sun reaches
+    // selSun via a preset jump (handlePresetSelect) that resets navStack to the
+    // root, so a length check alone would wrongly block zooming back out of Sol.
+    if (navStack.length <= 1 && selMoonIdx === null && !selSun && selPlanet === null) return;
 
     if (selMoonIdx !== null) {
       setSelMoonIdx(null);

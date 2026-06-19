@@ -70,3 +70,23 @@ const MOONS: MoonDef[] = [
 export function getMoonsForPlanet(parentIdx: number): MoonDef[] {
   return MOONS.filter(m => m.parent === parentIdx);
 }
+
+/**
+ * World position of a moon at a given Julian date, given its parent's world
+ * position. Mirrors the inline orbit math in scene/Bodies.tsx Satellite so the
+ * camera controller can frame a moon on its actual position (not the parent's
+ * center). Keep the two in sync if either changes.
+ */
+export function moonPositionAt(
+  moon: MoonDef,
+  parentPos: [number, number, number],
+  jd: number,
+): [number, number, number] {
+  const angle = ((jd - 2451545) / moon.period) * Math.PI * 2;
+  const inc = (moon.i || 0) * (Math.PI / 180);
+  return [
+    parentPos[0] + moon.a * Math.cos(angle),
+    parentPos[1] + moon.a * Math.sin(inc) * Math.sin(angle),
+    parentPos[2] + moon.a * Math.sin(angle) * Math.cos(inc),
+  ];
+}

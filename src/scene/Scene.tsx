@@ -258,6 +258,7 @@ export default function Scene({
         onCameraDistance={handleCameraDistance}
         aimAtSphere={aimAtSphere}
         onUserGrabDuringCinematic={onUserGrabDuringCinematic}
+        jd={jd}
       />
     </>
   );

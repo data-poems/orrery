@@ -8,7 +8,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { ALL_BODIES } from '../data/planets';
-import { getMoonsForPlanet } from '../data/moons';
+import { getMoonsForPlanet, moonPositionAt } from '../data/moons';
 import type { CamPreset, FocusTarget } from '../lib/kepler';
 import { OBSERVATORY_MODE } from '../lib/mode';
 import { PREFERS_REDUCED_MOTION } from '../lib/motion';
@@ -32,6 +32,7 @@ export interface CamCtrlProps {
   onCameraDistance?: (d: number) => void;
   aimAtSphere?: [number, number, number] | null;
   onUserGrabDuringCinematic?: () => void;
+  jd: number;
 }
 
 export default function CamCtrl({
@@ -43,6 +44,7 @@ export default function CamCtrl({
   onCameraDistance,
   aimAtSphere,
   onUserGrabDuringCinematic,
+  jd,
 }: CamCtrlProps) {
   const { camera, gl } = useThree();
   // During an immersive WebXR session the headset is the sole driver of the
@@ -80,6 +82,14 @@ export default function CamCtrl({
   const diagLastTRef = useRef(0);
   const diagFpsRef = useRef(0);
 
+  // Live Julian date, mirrored into a ref so computeFocusOffset can read the
+  // current moon position WITHOUT taking jd as a callback dependency — that would
+  // give computeFocusOffset a new identity every frame and re-fire the
+  // target-change effect each tick (the same hazard the `positions` dep note warns
+  // about below).
+  const jdRef = useRef(jd);
+  jdRef.current = jd;
+
   const offsetFromAngle = useCallback((dist: number, angle: number, elevation: number): [number, number, number] => [
     dist * Math.cos(elevation) * Math.cos(angle),
     dist * Math.sin(elevation),
@@ -92,9 +102,20 @@ export default function CamCtrl({
       const moons = getMoonsForPlanet(focusTarget.planetIdx);
       const moon = moons[focusTarget.moonIdx];
       if (moon) {
-        const d = moon.radius * 15;
-        const [ox, oy, oz] = offsetFromAngle(d, 0.7, 0.4);
-        return { pos: [pp[0] + ox, pp[1] + oy, pp[2] + oz] as [number, number, number], look: pp };
+        // Frame the moon on its ACTUAL position, not the parent's center —
+        // otherwise the parent planet sits between camera and moon and you see
+        // only the orbit line (the moon hides behind the planet). Sit the camera
+        // just outside the moon's orbit, looking inward, so the planet falls
+        // beyond the moon and never occludes it.
+        const mp = moonPositionAt(moon, pp, jdRef.current);
+        let ux = mp[0] - pp[0], uy = mp[1] - pp[1], uz = mp[2] - pp[2];
+        const len = Math.hypot(ux, uy, uz);
+        if (len > 1e-6) { ux /= len; uy /= len; uz /= len; } else { ux = 1; uy = 0; uz = 0; }
+        const d = Math.max(moon.radius * 15, 0.015);
+        return {
+          pos: [mp[0] + ux * d, mp[1] + uy * d + d * 0.4, mp[2] + uz * d] as [number, number, number],
+          look: mp,
+        };
       }
     } else {
       const planet = ALL_BODIES[focusTarget.planetIdx];

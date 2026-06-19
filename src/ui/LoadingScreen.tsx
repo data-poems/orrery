@@ -2,7 +2,7 @@
  * Loading overlay — visible until 3D scene is ready.
  * Film title card aesthetic: sparse, cinematic, minimal.
  *
- * Watchdog: if loading stalls >8s, offer retry (up to 2) then full reload.
+ * Watchdog: if loading stalls >15s, offer retry (up to 2) then full reload.
  */
 
 import { useState, useEffect } from 'react';
@@ -21,7 +21,7 @@ const ORRERY_STATS = [
   'live near-Earth objects',
 ];
 
-const WATCHDOG_MS = 8000;
+const WATCHDOG_MS = 15000;
 const MAX_RETRIES = 2;
 
 export default function LoadingScreen({
@@ -55,10 +55,6 @@ export default function LoadingScreen({
   const tagline = OBSERVATORY_MODE ? 'Look up.' : 'Real data. Real time.';
   const stats = OBSERVATORY_MODE ? OBSERVATORY_STATS : ORRERY_STATS;
   const fadeMs = OBSERVATORY_MODE ? 1.4 : 0.7;
-
-  const pendingTasks = loadingTasks
-    ? Object.entries(loadingTasks).filter(([, done]) => !done).map(([k]) => k)
-    : [];
 
   // Drive the bar off real task completion when we have it (accumulates against
   // the known loading tasks) instead of the coarse/jumpy progress prop.
@@ -148,13 +144,8 @@ export default function LoadingScreen({
 
       {stuck && !ready && (
         <div style={{ marginTop: 28, textAlign: 'center', maxWidth: 280 }}>
-          <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13, marginBottom: 12 }}>
-            Loading is taking longer than expected.
-            {pendingTasks.length > 0 && (
-              <span style={{ display: 'block', marginTop: 6, fontSize: 11 }}>
-                Waiting: {pendingTasks.join(', ')}
-              </span>
-            )}
+          <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13, marginBottom: 12, lineHeight: 1.5 }}>
+            Still loading: the full star catalog is sizable.
           </p>
           <button
             type="button"
@@ -172,7 +163,7 @@ export default function LoadingScreen({
               minHeight: 44,
             }}
           >
-            {retries >= MAX_RETRIES ? 'Reload page' : 'Retry loading'}
+            {retries >= MAX_RETRIES ? 'Reload page' : 'Reload if this stalls'}
           </button>
         </div>
       )}

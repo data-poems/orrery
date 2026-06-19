@@ -16,6 +16,7 @@ import { getMoonsForPlanet } from './data/moons';
 import type { NEO, FocusTarget } from './lib/kepler';
 import { julianDate, moonPhase } from './lib/kepler';
 import { ThemeProvider, useTheme } from './lib/themes';
+import { getConstellationCentroid } from './lib/constellationCentroids';
 import type { CometDef } from './data/comets';
 import type { MeteorShower } from './scene/Meteors';
 import type { SatellitePosition } from './lib/satellites';
@@ -450,6 +451,29 @@ function OrreryInner() {
 
     return () => clearInterval(id);
   }, [cinematic, sceneReady, applyCinematicStep, cinematicSteps, exitCinematic]);
+
+  // Selecting a constellation aims the camera at its sky direction. Constellations
+  // live on the camera-pinned celestial sphere (radius 300), so they can't be
+  // *flown* to like a planet — the camera instead rotates to face the centroid via
+  // aimAtSphere (planAimAtSphere in CamCtrl wins over focusTarget). The centroid
+  // resolve is async; the cleanup flag drops a stale resolve when the selection
+  // changes again. Gated on !cinematic so the intro tour owns the camera uncontested.
+  useEffect(() => {
+    if (cinematic || !selConstellation) return;
+    let cancelled = false;
+    getConstellationCentroid(selConstellation).then((pos) => {
+      if (!cancelled && pos) setAimAtSphere(pos);
+    });
+    return () => { cancelled = true; };
+  }, [selConstellation, cinematic]);
+
+  // Toggle a constellation selection. Selecting one lets the effect above aim the
+  // camera; deselecting it (re-click) must also drop the aim, since no other
+  // handler runs on this path. Other focus handlers clear aimAtSphere themselves.
+  const handleConstellationSelect = useCallback((id: string) => {
+    if (selConstellation === id) { setSelConstellation(null); setAimAtSphere(null); }
+    else setSelConstellation(id);
+  }, [selConstellation]);
 
   useEffect(() => {
     const onVisibility = () => {
@@ -1134,7 +1158,7 @@ function OrreryInner() {
       showMeteors={showMeteors}
       showSatellites={showSatellites}
       showDeepSpace={showDeepSpace}
-      onConstellationSelect={(id) => { setSelConstellation(prev => prev === id ? null : id); }}
+      onConstellationSelect={handleConstellationSelect}
       onAsterismSelect={(name) => { setSelAsterism(prev => prev === name ? null : name); }}
       selConstellationId={selConstellation}
       accentColor={theme.uiAccent}

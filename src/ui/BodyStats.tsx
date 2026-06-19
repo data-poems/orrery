@@ -4,9 +4,11 @@
  * Desktop (> tablet): a quiet transparent column down the LEFT edge.
  * Mobile / tablet: a tiny name CHIP pinned to the bottom (above the control
  * cluster) — tap it to expand into a compact info bar with the stats laid out
- * horizontally, tap the chevron to collapse. Keeps the whole center open until
- * you want detail. Closing (×, empty-space tap, Escape) leaves the camera where
- * it is — no zoom-out. Starts collapsed on each new selection (keyed by parent).
+ * horizontally. Expanded, a labeled action row carries two explicit controls:
+ * "Collapse" (back to the chip) and "Back" (clear the selection). Keeps the
+ * whole center open until you want detail. Back (also empty-space tap, Escape)
+ * leaves the camera where it is — no zoom-out. Starts collapsed on each new
+ * selection (keyed by parent).
  */
 import { useState } from 'react';
 import { PREFERS_REDUCED_MOTION } from '../lib/motion';
@@ -32,7 +34,27 @@ const surface = {
   fontFamily: "'Cormorant Garamond','Garamond','Georgia',serif",
 } as const;
 
-export default function BodyStats({ name, subtitle, color, stats, onBack, compact }: BodyStatsProps) {
+// Inline monochrome icons (currentColor), same 24×24 box + stroke language as the
+// BottomCluster glyphs so the whole UI reads from one icon family.
+function ChevronDownIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5 9l7 7 7-7" />
+    </svg>
+  );
+}
+function ArrowLeftIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M19 12H5" />
+      <path d="M12 19l-7-7 7-7" />
+    </svg>
+  );
+}
+
+export default function BodyStats({ name, subtitle, color, stats, accent, accentRgb, onBack, compact }: BodyStatsProps) {
   const [expanded, setExpanded] = useState(false);
   const dot = <span style={{ width: 9, height: 9, borderRadius: '50%', background: color, boxShadow: `0 0 8px ${color}`, flexShrink: 0 }} />;
 
@@ -43,9 +65,15 @@ export default function BodyStats({ name, subtitle, color, stats, onBack, compac
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
         style={{
+          // Collapsed, the chip floats ABOVE the BottomCluster (+84px). Opened, it
+          // morphs downward to the bottom edge (+20px) and overlaps the cluster —
+          // fine, since the controls idle-fade while you're reading the detail.
           position: 'fixed', zIndex: 28, pointerEvents: 'auto',
           left: '50%', transform: 'translateX(-50%)',
-          bottom: 'calc(env(safe-area-inset-bottom,0px) + 84px)',
+          bottom: expanded
+            ? 'calc(env(safe-area-inset-bottom,0px) + 20px)'
+            : 'calc(env(safe-area-inset-bottom,0px) + 84px)',
+          transition: PREFERS_REDUCED_MOTION ? undefined : 'bottom 0.32s cubic-bezier(0.4,0,0.2,1)',
           maxWidth: 'min(94vw, 560px)',
           animation: PREFERS_REDUCED_MOTION ? undefined : 'orrery-fade-in 0.4s ease both',
         }}
@@ -69,27 +97,36 @@ export default function BodyStats({ name, subtitle, color, stats, onBack, compac
         >
           {dot}
           <span style={{ whiteSpace: 'nowrap' }}>{name}</span>
-          <span aria-hidden="true" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, marginLeft: 2 }}>{'⌄'}</span>
+          <span aria-hidden="true" style={{ color: 'rgba(255,255,255,0.6)', marginLeft: 2, display: 'grid', placeItems: 'center' }}><ChevronDownIcon size={15} /></span>
         </button>,
       );
     }
 
+    // Two icon tiles (38×38), same bordered language as the BottomCluster:
+    // collapse (chevron-down → back to the chip) is neutral, back (arrow-left →
+    // clear the selection) carries the theme accent.
+    const iconTile = {
+      flexShrink: 0, width: 38, height: 38, padding: 0, borderRadius: 9,
+      display: 'grid', placeItems: 'center', cursor: 'pointer',
+      WebkitTapHighlightColor: 'transparent',
+    } as const;
+
     return wrap(
-      <div style={{ ...surface, padding: '9px 12px 8px', borderRadius: 14 }}>
+      <div style={{ ...surface, padding: '10px 12px 11px', borderRadius: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
           {dot}
           <span style={{ color: '#fff', fontSize: 18, letterSpacing: 0.8, textShadow: shadow, flexShrink: 0 }}>{name}</span>
           <span style={{ color: 'rgba(255,255,255,0.62)', fontSize: 12, fontStyle: 'italic', textShadow: shadow, flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{subtitle}</span>
-          <button type="button" onClick={(e) => { e.stopPropagation(); setExpanded(false); }} aria-label="Collapse" aria-expanded={true}
-            style={{ flexShrink: 0, width: 44, height: 44, margin: '-9px 0', padding: 0, display: 'grid', placeItems: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', fontFamily: 'inherit', fontSize: 16, textShadow: shadow }}>
-            <span aria-hidden="true">{'⌃'}</span>
+          <button type="button" onClick={(e) => { e.stopPropagation(); setExpanded(false); }} aria-label="Collapse details" aria-expanded={true}
+            style={{ ...iconTile, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.16)', color: 'rgba(255,255,255,0.82)' }}>
+            <ChevronDownIcon />
           </button>
-          <button type="button" onClick={(e) => { e.stopPropagation(); onBack(); }} aria-label="Close"
-            style={{ flexShrink: 0, width: 44, height: 44, margin: '-9px -8px -9px 0', padding: 0, display: 'grid', placeItems: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', fontFamily: 'inherit', fontSize: 22, lineHeight: 1, textShadow: shadow }}>
-            <span aria-hidden="true">{'×'}</span>
+          <button type="button" onClick={(e) => { e.stopPropagation(); onBack(); }} aria-label="Back to solar system view"
+            style={{ ...iconTile, background: `rgba(${accentRgb},0.12)`, border: `1px solid rgba(${accentRgb},0.5)`, color: accent }}>
+            <ArrowLeftIcon />
           </button>
         </div>
-        <div style={{ display: 'flex', gap: 18, overflowX: 'auto', marginTop: 7, paddingBottom: 1, WebkitOverflowScrolling: 'touch' }}>
+        <div style={{ display: 'flex', gap: 18, overflowX: 'auto', marginTop: 9, paddingBottom: 1, WebkitOverflowScrolling: 'touch' }}>
           {stats.map((s) => (
             <div key={s.label} style={{ flexShrink: 0 }}>
               <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9, letterSpacing: 1.2, textTransform: 'uppercase', textShadow: shadow }}>{s.label}</div>
@@ -117,15 +154,15 @@ export default function BodyStats({ name, subtitle, color, stats, onBack, compac
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); onBack(); }}
-        aria-label="Close"
+        aria-label="Back to solar system view"
         style={{
-          position: 'absolute', top: 4, right: 4, width: 44, height: 44,
-          display: 'grid', placeItems: 'center', padding: 0,
-          background: 'none', border: 'none', cursor: 'pointer',
-          color: 'rgba(255,255,255,0.7)', fontFamily: 'inherit', fontSize: 22, lineHeight: 1, textShadow: shadow,
+          position: 'absolute', top: 6, right: 6, width: 40, height: 40,
+          display: 'grid', placeItems: 'center', padding: 0, borderRadius: 9,
+          background: `rgba(${accentRgb},0.10)`, border: `1px solid rgba(${accentRgb},0.42)`,
+          cursor: 'pointer', color: accent,
         }}
       >
-        <span aria-hidden="true">{'×'}</span>
+        <ArrowLeftIcon />
       </button>
 
       <div style={{ paddingRight: 30 }}>

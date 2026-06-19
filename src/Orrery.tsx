@@ -20,8 +20,6 @@ import type { CometDef } from './data/comets';
 import type { MeteorShower } from './scene/Meteors';
 import type { SatellitePosition } from './lib/satellites';
 import type { Spacecraft, NearStar, GalaxyMarker } from './data/deepspace';
-import { CONSTELLATION_NAMES } from './data/mythology';
-import { getConstellationCentroid, getConstellationCentroidCached, prefetchConstellationCentroids } from './lib/constellationCentroids';
 import Scene from './scene/Scene';
 import Panels from './ui/Panels';
 import SidePanel from './ui/SidePanel';
@@ -56,21 +54,6 @@ function zoomRungFor(cameraDistance: number): number {
   }
   return cur;
 }
-
-/** Curated iconic constellations used by the random-tour dice. The full IAU
- *  list is 88 entries — picking uniformly across that bag drowned every other
- *  category at ~60% of rolls. Kept short and recognizable so the dice still
- *  surfaces variety from spacecraft / DSO / planets / presets / moons. */
-const FAMOUS_CONSTELLATIONS: ReadonlyArray<string> = [
-  'Ori', // Orion
-  'UMa', // Ursa Major
-  'Cas', // Cassiopeia
-  'Cyg', // Cygnus
-  'Leo', // Leo
-  'Sco', // Scorpius
-  'Tau', // Taurus
-  'Cru', // Crux (Southern Cross)
-];
 
 type CinematicStep = {
   /** Preferred — resolves via `camIndex(label)` instead of fragile array index. */
@@ -790,11 +773,6 @@ function OrreryInner() {
     jumpToPreset('Sun');
   }, [cinematic, jumpToPreset]);
 
-  // Pre-load constellation centroids so the random-jump aiming has zero latency.
-  useEffect(() => {
-    prefetchConstellationCentroids();
-  }, []);
-
   const triggerRandomJump = useCallback(() => {
     if (cinematic) return;
 
@@ -804,22 +782,20 @@ function OrreryInner() {
       if (moons.length === 0) return [];
       return [{ kind: 'moon' as const, planetIdx, moonIdx: Math.floor(Math.random() * moons.length) }];
     });
-    const constellationKeys = FAMOUS_CONSTELLATIONS;
 
     // Dwarf planet indices: ALL_BODIES = [...PLANETS (0-7), ...DWARF_PLANETS (8-10)].
     const dwarfIndices: number[] = [];
     for (let i = 8; i < ALL_BODIES.length; i++) dwarfIndices.push(i);
 
-    // Tour pool excludes spacecraft / near-stars / galaxies / deep-sky objects:
-    // their rendering scheme (camera-pinned celestial sphere or fixed beyond
-    // any preset's reach) means a "fly to" arrival lands the camera in empty
-    // space. They remain selectable via direct click, just not via dice.
-    // Tracked as the future Stellar Neighborhood mode.
+    // Solar-system destinations only: presets, planets, dwarf planets, and moons.
+    // Sky destinations (constellations) were dropped from the dice — flying to a
+    // camera-pinned celestial-sphere target landed the camera in empty space.
+    // Spacecraft / near-stars / galaxies / deep-sky objects are excluded for the
+    // same reason; all remain selectable via direct click.
     type Target =
       | { kind: 'preset'; label: string; key: string }
       | { kind: 'planet'; planetIdx: number; key: string }
-      | { kind: 'moon'; planetIdx: number; moonIdx: number; key: string }
-      | { kind: 'constellation'; id: string; key: string };
+      | { kind: 'moon'; planetIdx: number; moonIdx: number; key: string };
 
     const destinations: Target[] = [
       { kind: 'preset', label: 'Sun', key: 'preset:Sun' },
@@ -831,7 +807,6 @@ function OrreryInner() {
       ...planetIndices.map<Target>((planetIdx) => ({ kind: 'planet', planetIdx, key: `planet:${planetIdx}` })),
       ...dwarfIndices.map<Target>((planetIdx) => ({ kind: 'planet', planetIdx, key: `planet:${planetIdx}` })),
       ...moonTargets.map<Target>((m) => ({ ...m, key: `moon:${m.planetIdx}:${m.moonIdx}` })),
-      ...constellationKeys.map<Target>((id) => ({ kind: 'constellation', id, key: `constellation:${id}` })),
     ];
 
     let target = destinations[Math.floor(Math.random() * destinations.length)];
@@ -848,18 +823,9 @@ function OrreryInner() {
       setSelConstellation(null);
     };
 
-    const enableSkyTourLayers = () => {
-      setShowStars(true);
-      setShowConstellations(true);
-      setConstellationFocus(true);
-      setCamIdx(-1);
-      setSelPlanet(null);
-      setFocusTarget(null);
-    };
-
-    // Constellations belong to sky destinations only. Without this, one
-    // constellation roll left them (and focus-mode brightness) on for every
-    // later planet/preset/moon roll — the "chaotic" accumulation.
+    // The dice never enables sky layers anymore, but a prior manual constellation
+    // selection might have. Reset them so a roll always lands on a clean
+    // solar-system view (no lingering focus-mode brightness).
     const disableSkyTourLayers = () => {
       setShowConstellations(false);
       setConstellationFocus(false);
@@ -894,34 +860,6 @@ function OrreryInner() {
         setAimAtSphere(null);
         handleMoonSelect(target.planetIdx, target.moonIdx);
         return;
-      case 'constellation': {
-        setSelSun(false);
-        setSelMoonIdx(null);
-        clearObjectSelections();
-        enableSkyTourLayers();
-        setSelConstellation(target.id);
-        setNavStack(['Solar System', CONSTELLATION_NAMES[target.id] ?? target.id]);
-        // Sync cache is warmed by `prefetchConstellationCentroids` on mount
-        // (Orrery.tsx:735), so the dice path usually hits it. Setting aim in
-        // the same React batch as the layer toggles avoids a one-frame flash
-        // where CamCtrl sees focusTarget/camPreset/aimAtSphere all null and
-        // snaps the camera target to origin before the async resolve.
-        const cached = getConstellationCentroidCached(target.id);
-        if (cached) {
-          setAimAtSphere([cached[0], cached[1], cached[2]]);
-          return;
-        }
-        // Cache miss (first dice roll before prefetch completes): fall back to
-        // the async path with the same staleness gate as before so a fast
-        // re-roll between resolves can't clobber a newer aim.
-        const aimTicket = target.key;
-        getConstellationCentroid(target.id).then((pos) => {
-          if (pos && lastTourPickRef.current === aimTicket) {
-            setAimAtSphere([pos[0], pos[1], pos[2]]);
-          }
-        });
-        return;
-      }
     }
   }, [cinematic, handleMoonSelect, handlePlanetSelect, handleSunSelect, jumpToPreset]);
 

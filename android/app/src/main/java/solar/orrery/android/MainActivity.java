@@ -1,4 +1,4 @@
-package solar.orrery;
+package solar.orrery.android;
 
 import com.getcapacitor.BridgeActivity;
 

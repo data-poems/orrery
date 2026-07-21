@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "solar.orrery"
+    namespace = "solar.orrery.android"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "solar.orrery"
+        applicationId "solar.orrery.android"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

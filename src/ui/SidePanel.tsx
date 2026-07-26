@@ -133,7 +133,7 @@ export default function SidePanel({ accent, onAction, layerState }: SidePanelPro
         <h3 style={heading}>Explore</h3>
         <button type="button" style={row(false)} onClick={() => act('tour', undefined, true)}>
           <span aria-hidden="true" style={glyphCell}>▶</span>
-          <span style={labelCell}>Cinematic tour</span>
+          <span style={labelCell}>Replay cinematic tour</span>
           <span style={markCell} />
         </button>
 
@@ -142,7 +142,7 @@ export default function SidePanel({ accent, onAction, layerState }: SidePanelPro
           {VIEW_PRESETS.map(p => (
             <button key={p} type="button" onClick={() => act('preset', p, true)}
               style={{
-                height: 34, borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
+                height: 44, borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
                 fontSize: 11.5, letterSpacing: 0.3,
                 background: 'transparent', border: '1px solid rgba(255,255,255,0.16)', color: 'rgba(255,255,255,0.85)',
               }}>{p}</button>

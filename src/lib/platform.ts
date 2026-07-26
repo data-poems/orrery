@@ -1,3 +1,5 @@
+import { Capacitor } from '@capacitor/core';
+
 /*
  * Android detection for the GPU perf profile. Tiled mobile GPUs (Adreno/Mali)
  * pay heavily for big blended points, MSAA, and log-depth — the same scene
@@ -18,3 +20,7 @@ export const IS_IOS: boolean =
   typeof navigator !== 'undefined' &&
   (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+
+/** True only inside the installed Capacitor iOS shell, never mobile Safari. */
+export const IS_NATIVE_IOS: boolean =
+  Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';

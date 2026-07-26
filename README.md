@@ -32,19 +32,19 @@ From Earth to the Oort Cloud. Interactive, 41,000 stars, 88 constellations, real
 ### Features
 
 - WebXR immersive mode: an **Enter VR** button appears on any WebXR headset and drops you inside the system — Apple Vision Pro (Safari), Meta Quest, Pico, and PCVR — with motion controllers, hand tracking, or pinch-to-select, whichever the headset reports
-- Cinematic opening tour: deep space down to Earth
+- First-visit cinematic tour from deep space to Earth, with an explicit Replay Cinematic Tour action in Controls
 - Stargazer mode with immersive constellation + starfield emphasis
 - Deep Space layer (Oort Cloud, spacecraft, nearby star markers, galaxy markers) can be toggled independently
 - Click any planet to zoom in; click Sol or any moon to drill down
 - Split HUD corners: info (`i`) upper-left, Sky mode (constellation icon) upper-right
 - Subtle top-center area labels (Inner, Full System, Deep Space, etc.) stay visible above the canvas
-- Persistent quick zoom controls (+/− step between scale presets) and a dice-button random tour (planets, moons, constellations, spacecraft, nearby stars, galaxies) on desktop and mobile
+- Persistent quick zoom controls (+/− step between scale presets), one-shot dice jumps, and a separately controlled ambient tour across presets, planets, moons, and active spacecraft
 - Deep-space pick targets for spacecraft, nearby stars, and Local Group galaxies with jump-to-view actions
 - Non-overlapping info panels for deep-space selections (left) vs constellation/spacecraft (right)
 - Unified Sky-mode behavior across button and keyboard shortcut (`g`) for consistent immersive state transitions
 - Touch-friendly HUD targets and improved keyboard accessibility for details navigation
 - Time controls from real-time to 100 years per second
-- 4 colorblind-accessible themes
+- 4 color themes, including palettes designed for common color-vision differences
 - Mobile-first responsive design with touch controls
 - 2K textures on mobile, 4K on desktop
 - Pre-gzipped data files (82% savings)
@@ -74,7 +74,7 @@ React 19, TypeScript 5.9, Three.js (r183) via @react-three/fiber + @react-three/
 - iOS sync pipeline: `pnpm ios:sync`
 - Optional compile gate: `pnpm ios:compile`
 - iPad panel updates: safe-area aligned right drawer with explicit close button
-- Launch stability note: Milky Way backdrop is disabled in deep space to avoid iPad streak artifacts
+- Launch stability note: the current build disables the Milky Way backdrop in deep space to avoid iPad streak artifacts
 - App Store submission kit:
   - `app-store/APP_STORE_PACK.md`
   - `app-store/APP_STORE_CONNECT_PASTE_SHEET.md`
@@ -82,9 +82,11 @@ React 19, TypeScript 5.9, Three.js (r183) via @react-three/fiber + @react-three/
 
 ## Android release
 
-Android build is in testing. No signed APK is available yet.
+Android build is in testing. The release pipeline has produced locally verified
+signed APK and AAB artifacts; store upload and physical-device validation remain
+manual release steps.
 
-The Capacitor Android shell uses the same `1.2.0` marketing version as
+The Capacitor Android shell uses the same `1.2.1` marketing version as
 `package.json` and iOS, and the same positive native build number as iOS
 `CURRENT_PROJECT_VERSION`. Gradle stops if those values drift. Android keeps the
 existing low-GPU profile: Android WebViews use 2K textures, reduced blended star

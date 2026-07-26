@@ -96,6 +96,7 @@ export interface BottomClusterProps {
 }
 
 interface TileProps {
+  id?: string;
   label: string;
   glyph: React.ReactNode;
   onClick: () => void;
@@ -112,9 +113,10 @@ interface TileProps {
   glyphClass?: string;
 }
 
-function Tile({ label, glyph, onClick, size, accent, accentRgb, disabled, active, pressed, className, glyphClass }: TileProps) {
+function Tile({ id, label, glyph, onClick, size, accent, accentRgb, disabled, active, pressed, className, glyphClass }: TileProps) {
   return (
     <button
+      id={id}
       type="button"
       aria-label={label}
       aria-disabled={disabled || undefined}
@@ -163,7 +165,7 @@ export default function BottomCluster({
       }}
     >
       {/* panel (gear) · zoom out · stargaze (sky) · zoom in · dice */}
-      <Tile label="Open controls" glyph={<GearIcon />} size={size} accent={accent} accentRgb={accentRgb}
+      <Tile id="orrery-open-controls" label="Open controls" glyph={<GearIcon />} size={size} accent={accent} accentRgb={accentRgb}
         onClick={() => onAction('controls')} />
       <Tile label="Zoom out" glyph={<MinusIcon />} size={size} accent={accent} accentRgb={accentRgb}
         disabled={atOutermost} onClick={() => onAction('zoom', 'out')} />

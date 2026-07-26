@@ -1,14 +1,19 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { readFileSync } from 'node:fs'
 
 // ISO stamp baked into every production bundle — check Safari Web Inspector → Console
 // on device to confirm you are running the JS you just built (not a cached copy).
 const buildStamp = new Date().toISOString()
+const packageVersion = (JSON.parse(
+  readFileSync(new URL('./package.json', import.meta.url), 'utf8'),
+) as { version: string }).version
 
 // https://vite.dev/config/
 export default defineConfig({
   define: {
     __ORRERY_BUILD_STAMP__: JSON.stringify(buildStamp),
+    __ORRERY_APP_VERSION__: JSON.stringify(packageVersion),
   },
   plugins: [react()],
   base: '/orrery/',

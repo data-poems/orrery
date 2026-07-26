@@ -7,6 +7,8 @@
 3. Ensure iOS branding assets (icon/splash) and metadata can be shipped without ad-hoc docs.
 4. Keep Android APK/AAB releases reproducible, version-aligned, and safe to
    build with or without local signing credentials.
+5. Ship iOS 1.2.1/build 21 with a first-visit-only cinematic, a returning-user
+   interactive view, and a deliberate review-request policy.
 
 ## Current Architecture Snapshot
 
@@ -39,10 +41,15 @@
 ## Outstanding Tasks
 
 - Verify privacy policy URL endpoint intended for submission (`https://orrery.solar/privacy`) is live.
-- Capture final iPhone/iPad screenshots from current shipping build.
-- Confirm final category/keyword strategy prior to first production submit.
-- Paste finalized copy into App Store Connect and complete privacy questionnaire.
+- Capture current iPhone/iPad screenshots from the 1.2.1/build 21 release candidate.
+- Paste the 1.2.1 release notes into App Store Connect and re-verify the privacy questionnaire.
 - Validate iPad panel behavior in portrait, landscape, and split view after safe-area/close-button patch.
+- Verify first-install cinematic, returning launch, Replay Cinematic Tour, and
+  the DEBUG review-force hook on a developer-signed physical iOS device.
+- Run a physical-device VoiceOver pass. Primary HUD controls, drawer rows,
+  scale presets, and body-detail actions now use 44-point-or-larger targets,
+  with labels, focus indicators, and reduced-motion handling. The full 3D and
+  auxiliary-control experience has not been certified as screen-reader accessible.
 - Revisit Milky Way backdrop rendering after launch with seam-safe triangulation or texture-based replacement.
 - Configure and back up an Android release keystore before store staging.
 - Run a TalkBack, keyboard, touch-target, and sustained-GPU pass on a physical
@@ -73,7 +80,18 @@ visit them.
 
 ## Recent Launch Stabilization Work
 
-- Removed the `Deep Sky` data layer and dice destinations entirely after telemetry showed dice rolls landing the camera at empty sphere coordinates; nearby-star/galaxy/spacecraft destinations also stripped from the dice (still selectable via direct click). See "Future: Stellar Neighborhood Mode" for the long-term fix.
+- Removed sky-pinned constellations, nearby stars, and galaxies from automatic
+  destinations after camera arrivals landed in empty sphere coordinates. Active
+  spacecraft remain in the pool because they have reachable heliocentric
+  positions. See "Future: Stellar Neighborhood Mode" for the long-term fix.
+- The one-shot dice and ambient tour now share an explicit pool of scale presets,
+  planets, moons, and active spacecraft. Constellations, nearby stars, and
+  galaxies remain direct-pick experiences and are not automatic destinations.
+- The cinematic auto-plays only until it has been seen. Returning visits start
+  in the interactive Full System view, and Controls exposes Replay Cinematic Tour.
+- Added an iOS-only review gate based on four distinct manual destinations across
+  three sessions and seven days, with once-per-version and 120-day limits. Dice,
+  ambient tour, and cinematic destinations never count.
 - Added explicit right-panel close control and disabled hover-peek behavior on touch-only devices.
 - Removed Milky Way backdrop runtime path and prefetch from launch build to eliminate startup streak artifacts.
 - Reduced the Sky toggle footprint and colocated it with the top-left info control so both controls share the same compact chrome.
@@ -88,7 +106,8 @@ visit them.
 - Added billboard pick proxies in deep space for spacecraft, nearby stars, and Local Group galaxies.
 - Threaded near-star and galaxy selection through Orrery/Scene/Panels with left-placed info cards and jump-to-view buttons.
 - Made Sol selectable with enlarged invisible tap target; moons remain clickable across all parent planets.
-- Replaced the random destination button with a dice-icon toggle that runs an ongoing random tour across presets, planets, moons, constellations, spacecraft, nearby stars, and Local Group galaxies (~7s cadence; double-click for one-shot jump; cinematic mode auto-stops the tour).
+- Split automatic exploration into a one-shot dice jump and an explicit ambient
+  tour toggle with a 10-second cadence; cinematic playback remains separate.
 
 ## Update Rule
 

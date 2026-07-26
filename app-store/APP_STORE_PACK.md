@@ -6,7 +6,7 @@ This document is the single source of truth for App Store and TestFlight submiss
 
 - iOS app listing: `solar.orrery`
 - Platform shell: Capacitor iOS app wrapping the production Orrery web bundle
-- App name in binary: `Orrery`
+- App name in binary: `Solar Orrery`
 
 ## IDs and Platform Records
 
@@ -15,8 +15,8 @@ This document is the single source of truth for App Store and TestFlight submiss
 | Team ID | `596T7J7FB6` |
 | iOS bundle ID | `solar.orrery` |
 | Capacitor app ID | `solar.orrery` |
-| Marketing version | `1.0.0` |
-| Build number | `1` |
+| Marketing version | `1.2.1` |
+| Build number | `21` (global App Store Connect build floor: `20`) |
 
 ## App Store Metadata Pack
 
@@ -37,15 +37,15 @@ This document is the single source of truth for App Store and TestFlight submiss
 
 Orrery is an interactive, real-time model of the solar system and nearby sky built for curiosity and wonder.
 
-Start with a cinematic opening, then move freely through planets, moons, constellations, and live orbital data.
+Start with a cinematic opening on your first visit, then return directly to an interactive view of planets, moons, constellations, and live orbital data. Replay the tour whenever you like.
 
 Features:
-- Cinematic opening tour from deep space to Earth
+- First-visit cinematic tour from deep space to Earth, replayable from Controls
 - Interactive planets, dwarf planets, moons, asteroids, comets, and spacecraft
 - 41,000+ stars and 88 constellation line patterns
 - Time controls from real-time to accelerated simulation
 - Touch-first camera controls for quick orbit, zoom, and focus
-- Colorblind-accessible themes
+- Four color themes, including palettes designed for common color-vision differences
 - Live feeds for near-Earth objects, solar wind, and satellite elements
 
 Built for learners, stargazers, educators, and anyone who wants to explore scale and motion in the solar system.
@@ -56,6 +56,7 @@ Questions or feedback: luke@lukesteuber.com
 
 - Launch app and verify splash transitions into the 3D scene.
 - Let the cinematic intro complete and verify interactive HUD appears.
+- Relaunch and verify the app starts in the interactive Full System view; use Controls -> Replay Cinematic Tour to replay the intro.
 - Select Earth and other planets, then drill into moon-level views.
 - Toggle Sky overlays and constellation labels.
 - Toggle Deep Space layer (spacecraft / nearby star markers / galaxy markers) and verify no streak artifacts.
@@ -125,12 +126,16 @@ Use one clear headline per screenshot and keep labels readable at phone scale.
 
 - Orrery is a Capacitor-based iOS app that ships a bundled production web build for a touch-first 3D astronomy experience.
 - No sign-in or account is required.
-- Main flow: cinematic intro -> interactive orbit controls -> planet and sky exploration.
+- Main flow on a fresh install: cinematic intro -> interactive orbit controls -> planet and sky exploration. Returning launches begin in the interactive Full System view, and the cinematic can be replayed from Controls.
 - App supports portrait and landscape orientations.
 - Core value is interactive visualization of planetary motion, constellations, and real-world orbital datasets.
 - No demo credentials are needed.
 
 ## Submission Runbook
+
+### Canonical Release Notes
+
+- English (U.S.): `app-store/metadata/en-US/release_notes.txt`
 
 ### Preconditions
 

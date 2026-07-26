@@ -1,4 +1,61 @@
+// File purpose: Configure, build, verify, and stage the Orrery Android app.
+// Primary components: synchronized native versioning, optional release signing,
+// Android dependencies, and reproducible APK/AAB release artifact staging.
+// I/O: Reads package/iOS versions and optional local keystore properties; emits
+// Android packages, signature status, and SHA-256 checksums under dist/android.
 apply plugin: 'com.android.application'
+
+import groovy.json.JsonSlurper
+
+def packageManifestFile = rootProject.file('../package.json')
+def packageManifest = new JsonSlurper().parse(packageManifestFile)
+def releaseVersionName = packageManifest.version?.toString()
+if (!(releaseVersionName ==~ /\d+\.\d+\.\d+/)) {
+    throw new GradleException(
+        "A semantic version is required in ${packageManifestFile}: ${releaseVersionName}")
+}
+
+// Android and iOS share the package marketing version and native build number.
+// Refuse to package drifted values rather than requiring a manual version matrix.
+def iosProjectFile = rootProject.file('../ios/App/App.xcodeproj/project.pbxproj')
+def iosProjectText = iosProjectFile.text
+def iosMarketingVersions = (iosProjectText =~ /MARKETING_VERSION = ([^;]+);/)
+    .collect { it[1].trim() }
+    .unique()
+def iosBuildNumbers = (iosProjectText =~ /CURRENT_PROJECT_VERSION = ([^;]+);/)
+    .collect { it[1].trim() }
+    .unique()
+if (iosMarketingVersions != [releaseVersionName]) {
+    throw new GradleException(
+        "Version drift: package.json is ${releaseVersionName}, iOS is ${iosMarketingVersions}")
+}
+if (iosBuildNumbers.size() != 1 || !(iosBuildNumbers[0] ==~ /[1-9]\d*/)) {
+    throw new GradleException(
+        "A single positive CURRENT_PROJECT_VERSION is required in ${iosProjectFile}")
+}
+def releaseVersionCode = iosBuildNumbers[0] as int
+
+// Signing secrets stay in android/keystore.properties, which is gitignored.
+// Paths in that file are resolved relative to android/.
+def keystorePropsFile = rootProject.file('keystore.properties')
+def keystoreProps = new Properties()
+if (keystorePropsFile.isFile()) {
+    keystorePropsFile.withInputStream { keystoreProps.load(it) }
+}
+def signingValue = { String environmentName, String propertyName ->
+    def environmentValue = providers.environmentVariable(environmentName).orNull
+    environmentValue?.trim() ? environmentValue.trim() : keystoreProps.getProperty(propertyName)?.trim()
+}
+def releaseStoreFile = signingValue('ORRERY_ANDROID_STORE_FILE', 'storeFile')
+def releaseStorePassword = signingValue('ORRERY_ANDROID_STORE_PASSWORD', 'storePassword')
+def releaseKeyAlias = signingValue('ORRERY_ANDROID_KEY_ALIAS', 'keyAlias')
+def releaseKeyPassword = signingValue('ORRERY_ANDROID_KEY_PASSWORD', 'keyPassword')
+def releaseSigningConfigured = [releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword]
+    .every { it }
+def configuredStoreFile = releaseSigningConfigured ? rootProject.file(releaseStoreFile) : null
+if (releaseSigningConfigured && !configuredStoreFile.isFile()) {
+    throw new GradleException("Configured release keystore does not exist: ${configuredStoreFile}")
+}
 
 android {
     namespace = "solar.orrery.android"
@@ -7,8 +64,8 @@ android {
         applicationId "solar.orrery.android"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode releaseVersionCode
+        versionName releaseVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,10 +73,23 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~:!*.gz'
         }
     }
+    signingConfigs {
+        release {
+            if (releaseSigningConfigured) {
+                storeFile configuredStoreFile
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (releaseSigningConfigured) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }
@@ -43,6 +113,93 @@ dependencies {
 }
 
 apply from: 'capacitor.build.gradle'
+
+def stagedReleaseDir = rootProject.file('../dist/android')
+def signingSuffix = releaseSigningConfigured ? 'signed' : 'unsigned'
+def stagedReleaseBaseName =
+    "orrery-${android.defaultConfig.versionName}-${android.defaultConfig.versionCode}-${signingSuffix}"
+
+tasks.register('stageReleaseArtifacts', Copy) {
+    group = 'distribution'
+    description = 'Build, version, verify, checksum, and stage release APK/AAB artifacts.'
+    dependsOn 'assembleRelease', 'bundleRelease'
+
+    from(layout.buildDirectory.dir('outputs/apk/release')) {
+        include '*.apk'
+        rename { "${stagedReleaseBaseName}.apk" }
+    }
+    from(layout.buildDirectory.dir('outputs/bundle/release')) {
+        include '*.aab'
+        rename { "${stagedReleaseBaseName}.aab" }
+    }
+    into stagedReleaseDir
+
+    doFirst {
+        delete fileTree(stagedReleaseDir) {
+            include 'orrery-*.apk', 'orrery-*.aab', 'SHA256SUMS.txt', 'SIGNING.txt'
+        }
+    }
+
+    doLast {
+        def artifacts = stagedReleaseDir.listFiles()
+            ?.findAll { it.name.startsWith('orrery-') &&
+                (it.name.endsWith('.apk') || it.name.endsWith('.aab')) }
+            ?.sort { it.name } ?: []
+        def apk = artifacts.find { it.name.endsWith('.apk') }
+        def aab = artifacts.find { it.name.endsWith('.aab') }
+        if (apk == null || aab == null || artifacts.size() != 2) {
+            throw new GradleException(
+                "Exactly one APK and one AAB are required in ${stagedReleaseDir}")
+        }
+
+        def signingStatus
+        if (releaseSigningConfigured) {
+            def apksigner = new File(
+                android.sdkDirectory,
+                "build-tools/${android.buildToolsVersion}/apksigner"
+            )
+            if (!apksigner.isFile()) {
+                throw new GradleException("apksigner not found at ${apksigner}")
+            }
+            project.exec {
+                commandLine apksigner, 'verify', '--verbose', apk
+            }
+
+            def aabVerification = new ByteArrayOutputStream()
+            def aabResult = project.exec {
+                commandLine "${System.getProperty('java.home')}/bin/jarsigner",
+                    '-verify', aab
+                standardOutput = aabVerification
+                errorOutput = aabVerification
+                ignoreExitValue = true
+            }
+            def aabVerificationText = aabVerification.toString('UTF-8')
+            if (aabResult.exitValue != 0 ||
+                !aabVerificationText.contains('jar verified.') ||
+                aabVerificationText.toLowerCase().contains('jar is unsigned')) {
+                throw new GradleException(
+                    "AAB signature verification failed:\n${aabVerificationText}")
+            }
+            signingStatus =
+                'SIGNED: APK and AAB signatures verified during staging.\n'
+        } else {
+            signingStatus =
+                'UNSIGNED: no android/keystore.properties was present; signature verification skipped.\n'
+        }
+
+        def digest = java.security.MessageDigest.getInstance('SHA-256')
+        def checksums = artifacts.collect { artifact ->
+            digest.reset()
+            def hash = digest.digest(artifact.bytes)
+                .collect { String.format('%02x', it) }
+                .join()
+            "${hash}  ${artifact.name}"
+        }
+        new File(stagedReleaseDir, 'SHA256SUMS.txt').text =
+            checksums.join('\n') + '\n'
+        new File(stagedReleaseDir, 'SIGNING.txt').text = signingStatus
+    }
+}
 
 try {
     def servicesJSON = file('google-services.json')

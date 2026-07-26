@@ -5,11 +5,13 @@
 1. Keep Orrery iOS release-ready from this repository.
 2. Maintain synchronized App Store submission materials alongside code.
 3. Ensure iOS branding assets (icon/splash) and metadata can be shipped without ad-hoc docs.
+4. Keep Android APK/AAB releases reproducible, version-aligned, and safe to
+   build with or without local signing credentials.
 
 ## Current Architecture Snapshot
 
 - Frontend: Vite + React + TypeScript + Three.js (`src/`)
-- Native shell: Capacitor iOS project (`ios/App/`)
+- Native shells: Capacitor iOS (`ios/App/`) and Android (`android/`)
 - iOS asset catalogs:
   - `ios/App/App/Assets.xcassets/AppIcon.appiconset/`
   - `ios/App/App/Assets.xcassets/Splash.imageset/`
@@ -17,6 +19,16 @@
   - `pnpm build:ios`
   - `pnpm ios:sync`
   - optional compile gate: `pnpm ios:compile`
+- Android release pipeline:
+  - `pnpm build:android`
+  - `pnpm android:sync`
+  - `pnpm android:release`
+  - versioned APK/AAB, signing status, and SHA-256 sums in `dist/android/`
+- Native version source:
+  - marketing version: `package.json`, enforced against iOS
+  - build number: iOS `CURRENT_PROJECT_VERSION`, reused as Android `versionCode`
+- Android rendering retains its low-GPU WebView profile: mobile catalog, 2K
+  textures, and reduced blended star-point scaling.
 
 ## App Store Kit Deliverables (Added)
 
@@ -32,6 +44,9 @@
 - Paste finalized copy into App Store Connect and complete privacy questionnaire.
 - Validate iPad panel behavior in portrait, landscape, and split view after safe-area/close-button patch.
 - Revisit Milky Way backdrop rendering after launch with seam-safe triangulation or texture-based replacement.
+- Configure and back up an Android release keystore before store staging.
+- Run a TalkBack, keyboard, touch-target, and sustained-GPU pass on a physical
+  Android device before marking the Android track device-tested.
 
 ## Future: Stellar Neighborhood Mode
 

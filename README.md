@@ -61,6 +61,7 @@ Opens at http://localhost:5173
 ```bash
 pnpm build    # TypeScript check + Vite build + gzip data
 pnpm lint     # ESLint
+pnpm test     # Vitest suite
 pnpm preview  # Serve production build
 ```
 
@@ -78,6 +79,71 @@ React 19, TypeScript 5.9, Three.js (r183) via @react-three/fiber + @react-three/
   - `app-store/APP_STORE_PACK.md`
   - `app-store/APP_STORE_CONNECT_PASTE_SHEET.md`
   - `app-store/app-store-listing.md`
+
+## Android release
+
+Android build is in testing. No signed APK is available yet.
+
+The Capacitor Android shell uses the same `1.2.0` marketing version as
+`package.json` and iOS, and the same positive native build number as iOS
+`CURRENT_PROJECT_VERSION`. Gradle stops if those values drift. Android keeps the
+existing low-GPU profile: Android WebViews use 2K textures, reduced blended star
+point scaling, and the mobile star catalog.
+
+Prerequisites are JDK 17–21 and Android SDK platform 36. Build and stage a
+release with:
+
+```bash
+pnpm android:release
+```
+
+This builds the relative-path Capacitor bundle, syncs it into Android, runs
+`assembleRelease` and `bundleRelease`, then stages versioned artifacts in
+`dist/android/`:
+
+```text
+orrery-<version>-<build>-signed.apk
+orrery-<version>-<build>-signed.aab
+SHA256SUMS.txt
+SIGNING.txt
+```
+
+Release signing is optional for local reproducibility. The portfolio workflow
+injects these variables from macOS Keychain for one release process:
+
+```text
+ORRERY_ANDROID_STORE_FILE
+ORRERY_ANDROID_STORE_PASSWORD
+ORRERY_ANDROID_KEY_ALIAS
+ORRERY_ANDROID_KEY_PASSWORD
+```
+
+Do not export passwords manually or save them in a shell profile. To configure
+a pre-existing local identity without putting secrets in source control:
+
+```bash
+cp android/keystore.properties.example android/keystore.properties
+# Fill in an absolute or android/-relative keystore path and credentials.
+pnpm android:release
+```
+
+Both `android/keystore.properties` and `*.keystore`/`*.jks` are ignored by Git.
+When signing is configured, staging verifies the APK with `apksigner` and the
+AAB with `jarsigner -verify`. Without signing configuration, the same
+command stages explicitly `-unsigned` APK/AAB files, records that state in
+`SIGNING.txt`, and still writes `SHA256SUMS.txt`.
+
+Useful development gates:
+
+```bash
+pnpm android:sync                         # Build web assets and sync Capacitor
+pnpm android:apk                          # Existing debug APK path
+cd android && ./gradlew test lint         # Android unit tests and lint
+cd android && ./gradlew assembleRelease   # Raw signed/unsigned release APK
+```
+
+Do not upload unsigned artifacts. Store upload, submission, and publishing are
+manual steps outside this pipeline.
 
 ## Data sources
 

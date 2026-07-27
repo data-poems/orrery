@@ -9,12 +9,12 @@ Paste the **exact** Resolution Center message from App Store Connect below when 
 | Splash / loading hang | 2.1 Performance | Loading watchdog + star fetch error handling |
 | WebView-only feel | 4.2 Minimum functionality | Native shell + offline catalogs |
 | Data attribution | 5.2.3 IP | About dialog + THIRD_PARTY_NOTICES.md |
-| Privacy URL | 5.1.1 | `public/privacy.html` → deploy at `/privacy` |
+| Privacy URL | 5.1.1 | `public/privacy.html` → deployed at `/orrery/privacy.html` |
 | Inaccurate NEO orbits | 2.1 / 1.1 | Synthetic orbit labeled in UI when SBDB fails |
 
 ## Re-submission checklist
 
-- [ ] Privacy URL live at https://orrery.solar/privacy
+- [ ] Privacy URL live at https://orrery.solar/orrery/privacy.html
 - [ ] In-app Data Sources / licenses visible in About
 - [ ] Cinematic tour exits on user drag
 - [ ] `pnpm ios:sync` + fresh `__ORRERY_BUILD_STAMP__` on device

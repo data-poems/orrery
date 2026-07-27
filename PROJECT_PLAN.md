@@ -7,7 +7,7 @@
 3. Ensure iOS branding assets (icon/splash) and metadata can be shipped without ad-hoc docs.
 4. Keep Android APK/AAB releases reproducible, version-aligned, and safe to
    build with or without local signing credentials.
-5. Ship iOS 1.2.1/build 21 with a first-visit-only cinematic, a returning-user
+5. Ship iOS 1.2.1/build 22 with a first-visit-only cinematic, a returning-user
    interactive view, and a deliberate review-request policy.
 
 ## Current Architecture Snapshot
@@ -40,8 +40,8 @@
 
 ## Outstanding Tasks
 
-- Verify privacy policy URL endpoint intended for submission (`https://orrery.solar/privacy`) is live.
-- Capture current iPhone/iPad screenshots from the 1.2.1/build 21 release candidate.
+- Verify privacy policy URL endpoint intended for submission (`https://orrery.solar/orrery/privacy.html`) is live.
+- Capture current iPhone/iPad screenshots from the 1.2.1/build 22 release candidate.
 - Paste the 1.2.1 release notes into App Store Connect and re-verify the privacy questionnaire.
 - Validate iPad panel behavior in portrait, landscape, and split view after safe-area/close-button patch.
 - Verify first-install cinematic, returning launch, Replay Cinematic Tour, and

@@ -68,7 +68,7 @@ You can replay the cinematic tour at any time from Controls.
 
 - Support URL: `https://orrery.solar`
 - Marketing URL: `https://orrery.solar`
-- Privacy Policy URL: `https://orrery.solar/privacy`
+- Privacy Policy URL: `https://orrery.solar/orrery/privacy.html`
 
 ## Privacy and Compliance
 

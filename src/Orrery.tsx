@@ -32,7 +32,8 @@ import { neoFeedUrlForDay } from './lib/neoFeed';
 import { OBSERVATORY_MODE } from './lib/mode';
 import { IS_ANDROID } from './lib/platform';
 import { PREFERS_REDUCED_MOTION } from './lib/motion';
-import { markCinematicSeen, shouldStartCinematic } from './lib/launchExperience';
+import { claimFirstVisitCinematic } from './lib/launchExperience';
+import { restoreHudControlFocus } from './lib/hudFocus';
 import { createReviewPromptCoordinator } from './lib/reviewPrompt';
 import { useImmersiveVrSupported } from './lib/xr';
 import type { XRStore } from './scene/XRProvider';
@@ -49,6 +50,7 @@ type DiceTarget =
 
 /** Scale ladder for the zoom tiles / +- stepping (innermost → outermost). */
 const ZOOM_LADDER = ['Sun', 'Inner', 'System', 'Outer', 'Kuiper', 'Oort', 'Stellar'] as const;
+const HUD_IDLE_MS = 4000;
 
 function persistentStorage(): Storage | null {
   try {
@@ -57,6 +59,17 @@ function persistentStorage(): Storage | null {
     return null;
   }
 }
+
+// Claim the automatic tour once at app bootstrap, outside React's Strict Mode
+// render cycle. This persists the handled state before an interrupted tour can
+// accidentally become a second-launch tour.
+const LAUNCH_STARTS_CINEMATIC = claimFirstVisitCinematic(
+  persistentStorage(),
+  {
+    observatoryMode: OBSERVATORY_MODE,
+    prefersReducedMotion: PREFERS_REDUCED_MOTION,
+  },
+);
 
 /** Nearest ladder rung for a camera distance (log-distance match). 0 = Sun
  *  (innermost), ZOOM_LADDER.length-1 = Stellar (outermost). Shared by the zoom
@@ -185,13 +198,7 @@ const CINEMATIC_DEFAULTS: Omit<CinematicStep, 'duration' | 'label'> = {
 
 function OrreryInner() {
   const { theme } = useTheme();
-  const [launchStartsCinematic] = useState(() => shouldStartCinematic(
-    persistentStorage(),
-    {
-      observatoryMode: OBSERVATORY_MODE,
-      prefersReducedMotion: PREFERS_REDUCED_MOTION,
-    },
-  ));
+  const launchStartsCinematic = LAUNCH_STARTS_CINEMATIC;
   // Only true in a real WebXR browser on a headset (Vision Pro Safari, Quest);
   // always false on phone/desktop/iOS shell, so the entry point stays hidden.
   const vrSupported = useImmersiveVrSupported();
@@ -301,6 +308,18 @@ function OrreryInner() {
   const reviewPrompt = useMemo(() => createReviewPromptCoordinator(), []);
   const reviewPromptTimeoutRef = useRef<number | undefined>(undefined);
 
+  const wakeHud = useCallback(() => {
+    if (!hudActiveRef.current) {
+      hudActiveRef.current = true;
+      setHudActive(true);
+    }
+    window.clearTimeout(hudTimerRef.current);
+    hudTimerRef.current = window.setTimeout(() => {
+      hudActiveRef.current = false;
+      setHudActive(false);
+    }, HUD_IDLE_MS);
+  }, []);
+
   const cancelScheduledReviewPrompt = useCallback(() => {
     window.clearTimeout(reviewPromptTimeoutRef.current);
     reviewPromptTimeoutRef.current = undefined;
@@ -395,7 +414,6 @@ function OrreryInner() {
   // Leave cinematic and clear all selection state; default lands on Earth focus.
   const exitCinematic = useCallback((target: ExitTarget = { kind: 'planet', idx: 2, label: 'Earth' }) => {
     setPanelOpen(false);
-    markCinematicSeen(persistentStorage());
     // Invalidate any pending dice-roll aim resolve so a Promise that resolves
     // after cinematic exit can't pull the camera to a stale constellation.
     lastTourPickRef.current = null;
@@ -448,10 +466,10 @@ function OrreryInner() {
     }
 
     if (!OBSERVATORY_MODE) {
-      window.setTimeout(() => document.getElementById('orrery-open-controls')?.focus(), 0);
+      restoreHudControlFocus('orrery-open-controls', wakeHud);
     }
 
-  }, [clearSkyCueTimeouts, setPanelOpen]);
+  }, [clearSkyCueTimeouts, setPanelOpen, wakeHud]);
 
   // Apply a cinematic step (camera preset + layers)
   const applyCinematicStep = useCallback((idx: number) => {
@@ -1234,29 +1252,24 @@ function OrreryInner() {
 
   // Wake the HUD on any interaction; fade out after idle. setState only on edges.
   useEffect(() => {
-    const IDLE_MS = 4000;
-    const wake = () => {
-      if (!hudActiveRef.current) { hudActiveRef.current = true; setHudActive(true); }
-      window.clearTimeout(hudTimerRef.current);
-      hudTimerRef.current = window.setTimeout(() => {
-        hudActiveRef.current = false;
-        setHudActive(false);
-      }, IDLE_MS);
-    };
     const opts = { passive: true } as const;
-    window.addEventListener('pointermove', wake, opts);
-    window.addEventListener('pointerdown', wake, opts);
-    window.addEventListener('touchstart', wake, opts);
-    window.addEventListener('keydown', wake);
-    wake();
+    window.addEventListener('pointermove', wakeHud, opts);
+    window.addEventListener('pointerdown', wakeHud, opts);
+    window.addEventListener('touchstart', wakeHud, opts);
+    window.addEventListener('keydown', wakeHud);
+    window.clearTimeout(hudTimerRef.current);
+    hudTimerRef.current = window.setTimeout(() => {
+      hudActiveRef.current = false;
+      setHudActive(false);
+    }, HUD_IDLE_MS);
     return () => {
-      window.removeEventListener('pointermove', wake);
-      window.removeEventListener('pointerdown', wake);
-      window.removeEventListener('touchstart', wake);
-      window.removeEventListener('keydown', wake);
+      window.removeEventListener('pointermove', wakeHud);
+      window.removeEventListener('pointerdown', wakeHud);
+      window.removeEventListener('touchstart', wakeHud);
+      window.removeEventListener('keydown', wakeHud);
       window.clearTimeout(hudTimerRef.current);
     };
-  }, []);
+  }, [wakeHud]);
 
   const reloadLoadingTasks = useCallback(() => {
     setLoadingTasks({

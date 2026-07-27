@@ -53,7 +53,7 @@ https://orrery.solar
 https://orrery.solar
 
 ## Privacy Policy URL
-https://orrery.solar/privacy
+https://orrery.solar/orrery/privacy.html
 
 ## Primary Category
 Education

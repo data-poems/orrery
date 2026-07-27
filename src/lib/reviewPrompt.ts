@@ -17,6 +17,20 @@ interface NativeReviewPromptPlugin {
 
 const NativeReviewPrompt = registerPlugin<NativeReviewPromptPlugin>('OrreryReviewPrompt');
 
+export interface ReviewPromptRuntime {
+  isNativeIOS: boolean;
+  isVisible: () => boolean;
+  now: () => Date;
+  requestReview: NativeReviewPromptPlugin['requestReview'];
+}
+
+const defaultReviewPromptRuntime: ReviewPromptRuntime = {
+  isNativeIOS: IS_NATIVE_IOS,
+  isVisible: () => document.visibilityState === 'visible',
+  now: () => new Date(),
+  requestReview: (options) => NativeReviewPrompt.requestReview(options),
+};
+
 export interface ReviewPromptState {
   schemaVersion: 1;
   firstManualExplorationAt: string | null;
@@ -60,6 +74,19 @@ function stringArray(value: unknown): string[] {
     typeof entry === 'string' && entry.length > 0))];
 }
 
+export function canonicalManualTargetKey(targetKey: string): string {
+  const normalizedTarget = targetKey.trim();
+  const lowerTarget = normalizedTarget.toLowerCase();
+  if (lowerTarget === 'sun' || lowerTarget === 'preset:sun') return 'sun';
+  return normalizedTarget;
+}
+
+function manualTargetArray(value: unknown): string[] {
+  return [...new Set(stringArray(value)
+    .map(canonicalManualTargetKey)
+    .filter((targetKey) => targetKey.length > 0))];
+}
+
 export function parseReviewPromptState(raw: string | null): ReviewPromptState {
   if (!raw) return emptyReviewPromptState();
   try {
@@ -70,7 +97,7 @@ export function parseReviewPromptState(raw: string | null): ReviewPromptState {
       firstManualExplorationAt: validDateString(value.firstManualExplorationAt)
         ? value.firstManualExplorationAt
         : null,
-      manualTargetKeys: stringArray(value.manualTargetKeys),
+      manualTargetKeys: manualTargetArray(value.manualTargetKeys),
       manualSessionIds: stringArray(value.manualSessionIds),
       requestedVersions: stringArray(value.requestedVersions),
       lastRequestedAt: validDateString(value.lastRequestedAt)
@@ -88,7 +115,7 @@ export function recordManualExploration(
   sessionId: string,
   now: Date,
 ): ReviewPromptState {
-  const normalizedTarget = targetKey.trim();
+  const normalizedTarget = canonicalManualTargetKey(targetKey);
   if (!normalizedTarget || !sessionId) return state;
 
   return {
@@ -159,15 +186,18 @@ export class ReviewPromptCoordinator {
   private readonly storage: ReviewStorage | null;
   private readonly appVersion: string;
   private readonly sessionId: string;
+  private readonly runtime: ReviewPromptRuntime;
 
   constructor(
     storage: ReviewStorage | null,
     appVersion: string,
     sessionId = makeSessionId(),
+    runtime = defaultReviewPromptRuntime,
   ) {
     this.storage = storage;
     this.appVersion = appVersion;
     this.sessionId = sessionId;
+    this.runtime = runtime;
   }
 
   recordManualExploration(targetKey: string, now = new Date()): void {
@@ -176,23 +206,23 @@ export class ReviewPromptCoordinator {
   }
 
   async requestIfEligible(options: { force?: boolean } = {}): Promise<boolean> {
-    if (!IS_NATIVE_IOS || document.visibilityState !== 'visible' || this.requestInFlight) {
+    if (!this.runtime.isNativeIOS || !this.runtime.isVisible() || this.requestInFlight) {
       return false;
     }
 
     const force = options.force === true;
     const state = this.readState();
-    if (!force && !reviewEligibility(state, this.appVersion, new Date()).eligible) {
+    if (!force && !reviewEligibility(state, this.appVersion, this.runtime.now()).eligible) {
       return false;
     }
 
     this.requestInFlight = true;
     try {
-      const result = await NativeReviewPrompt.requestReview({ force });
+      const result = await this.runtime.requestReview({ force });
       if (!result.dispatched) return false;
 
       // Store the request only after the native call has reached StoreKit.
-      this.writeState(markReviewRequested(this.readState(), this.appVersion, new Date()));
+      this.writeState(markReviewRequested(this.readState(), this.appVersion, this.runtime.now()));
       return true;
     } catch {
       return false;

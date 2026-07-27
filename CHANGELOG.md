@@ -20,7 +20,7 @@ All notable changes to Orrery are documented here.
   visits start in the interactive Full System view.
 - The app keeps dice and ambient destinations separate from manual exploration,
   so automatic movement never advances review eligibility.
-- Release metadata now uses marketing version 1.2.1 and native build 21, above
+- Release metadata now uses marketing version 1.2.1 and native build 22, above
   the current global App Store Connect build floor of 20.
 - Android now reads the marketing version from `package.json`, verifies it
   matches iOS, and reuses the iOS native build number as `versionCode`.

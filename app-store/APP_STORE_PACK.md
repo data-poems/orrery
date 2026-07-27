@@ -16,7 +16,7 @@ This document is the single source of truth for App Store and TestFlight submiss
 | iOS bundle ID | `solar.orrery` |
 | Capacitor app ID | `solar.orrery` |
 | Marketing version | `1.2.1` |
-| Build number | `21` (global App Store Connect build floor: `20`) |
+| Build number | `22` (global App Store Connect build floor: `20`) |
 
 ## App Store Metadata Pack
 
@@ -82,7 +82,7 @@ Questions or feedback: luke@lukesteuber.com
 
 - Support URL: `https://orrery.solar`
 - Marketing URL: `https://orrery.solar`
-- Privacy Policy URL: `https://orrery.solar/privacy`
+- Privacy Policy URL: `https://orrery.solar/orrery/privacy.html`
 
 Confirm all URLs are public and render before each submission cycle.
 

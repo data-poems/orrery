@@ -10,10 +10,9 @@
 import type { PlanetDef, TexKey, CamPreset } from '../lib/kepler';
 import { IS_ANDROID, IS_IOS } from '../lib/platform';
 
-// ─── CDN texture URLs ───────────────────────────────────────────────────────────
+// ─── Texture URLs ───────────────────────────────────────────────────────────────
 
 const B = import.meta.env.BASE_URL + 'textures/';
-const CDN = 'https://d2xsxph8kpxj0f.cloudfront.net/310419663029916604/boBVkWMKnM6d26ztuVrLrs/';
 
 /** Reactive texture tier — call from components (not at module load).
  *  iOS/Android always get 2K regardless of viewport: iPad reads as a desktop
@@ -33,8 +32,10 @@ export function buildTextureUrls(isMobile: boolean): Record<string, string> {
     mars:       B + `mars_${RES}.jpg`,
     jupiter:    B + `jupiter_${RES}.jpg`,
     saturn:     B + `saturn_${RES}.jpg`,
-    uranus:     CDN + '2k_uranus_a5872335.jpg',
-    neptune:    CDN + '2k_neptune_d38c09d9.jpg',
+    // The source CDN now returns 403. Bundle these 2K textures like every other
+    // planet so native apps remain functional offline.
+    uranus:     B + 'uranus_2k.jpg',
+    neptune:    B + 'neptune_2k.jpg',
     moon:       B + `moon_${RES}.jpg`,
   };
 }

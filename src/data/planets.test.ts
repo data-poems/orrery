@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { CAMS, CAM_LABEL_ORDER, camIndex, CAM_PRESET_LAYER_EFFECTS } from './planets';
+import {
+  buildTextureUrls,
+  CAMS,
+  CAM_LABEL_ORDER,
+  camIndex,
+  CAM_PRESET_LAYER_EFFECTS,
+} from './planets';
 
 describe('CAMS label integrity', () => {
   it('CAM_LABEL_ORDER matches CAMS array order', () => {
@@ -28,5 +34,15 @@ describe('CAMS label integrity', () => {
   it('declarative layer effects cover tour presets', () => {
     expect(CAM_PRESET_LAYER_EFFECTS.Oort?.deepSpace).toBe(true);
     expect(CAM_PRESET_LAYER_EFFECTS.Stargazer?.constellationFocus).toBe(true);
+  });
+});
+
+describe('planet texture URLs', () => {
+  it('uses bundled textures for Uranus and Neptune', () => {
+    const textures = buildTextureUrls(false);
+
+    expect(textures.uranus).toMatch(/textures\/uranus_2k\.jpg$/);
+    expect(textures.neptune).toMatch(/textures\/neptune_2k\.jpg$/);
+    expect(Object.values(textures).some(url => url.includes('cloudfront.net'))).toBe(false);
   });
 });

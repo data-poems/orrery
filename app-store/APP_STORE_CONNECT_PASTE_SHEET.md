@@ -42,9 +42,7 @@ Questions or feedback: luke@lukesteuber.com
 space,astronomy,solar system,planets,stars,constellations,orbit,science,stargazing,education
 
 ## What's New in This Version
-Returning visits now open directly into the interactive solar system after you have seen the opening cinematic.
-
-You can replay the cinematic tour at any time from Controls.
+Fixed an issue that could prevent Uranus and Neptune textures from loading on iPhone and iPad.
 
 ## Support URL
 https://orrery.solar

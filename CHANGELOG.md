@@ -4,6 +4,11 @@ All notable changes to Orrery are documented here.
 
 ## Unreleased
 
+### Fixed
+
+- Bundled the Uranus and Neptune textures so iPhone and iPad no longer depend
+  on a CloudFront origin that returns 403 responses.
+
 ### Added
 
 - An explicit Replay Cinematic Tour action in Controls.
@@ -20,8 +25,8 @@ All notable changes to Orrery are documented here.
   visits start in the interactive Full System view.
 - The app keeps dice and ambient destinations separate from manual exploration,
   so automatic movement never advances review eligibility.
-- Release metadata now uses marketing version 1.2.1 and native build 22, above
-  the current global App Store Connect build floor of 20.
+- Release metadata now uses marketing version 1.2.2 and native build 777, above
+  the current global App Store Connect build floor of 22.
 - Android now reads the marketing version from `package.json`, verifies it
   matches iOS, and reuses the iOS native build number as `versionCode`.
 - Android Capacitor builds have a dedicated relative-path build command while

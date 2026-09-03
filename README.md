@@ -86,7 +86,7 @@ Android build is in testing. The release pipeline has produced locally verified
 signed APK and AAB artifacts; store upload and physical-device validation remain
 manual release steps.
 
-The Capacitor Android shell uses the same `1.2.1` marketing version as
+The Capacitor Android shell uses the same `1.2.2` marketing version as
 `package.json` and iOS, and the same positive native build number as iOS
 `CURRENT_PROJECT_VERSION`. Gradle stops if those values drift. Android keeps the
 existing low-GPU profile: Android WebViews use 2K textures, reduced blended star

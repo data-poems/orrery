@@ -15,8 +15,8 @@ This document is the single source of truth for App Store and TestFlight submiss
 | Team ID | `596T7J7FB6` |
 | iOS bundle ID | `solar.orrery` |
 | Capacitor app ID | `solar.orrery` |
-| Marketing version | `1.2.1` |
-| Build number | `22` (global App Store Connect build floor: `20`) |
+| Marketing version | `1.2.2` |
+| Build number | `777` (global App Store Connect build floor: `22`) |
 
 ## App Store Metadata Pack
 

@@ -15,6 +15,13 @@ Target: Orrery 1.2.2 (778), package `solar.orrery.android`.
 - Web tests: 29 passed; lint, Android unit tests, Android lint, signed APK/AAB
   staging, and signature verification passed.
 
+Supplemental non-Fire smoke, 2026-09-04: the exact APK installed and launched
+on a Pixel 9a (Android 16), completed the opening-to-interactive transition,
+rendered the bundled solar system in portrait and landscape, resumed after
+Home with the same process, exposed its primary accessibility description and
+exit-tour control, and produced no crash-buffer entry. This does not satisfy a
+Fire-specific checkbox below.
+
 - [x] APK/AAB SHA-256 and certificate SHA-256 recorded.
 - [ ] Signed APK installed on a named Fire model and Fire OS version.
 - [ ] Offline bundled scene and live-data fallbacks pass.

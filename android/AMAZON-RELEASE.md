@@ -27,6 +27,9 @@ Before device testing, verify APK and AAB signatures and checksums, package
 `solar.orrery.android`, version code 778, required touchscreen targeting, and
 absence of Google Play Services.
 
+Listing copy and asset provenance are tracked in
+`android/amazon-listing/ASSET-MAP.md`.
+
 ## Physical Fire gate
 
 Record the exact APK hash, certificate, tablet model, Fire OS version, and date.

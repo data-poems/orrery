@@ -3,5 +3,5 @@ version: "1.2.2"
 platforms: [android, fire-tablet]
 notes: |
   The Fire-tablet candidate uses package solar.orrery.android and shared native
-  build 779. It requires a touchscreen and is not a Fire TV target. Public
+  build 780. It requires a touchscreen and is not a Fire TV target. Public
   direct download 1.2.2 (777) remains independent.

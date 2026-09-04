@@ -10,13 +10,15 @@
  * Interior is a single aligned grid: every row is [glyph | label | indicator]
  * so labels and ●/○ markers line up regardless of text length.
  */
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { PREFERS_REDUCED_MOTION } from '../lib/motion';
 
 export interface SidePanelProps {
   accent: string;
   onAction: (action: string, arg?: string) => void;
   layerState: Record<string, boolean>;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 const VIEW_PRESETS = ['Inner', 'System', 'Outer', 'Kuiper', 'Oort'] as const;
@@ -31,15 +33,14 @@ const LAYERS: ReadonlyArray<{ label: string; arg: string }> = [
   { label: 'Asterisms', arg: 'asterisms' },
 ];
 
-export default function SidePanel({ accent, onAction, layerState }: SidePanelProps) {
-  const [open, setOpen] = useState(false);
+export default function SidePanel({ accent, onAction, layerState, open, onOpenChange }: SidePanelProps) {
 
   // Open/close via the shared window event (bottom-cluster ≡ tile, m key).
   useEffect(() => {
-    const onToggle = () => setOpen(o => !o);
+    const onToggle = () => onOpenChange(!open);
     window.addEventListener('orrery:toggle-controls', onToggle);
     return () => window.removeEventListener('orrery:toggle-controls', onToggle);
-  }, []);
+  }, [onOpenChange, open]);
 
   // While open: focus into the panel, trap Tab, close on Escape, restore focus.
   useEffect(() => {
@@ -52,7 +53,7 @@ export default function SidePanel({ accent, onAction, layerState }: SidePanelPro
       : [];
     focusables()[0]?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.preventDefault(); setOpen(false); return; }
+      if (e.key === 'Escape') { e.preventDefault(); onOpenChange(false); return; }
       if (e.key !== 'Tab') return;
       const f = focusables();
       if (f.length === 0) return;
@@ -65,7 +66,7 @@ export default function SidePanel({ accent, onAction, layerState }: SidePanelPro
       document.removeEventListener('keydown', onKey);
       prev?.focus?.();
     };
-  }, [open]);
+  }, [onOpenChange, open]);
 
   const heading: React.CSSProperties = {
     color: 'rgba(255,255,255,0.45)', fontSize: 10, letterSpacing: 2, fontWeight: 400,
@@ -84,13 +85,13 @@ export default function SidePanel({ accent, onAction, layerState }: SidePanelPro
   const labelCell: React.CSSProperties = { flex: 1, fontSize: 14, letterSpacing: 0.4 };
   const markCell: React.CSSProperties = { width: 22, flexShrink: 0, textAlign: 'center', fontSize: 15 };
 
-  const act = (a: string, arg?: string, close = false) => { onAction(a, arg); if (close) setOpen(false); };
+  const act = (a: string, arg?: string, close = false) => { onAction(a, arg); if (close) onOpenChange(false); };
 
   return (
     <>
       {open && (
         <div
-          onClick={() => setOpen(false)}
+          onClick={() => onOpenChange(false)}
           style={{ position: 'fixed', inset: 0, zIndex: 45, background: 'rgba(2,3,8,0.35)' }}
         />
       )}
@@ -120,7 +121,7 @@ export default function SidePanel({ accent, onAction, layerState }: SidePanelPro
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: 20, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' }}>Controls</span>
-          <button type="button" aria-label="Close controls" onClick={() => setOpen(false)}
+          <button type="button" aria-label="Close controls" onClick={() => onOpenChange(false)}
             style={{
               width: 44, height: 44, borderRadius: 8, cursor: 'pointer', display: 'grid', placeItems: 'center',
               background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.7)',

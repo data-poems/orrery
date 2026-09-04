@@ -41,6 +41,8 @@ android/keystore.properties
 !ios/App/App/Assets.xcassets/AppIcon.appiconset/*.png
 !ios/App/App/Assets.xcassets/Splash.imageset/*.png
 screenshots/
+!android/amazon-listing/screenshots/
+!android/amazon-listing/screenshots/*.png
 
 # Playwright
 .playwright-mcp/

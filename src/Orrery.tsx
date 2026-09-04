@@ -1190,6 +1190,53 @@ function OrreryInner() {
     jumpToPreset('Sun', false);
   }, [cinematic, exitCinematic, jumpToPreset]);
 
+  useEffect(() => {
+    const previousHandler = window.__ORRERY_HANDLE_ANDROID_BACK__;
+    window.__ORRERY_HANDLE_ANDROID_BACK__ = () => {
+      if (cinematic) {
+        exitCinematic();
+        return true;
+      }
+      if (panelOpen) {
+        setPanelOpen(false);
+        return true;
+      }
+
+      const hasPointSelection = selNeo !== null || selComet !== null
+        || selMeteor !== null || selSatellite !== null || selSpacecraft !== null
+        || selNearStar !== null || selGalaxy !== null
+        || selConstellation !== null || selAsterism !== null;
+      if (hasPointSelection) {
+        setSelNeo(null);
+        setSelComet(null);
+        setSelMeteor(null);
+        setSelSatellite(null);
+        setSelSpacecraft(null);
+        setSelNearStar(null);
+        setSelGalaxy(null);
+        setSelConstellation(null);
+        setSelAsterism(null);
+        setAimAtSphere(null);
+        return true;
+      }
+
+      if (selPlanet !== null || selSun || selMoonIdx !== null || navStack.length > 1) {
+        navigateBack();
+        return true;
+      }
+      return false;
+    };
+
+    return () => {
+      if (previousHandler) window.__ORRERY_HANDLE_ANDROID_BACK__ = previousHandler;
+      else delete window.__ORRERY_HANDLE_ANDROID_BACK__;
+    };
+  }, [
+    cinematic, exitCinematic, navStack.length, navigateBack, panelOpen,
+    selAsterism, selComet, selConstellation, selGalaxy, selMeteor, selMoonIdx,
+    selNearStar, selNeo, selPlanet, selSatellite, selSpacecraft, selSun,
+  ]);
+
   const accentRgb = theme.uiAccentRgb;
 
   // A tap fires OrbitControls' "start" (this) on pointer-down before the click
@@ -1507,6 +1554,8 @@ function OrreryInner() {
           accent={theme.uiAccent}
           onAction={handleArcAction}
           layerState={arcLayerState}
+          open={panelOpen}
+          onOpenChange={setPanelOpen}
         />
       )}
 

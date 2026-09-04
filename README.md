@@ -86,6 +86,11 @@ Android build is in testing. The release pipeline has produced locally verified
 signed APK and AAB artifacts; store upload and physical-device validation remain
 manual release steps.
 
+The Amazon Fire-tablet candidate advances the shared native build to **778** so
+its manifest can require a physical touchscreen and exclude Fire TV. It retains
+marketing version 1.2.2 and does not change the public direct-download catalog.
+See [`android/AMAZON-RELEASE.md`](android/AMAZON-RELEASE.md).
+
 The Capacitor Android shell uses the same `1.2.2` marketing version as
 `package.json` and iOS, and the same positive native build number as iOS
 `CURRENT_PROJECT_VERSION`. Gradle stops if those values drift. Android keeps the

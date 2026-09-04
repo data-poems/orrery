@@ -1,6 +1,6 @@
 # Amazon Appstore asset map — Orrery
 
-Target binary: `solar.orrery.android` 1.2.2 (778), Fire tablets only.
+Target binary: `solar.orrery.android` 1.2.2 (779), Fire tablets only.
 
 ## Copy
 
@@ -17,8 +17,8 @@ Target binary: `solar.orrery.android` 1.2.2 (778), Fire tablets only.
 | Amazon field | Source | State |
 |---|---|---|
 | App icon | `ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png` | Source identified; export to Amazon's current dimensions without redesigning it |
-| Fire-tablet screenshots | Capture from the exact signed 778 APK on the named Fire device | Open; do not reuse iOS or web captures |
-| Promotional image | Derive from a current 778 hero scene only if the console requires it | Open |
+| Fire-tablet screenshots | Capture from the exact signed 779 APK on the named Fire device | Open; do not reuse iOS, web, or 778 captures |
+| Promotional image | Derive from a current 779 hero scene only if the console requires it | Open |
 
 Capture at least five landscape or portrait frames that match the submitted
 binary: full-system hero, planet detail, Sky/constellations, time controls, and

@@ -43,9 +43,10 @@
 
 - Verify privacy policy URL endpoint intended for submission (`https://orrery.solar/orrery/privacy.html`) is live.
 - Capture current iPhone/iPad screenshots from the 1.2.2/build 777 release candidate.
-- Validate Android/Fire tablet 1.2.2 build 778. Build 778 differs from the
-  direct-download 777 artifact only by the explicit required-touchscreen
-  boundary, so it must earn fresh artifact-linked device evidence.
+- Validate Android/Fire tablet 1.2.2 build 779. Build 778 introduced the
+  explicit required-touchscreen boundary; 779 additionally preserves readable
+  names for toggle buttons in Android WebView accessibility trees. It must earn
+  fresh artifact-linked device evidence.
 - Paste the 1.2.2 release notes into App Store Connect and re-verify the privacy questionnaire.
 - Validate iPad panel behavior in portrait, landscape, and split view after safe-area/close-button patch.
 - Verify first-install cinematic, returning launch, Replay Cinematic Tour, and

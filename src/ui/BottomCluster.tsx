@@ -137,6 +137,7 @@ function Tile({ id, label, glyph, onClick, size, accent, accentRgb, disabled, ac
         transition: PREFERS_REDUCED_MOTION ? 'none' : 'opacity 0.18s, color 0.18s, border-color 0.18s, background 0.18s',
       }}
     >
+      {pressed !== undefined && <span className="sr-only">{label}</span>}
       <span aria-hidden="true" className={glyphClass} style={{ display: 'grid', placeItems: 'center', lineHeight: 0 }}>{glyph}</span>
     </button>
   );

@@ -5,15 +5,16 @@
 | Field | Value |
 |---|---|
 | Package | `solar.orrery.android` |
-| Version | `1.2.2 (778)` |
+| Version | `1.2.2 (779)` |
 | Device family | Fire tablets only |
 | Console state | No record as of 2026-09-04 |
 | Direct-download state | 1.2.2 (777) remains unchanged |
 
 The earlier signed 777 artifact did not explicitly require a touchscreen.
-Build 778 adds that filtering boundary, so evidence tied to 777 cannot be reused
-for the Amazon candidate even though application behavior is otherwise
-unchanged.
+Build 778 introduced that filtering boundary; the 779 candidate also preserves
+readable names inside the two WebView toggle buttons after 778 exposed them as
+unnamed controls on Android. Evidence tied to either predecessor cannot be
+reused.
 
 ## Build and verification
 
@@ -24,7 +25,7 @@ scripts/android-release with-signing --profile orrery -- \
 ```
 
 Before device testing, verify APK and AAB signatures and checksums, package
-`solar.orrery.android`, version code 778, required touchscreen targeting, and
+`solar.orrery.android`, version code 779, required touchscreen targeting, and
 absence of Google Play Services.
 
 Listing copy and asset provenance are tracked in
@@ -45,7 +46,7 @@ Verify:
 
 ## Human console checkpoint
 
-After the exact 778 candidate passes, create a standard tablet-only Amazon
+After the exact 779 candidate passes, create a standard tablet-only Amazon
 record, upload the APK, inspect the generated supported-device list, complete
 the listing/privacy/rating/reviewer fields, and submit. Repository tooling never
 logs into Amazon.

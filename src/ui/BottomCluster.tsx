@@ -1,10 +1,9 @@
 /*
  * BottomCluster — the front-page control tiles.
  *
- * A compact, idle-fading pill centered on the bottom edge, left → right:
- * controls (gear) · zoom out · stargaze/sky · zoom in · dice · ambient tour.
- * Stargaze sits dead center, flanked by the zoom pair; the gear opens the full
- * SidePanel, the dice rolls one random destination, and the tour toggles a
+ * Explicitly visible navigation: Explore, paired zoom controls, Sky and Tour.
+ * Random destination is in Explore. Hide leaves a discoverable Show controls
+ * action and, during a tour, a Stop action. The tour toggles a
  * continuous cycle through the whole pool. The zoom tiles grey out at the ends of
  * the scale ladder (− at the outermost rung, + at the innermost). Glyphs are
  * inline monochrome SVGs (no emoji).
@@ -50,21 +49,6 @@ function StarIcon() {
     </svg>
   );
 }
-function DiceIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth={1.5} aria-hidden="true">
-      <rect x="4" y="4" width="16" height="16" rx="3.5" />
-      <g fill="currentColor" stroke="none">
-        <circle cx="8.5" cy="8.5" r="1.3" />
-        <circle cx="15.5" cy="8.5" r="1.3" />
-        <circle cx="12" cy="12" r="1.3" />
-        <circle cx="8.5" cy="15.5" r="1.3" />
-        <circle cx="15.5" cy="15.5" r="1.3" />
-      </g>
-    </svg>
-  );
-}
 
 /** Ambient-tour glyph: looping arrows — a continuous auto-cycle through bodies. */
 function TourIcon() {
@@ -81,6 +65,7 @@ function TourIcon() {
 
 export interface BottomClusterProps {
   visible: boolean;
+  onVisibilityChange?: (visible: boolean) => void;
   /** Brief reveal cue on the Sky tile after the cinematic tour lands. */
   pulse?: boolean;
   accent: string;
@@ -96,6 +81,7 @@ export interface BottomClusterProps {
 }
 
 interface TileProps {
+  caption?: string;
   id?: string;
   label: string;
   glyph: React.ReactNode;
@@ -113,7 +99,7 @@ interface TileProps {
   glyphClass?: string;
 }
 
-function Tile({ id, label, glyph, onClick, size, accent, accentRgb, disabled, active, pressed, className, glyphClass }: TileProps) {
+function Tile({ id, label, caption, glyph, onClick, size, accent, accentRgb, disabled, active, pressed, className, glyphClass }: TileProps) {
   return (
     <button
       id={id}
@@ -125,7 +111,7 @@ function Tile({ id, label, glyph, onClick, size, accent, accentRgb, disabled, ac
       className={className}
       onClick={(e) => { e.stopPropagation(); if (!disabled) onClick(); }}
       style={{
-        width: size, height: size, borderRadius: 10, padding: 0, flexShrink: 0,
+        minWidth: size, minHeight: 52, borderRadius: 10, padding: '4px 6px', flexShrink: 0,
         display: 'grid', placeItems: 'center',
         background: active ? `rgba(${accentRgb},0.10)` : 'transparent',
         border: `1px solid ${active ? `rgba(${accentRgb},0.42)` : 'rgba(255,255,255,0.12)'}`,
@@ -139,15 +125,23 @@ function Tile({ id, label, glyph, onClick, size, accent, accentRgb, disabled, ac
     >
       {pressed !== undefined && <span className="sr-only">{label}</span>}
       <span aria-hidden="true" className={glyphClass} style={{ display: 'grid', placeItems: 'center', lineHeight: 0 }}>{glyph}</span>
+      {caption && <span style={{ fontFamily: 'system-ui, sans-serif', fontSize: 11, lineHeight: 1.3 }}>{caption}</span>}
     </button>
   );
 }
 
 export default function BottomCluster({
-  visible, pulse, accent, accentRgb, onAction, atInnermost, atOutermost, skyActive, tourActive,
+  visible, onVisibilityChange, pulse, accent, accentRgb, onAction, atInnermost, atOutermost, skyActive, tourActive,
 }: BottomClusterProps) {
   const mobile = useIsMobile();
   const size = mobile ? 44 : 48;
+  const textButton = { minWidth: 44, minHeight: 44, padding: '6px 8px', color: '#fff',
+    background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 10,
+    fontFamily: 'system-ui, sans-serif', fontSize: 12, cursor: 'pointer' } as const;
+  const setVisible = (next: boolean) => {
+    onVisibilityChange?.(next);
+    requestAnimationFrame(() => document.getElementById(next ? 'orrery-open-controls' : 'orrery-show-controls')?.focus());
+  };
 
   return (
     <nav
@@ -158,31 +152,34 @@ export default function BottomCluster({
         position: 'fixed', zIndex: Z.controls,
         bottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)',
         left: '50%', transform: 'translateX(-50%)',
-        display: 'flex', gap: 8, padding: 6,
+        display: 'flex', gap: 4, padding: 6, maxWidth: '94vw', overflowX: 'auto',
         background: 'rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.08)',
         borderRadius: 14, backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-        opacity: visible ? 1 : 0, pointerEvents: visible ? 'auto' : 'none',
+        opacity: 1,
         transition: PREFERS_REDUCED_MOTION ? 'none' : 'opacity 0.6s ease',
       }}
     >
-      {/* panel (gear) · zoom out · stargaze (sky) · zoom in · dice */}
-      <Tile id="orrery-open-controls" label="Open controls" glyph={<GearIcon />} size={size} accent={accent} accentRgb={accentRgb}
+      {!visible ? <>
+        <button id="orrery-show-controls" type="button" style={textButton} onClick={() => setVisible(true)}>Show controls</button>
+        {tourActive && <button type="button" style={textButton} onClick={() => onAction('autotour')}>Stop tour</button>}
+      </> : <>
+      <Tile id="orrery-open-controls" label="Open controls" caption="Explore" glyph={<GearIcon />} size={size} accent={accent} accentRgb={accentRgb}
         onClick={() => onAction('controls')} />
       <Tile label="Zoom out" glyph={<MinusIcon />} size={size} accent={accent} accentRgb={accentRgb}
         disabled={atOutermost} onClick={() => onAction('zoom', 'out')} />
-      <Tile label="Stargaze — sky and constellations" glyph={<StarIcon />} size={size} accent={accent} accentRgb={accentRgb}
+      <Tile label="Zoom in" glyph={<PlusIcon />} size={size} accent={accent} accentRgb={accentRgb}
+        disabled={atInnermost} onClick={() => onAction('zoom', 'in')} />
+      <Tile label="Stargaze — sky and constellations" caption="Sky" glyph={<StarIcon />} size={size} accent={accent} accentRgb={accentRgb}
         active={skyActive} pressed={skyActive}
         className={pulse ? 'sky-toggle-blink' : undefined}
         glyphClass={skyActive ? 'orrery-twinkle' : undefined}
         onClick={() => onAction('toggleSky')} />
-      <Tile label="Zoom in" glyph={<PlusIcon />} size={size} accent={accent} accentRgb={accentRgb}
-        disabled={atInnermost} onClick={() => onAction('zoom', 'in')} />
-      <Tile label="Random destination" glyph={<DiceIcon />} size={size} accent={accent} accentRgb={accentRgb}
-        onClick={() => onAction('dice')} />
-      <Tile label={tourActive ? 'Stop ambient tour' : 'Start ambient tour'} glyph={<TourIcon />} size={size}
+      <Tile label={tourActive ? 'Stop ambient tour' : 'Start ambient tour'} caption={tourActive ? 'Stop' : 'Tour'} glyph={<TourIcon />} size={size}
         accent={accent} accentRgb={accentRgb} active={tourActive} pressed={tourActive}
         glyphClass={tourActive ? 'orrery-twinkle' : undefined}
         onClick={() => onAction('autotour')} />
+      <button type="button" style={textButton} onClick={() => setVisible(false)}>Hide</button>
+      </>}
     </nav>
   );
 }

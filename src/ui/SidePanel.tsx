@@ -132,6 +132,10 @@ export default function SidePanel({ accent, onAction, layerState, open, onOpenCh
         </div>
 
         <h3 style={heading}>Explore</h3>
+        <button type="button" style={row(false)} onClick={() => act('dice', undefined, true)}>
+          <span aria-hidden="true">↗</span>
+          <span style={labelCell}>Random destination</span>
+        </button>
         <button type="button" style={row(false)} onClick={() => act('tour', undefined, true)}>
           <span aria-hidden="true" style={glyphCell}>▶</span>
           <span style={labelCell}>Replay cinematic tour</span>

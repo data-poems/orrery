@@ -52,7 +52,6 @@ type DiceTarget =
 
 /** Scale ladder for the zoom tiles / +- stepping (innermost → outermost). */
 const ZOOM_LADDER = ['Sun', 'Inner', 'System', 'Outer', 'Kuiper', 'Oort', 'Stellar'] as const;
-const HUD_IDLE_MS = 4000;
 
 function persistentStorage(): Storage | null {
   try {
@@ -294,10 +293,8 @@ function OrreryInner() {
   const [camIdx, setCamIdx] = useState(() =>
     launchStartsCinematic ? camIndex('Inner') : camIndex('System'));
   const [panelOpen, setPanelOpen] = useState(false);
-  // Idle-fade: the summon hub is invisible at rest and wakes on interaction.
+  // Controls remain available until the person explicitly hides them.
   const [hudActive, setHudActive] = useState(true);
-  const hudActiveRef = useRef(true);
-  const hudTimerRef = useRef<number | undefined>(undefined);
   const [cinematicRotateSpeed, setCinematicRotateSpeed] = useState(0.5);
   const [showSkyModeHint, setShowSkyModeHint] = useState(false);
   const [pulseSkyToggle, setPulseSkyToggle] = useState(false);
@@ -311,15 +308,7 @@ function OrreryInner() {
   const reviewPromptTimeoutRef = useRef<number | undefined>(undefined);
 
   const wakeHud = useCallback(() => {
-    if (!hudActiveRef.current) {
-      hudActiveRef.current = true;
-      setHudActive(true);
-    }
-    window.clearTimeout(hudTimerRef.current);
-    hudTimerRef.current = window.setTimeout(() => {
-      hudActiveRef.current = false;
-      setHudActive(false);
-    }, HUD_IDLE_MS);
+    setHudActive(true);
   }, []);
 
   const cancelScheduledReviewPrompt = useCallback(() => {
@@ -1290,27 +1279,6 @@ function OrreryInner() {
   const atInnermost = zoomRung === 0;
   const atOutermost = zoomRung === ZOOM_LADDER.length - 1;
 
-  // Wake the HUD on any interaction; fade out after idle. setState only on edges.
-  useEffect(() => {
-    const opts = { passive: true } as const;
-    window.addEventListener('pointermove', wakeHud, opts);
-    window.addEventListener('pointerdown', wakeHud, opts);
-    window.addEventListener('touchstart', wakeHud, opts);
-    window.addEventListener('keydown', wakeHud);
-    window.clearTimeout(hudTimerRef.current);
-    hudTimerRef.current = window.setTimeout(() => {
-      hudActiveRef.current = false;
-      setHudActive(false);
-    }, HUD_IDLE_MS);
-    return () => {
-      window.removeEventListener('pointermove', wakeHud);
-      window.removeEventListener('pointerdown', wakeHud);
-      window.removeEventListener('touchstart', wakeHud);
-      window.removeEventListener('keydown', wakeHud);
-      window.clearTimeout(hudTimerRef.current);
-    };
-  }, [wakeHud]);
-
   const reloadLoadingTasks = useCallback(() => {
     setLoadingTasks({
       stars: false,
@@ -1555,6 +1523,7 @@ function OrreryInner() {
       {!OBSERVATORY_MODE && !cinematic && (
         <BottomCluster
           visible={hudActive}
+          onVisibilityChange={setHudActive}
           pulse={pulseSkyToggle}
           accent={theme.uiAccent}
           accentRgb={accentRgb}

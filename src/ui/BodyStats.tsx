@@ -3,14 +3,14 @@
  *
  * Desktop (> tablet): a quiet transparent column down the LEFT edge.
  * Mobile / tablet: a tiny name CHIP pinned to the bottom (above the control
- * cluster) — tap it to expand into a compact info bar with the stats laid out
- * horizontally. Expanded, two icon tiles: a chevron-down that just collapses the
- * bar back to the chip, and an arrow-left "Back" that zooms out of the body
+ * cluster) — tap Details to open a persistent readout above navigation.
+ * Close restores focus to the chip without changing selection; Zoom out
+ * navigates out of the body
  * (onBack → navigateBack) to the containing scale level. Empty-space tap and
  * Escape still dismiss in place, leaving the camera where it is. Starts collapsed
  * on each new selection (keyed by parent).
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { PREFERS_REDUCED_MOTION } from '../lib/motion';
 
 export interface BodyStat { label: string; value: string }
@@ -25,8 +25,7 @@ export interface BodyStatsProps {
   onBack: () => void;
   /** Compact (mobile/tablet) chip+bar form vs the desktop left-edge column. */
   compact: boolean;
-  /** HUD idle state — false fades the readout out with the controls; it returns on
-   *  any interaction (the parent flips this back true on wake). Defaults to shown. */
+  /** Explicit chrome visibility. An open readout remains visible for reading. */
   hudVisible?: boolean;
 }
 
@@ -39,14 +38,6 @@ const surface = {
 
 // Inline monochrome icons (currentColor), same 24×24 box + stroke language as the
 // BottomCluster glyphs so the whole UI reads from one icon family.
-function ChevronDownIcon({ size = 18 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M5 9l7 7 7-7" />
-    </svg>
-  );
-}
 function ArrowLeftIcon({ size = 18 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -59,6 +50,14 @@ function ArrowLeftIcon({ size = 18 }: { size?: number }) {
 
 export default function BodyStats({ name, subtitle, color, stats, accent, accentRgb, onBack, compact, hudVisible = true }: BodyStatsProps) {
   const [expanded, setExpanded] = useState(false);
+  const detailsButton = useRef<HTMLButtonElement>(null);
+  const closeButton = useRef<HTMLButtonElement>(null);
+  const wasExpanded = useRef(false);
+  useEffect(() => {
+    if (expanded) closeButton.current?.focus();
+    else if (wasExpanded.current) detailsButton.current?.focus();
+    wasExpanded.current = expanded;
+  }, [expanded]);
   // Drive entrance + idle fade through one opacity transition (replaces the
   // orrery-fade-in keyframe, whose `both` fill would pin opacity and block the
   // idle fade-out). `entered` flips on after first paint so the readout fades in;
@@ -68,10 +67,10 @@ export default function BodyStats({ name, subtitle, color, stats, accent, accent
     const id = requestAnimationFrame(() => setEntered(true));
     return () => cancelAnimationFrame(id);
   }, []);
-  const shown = entered && hudVisible;
+  const shown = expanded || (entered && hudVisible);
   const fade = {
     opacity: shown ? 1 : 0,
-    pointerEvents: hudVisible ? 'auto' : 'none',
+    pointerEvents: shown ? 'auto' : 'none',
   } as const;
   const dot = <span style={{ width: 9, height: 9, borderRadius: '50%', background: color, boxShadow: `0 0 8px ${color}`, flexShrink: 0 }} />;
 
@@ -79,20 +78,19 @@ export default function BodyStats({ name, subtitle, color, stats, accent, accent
   if (compact) {
     const wrap = (children: React.ReactNode) => (
       <div
+        inert={!shown}
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
         style={{
-          // Collapsed, the chip floats ABOVE the BottomCluster (+84px). Opened, it
-          // morphs downward to the bottom edge (+20px) and overlaps the cluster —
-          // fine, since the controls idle-fade while you're reading the detail.
+          // Reading never covers the navigation controls or moves their anchor.
           position: 'fixed', zIndex: 28,
           left: '50%', transform: 'translateX(-50%)',
-          bottom: expanded
-            ? 'calc(env(safe-area-inset-bottom,0px) + 20px)'
-            : 'calc(env(safe-area-inset-bottom,0px) + 84px)',
+          bottom: 'calc(env(safe-area-inset-bottom,0px) + 100px)',
           ...fade,
           transition: PREFERS_REDUCED_MOTION ? undefined : 'opacity 0.5s ease, bottom 0.32s cubic-bezier(0.4,0,0.2,1)',
+          width: expanded ? 'min(94vw, 560px)' : undefined,
           maxWidth: 'min(94vw, 560px)',
+          maxHeight: 'calc(100dvh - 160px)', overflowY: 'auto',
         }}
       >
         {children}
@@ -102,6 +100,7 @@ export default function BodyStats({ name, subtitle, color, stats, accent, accent
     if (!expanded) {
       return wrap(
         <button
+          ref={detailsButton}
           type="button"
           onClick={(e) => { e.stopPropagation(); setExpanded(true); }}
           aria-label={`${name} — show details`}
@@ -114,7 +113,7 @@ export default function BodyStats({ name, subtitle, color, stats, accent, accent
         >
           {dot}
           <span style={{ whiteSpace: 'nowrap' }}>{name}</span>
-          <span aria-hidden="true" style={{ color: 'rgba(255,255,255,0.6)', marginLeft: 2, display: 'grid', placeItems: 'center' }}><ChevronDownIcon size={15} /></span>
+          <span style={{ color: 'rgba(255,255,255,0.8)' }}>· Details</span>
         </button>,
       );
     }
@@ -130,23 +129,23 @@ export default function BodyStats({ name, subtitle, color, stats, accent, accent
 
     return wrap(
       <div style={{ ...surface, padding: '10px 12px 11px', borderRadius: 14 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
           {dot}
           <span style={{ color: '#fff', fontSize: 18, letterSpacing: 0.8, textShadow: shadow, flexShrink: 0 }}>{name}</span>
-          <span style={{ color: 'rgba(255,255,255,0.62)', fontSize: 12, fontStyle: 'italic', textShadow: shadow, flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{subtitle}</span>
-          <button type="button" onClick={(e) => { e.stopPropagation(); setExpanded(false); }} aria-label="Collapse details" aria-expanded={true}
-            style={{ ...iconTile, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.16)', color: 'rgba(255,255,255,0.82)' }}>
-            <ChevronDownIcon />
+          <span style={{ color: 'rgba(255,255,255,0.78)', fontSize: 14, textShadow: shadow, flex: '1 1 100%' }}>{subtitle}</span>
+          <button ref={closeButton} type="button" onClick={(e) => { e.stopPropagation(); setExpanded(false); }} aria-label="Close details" aria-expanded={true}
+            style={{ ...iconTile, width: 'auto', padding: '0 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.16)', color: 'rgba(255,255,255,0.82)' }}>
+            Close
           </button>
-          <button type="button" onClick={(e) => { e.stopPropagation(); onBack(); }} aria-label="Back (zoom out)"
-            style={{ ...iconTile, background: `rgba(${accentRgb},0.12)`, border: `1px solid rgba(${accentRgb},0.5)`, color: accent }}>
-            <ArrowLeftIcon />
+          <button type="button" onClick={(e) => { e.stopPropagation(); onBack(); }} aria-label="Zoom out to parent view"
+            style={{ ...iconTile, width: 'auto', padding: '0 12px', background: `rgba(${accentRgb},0.12)`, border: `1px solid rgba(${accentRgb},0.5)`, color: accent }}>
+            Zoom out
           </button>
         </div>
         <div style={{ display: 'flex', gap: 18, overflowX: 'auto', marginTop: 9, paddingBottom: 1, WebkitOverflowScrolling: 'touch' }}>
           {stats.map((s) => (
             <div key={s.label} style={{ flexShrink: 0 }}>
-              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9, letterSpacing: 1.2, textTransform: 'uppercase', textShadow: shadow }}>{s.label}</div>
+              <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, letterSpacing: 0.5, textTransform: 'uppercase', textShadow: shadow }}>{s.label}</div>
               <div style={{ color: '#fff', fontSize: 14, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', marginTop: 1, textShadow: shadow }}>{s.value}</div>
             </div>
           ))}
@@ -158,6 +157,7 @@ export default function BodyStats({ name, subtitle, color, stats, accent, accent
   // ── Desktop: left-edge column ───────────────────────────────────────────────
   return (
     <div
+      inert={!shown}
       onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
       style={{

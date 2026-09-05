@@ -2,6 +2,15 @@
 
 ## Current Objectives
 
+Shared chrome follow-up (2026-09-05, source only): explicit Hide/Show replaces
+the four-second idle deadline; Explore/Sky/Tour are labelled, zoom controls are
+adjacent, and random destination lives in Explore. Mobile details stay above
+navigation, remain readable when opened, and Close restores focus without camera
+navigation. Browser checks at 390×844 and component regressions cover these paths.
+Physical iOS/Fire, large-text and spoken-navigation checks remain open. These
+changes are not included in archived 782 and do not resolve its memory failure
+or oversized world-space labels; the next signed candidate must use a higher code.
+
 1. Keep Orrery iOS release-ready from this repository.
 2. Maintain synchronized App Store submission materials alongside code.
 3. Ensure iOS branding assets (icon/splash) and metadata can be shipped without ad-hoc docs.

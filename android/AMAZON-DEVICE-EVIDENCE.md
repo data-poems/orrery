@@ -4,7 +4,7 @@ Target: Orrery 1.2.2 (782), package `solar.orrery.android`.
 
 ## Build 782 — 2026-09-05
 
-Status: **Private candidate; device gates pending**. Includes the ambient-tour
+Status: **Failed foreground memory-stability gate; keep private**. Includes the ambient-tour
 timer lifetime fix. Ordinary random tour behavior is retained; diagnostic seed
 and route logging are absent. Prior builds' physical evidence does not transfer.
 
@@ -24,8 +24,32 @@ and route logging are absent. Prior builds' physical evidence does not transfer.
 - Initial recorder attempts in `782-soak/` and `782-soak-verified/` were invalidated
   before samples by output-buffer and remote timestamp-quoting errors. Their
   cleanup restored the timeout; neither counts toward the hour.
-- Remaining: full-hour result review, lifecycle/offline/large-text/accessibility
+- Remaining: diagnose residual memory growth, lifecycle/offline/large-text/accessibility
   and exploration checks on these bytes, then five matching listing screenshots.
+
+### Completed hour: not a stability pass
+
+The exact installed hash passed read-back verification. From 17:10:53Z to
+18:10:54Z on September 5, 61 samples retained PID 15431, awake and foreground,
+with no recorded crash/ANR and thermal status 0. Battery temperature went from
+39.5 to 41.0 °C. The runner restored screen timeout to 3600000 ms; a post-run
+device query confirmed it. Touch opened Controls at 18:26Z with the same PID.
+`post-run-controls.png` records that response, not a complete interaction audit.
+
+Total PSS rose from 479,768 to 931,087 KB; graphics from 323,888 to 730,324 KB.
+Successive ten-minute mean PSS values were 540,486; 613,606; 668,960; 723,637;
+764,959; and 863,027 KB (the endpoint is excluded from those bins). The rising
+floor and final maximum do not demonstrate a plateau. This fails the sustained
+foreground memory criterion despite lower final PSS than historical 781.
+The random routes differ, so that cross-run comparison is not a controlled
+percentage improvement or proof of the remaining allocation cause.
+
+All seven sampled frames show rendered scenes and changing destinations.
+The final moon-orbit frame has an oversized Deimos label cropped by the viewport;
+record this as a separate visual gate, not evidence of the memory cause. No
+frame-rate instrumentation or full VoiceView certification was performed.
+Preserve 782 and its raw evidence; a replacement needs a higher build code and
+fresh exact-byte gates. Do not treat the timer fix as a complete memory fix.
 
 Public direct build 777 is unchanged. No Amazon upload or submission is authorized
 by this evidence record.

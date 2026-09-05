@@ -24,8 +24,10 @@ Evidence tied to any predecessor cannot be reused; 781 must not be uploaded.
 The September 5 investigation reproduced a tour scheduling feedback loop and
 separated its timer lifetime from selection-dependent callbacks. See
 `FIRE-GRAPHICS-INVESTIGATION.md` for the debug comparison. Signed build 782 contains
-that fix without diagnostic flags. It remains private pending fresh exact-byte
-Fire stability, interaction, accessibility, and listing evidence.
+that fix without diagnostic flags. Its completed September 5 hour still failed
+memory stability: PSS rose from 479,768 to 931,087 KB with no plateau. Keep 782
+private; investigate residual graphics growth and cropped close-up labels before
+a higher-code replacement earns fresh device and listing evidence.
 
 ## Build and verification
 

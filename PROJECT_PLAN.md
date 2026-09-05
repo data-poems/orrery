@@ -51,7 +51,9 @@
   (graphics PSS grew from 436 MB to 1.40 GB). The September 5 investigation
   reproduced and corrected a selection-triggered ambient-tour timer restart
   loop; its debug comparison is in `android/FIRE-GRAPHICS-INVESTIGATION.md`.
-  Signed 782 includes that fix. Complete its full-hour memory validation
+  Signed 782 includes that fix, but its completed hour also failed memory stability
+  (479,768 to 931,087 KB PSS, rising ten-minute means). Diagnose residual graphics
+  growth and the cropped close-up moon labels; stage a higher-code replacement
   and earn fresh exact-byte device evidence
   before the remaining exploration, spoken-navigation, and screenshot gates.
 - Paste the 1.2.2 release notes into App Store Connect and re-verify the privacy questionnaire.

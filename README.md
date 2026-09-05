@@ -94,7 +94,8 @@ grow and scale buttons wrap at enlarged system text sizes. It retains
 marketing version 1.2.2 and does not change the public direct-download catalog.
 Build 781 is blocked by its failed foreground memory-stability gate. The
 September 5 investigation reproduced a tour timer restart loop; its source fix
-is included in signed 782, which needs fresh full-hour Fire evidence before submission. See
+is included in signed 782, but its completed hour still showed sustained memory
+growth (479,768 to 931,087 KB PSS). Both builds remain blocked from submission. See
 [`android/FIRE-GRAPHICS-INVESTIGATION.md`](android/FIRE-GRAPHICS-INVESTIGATION.md).
 See [`android/AMAZON-RELEASE.md`](android/AMAZON-RELEASE.md).
 

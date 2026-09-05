@@ -84,6 +84,10 @@ android {
         }
     }
     buildTypes {
+        debug {
+            // Keep diagnostic/device tests separate from the signed store candidate.
+            applicationIdSuffix ".debug"
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'

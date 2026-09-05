@@ -45,10 +45,14 @@ public class GraphicsTourTest {
             evaluate(scenario, "localStorage.setItem('orrery.cinematic-seen.v1','1')");
             assertEquals("true", evaluate(scenario, "(()=>{const b=document.querySelector('button[aria-label=\"Start ambient tour\"]');b.click();return true})()"));
             SystemClock.sleep(1000);
-            for (int elapsed = 0; elapsed <= seconds; elapsed += 30) {
+            long started = SystemClock.elapsedRealtime();
+            while (true) {
                 assertEquals("Tour stays active", "true", evaluate(scenario, "!!document.querySelector('button[aria-label=\"Stop ambient tour\"]')"));
-                Log.i("OrreryGraphicsTest", "sample seconds=" + elapsed + " pid=" + android.os.Process.myPid());
-                if (elapsed < seconds) SystemClock.sleep(30000);
+                long elapsed = SystemClock.elapsedRealtime() - started;
+                Log.i("OrreryGraphicsTest", "sample seconds=" + elapsed / 1000 + " pid=" + android.os.Process.myPid());
+                long remaining = seconds * 1000L - elapsed;
+                if (remaining <= 0) break;
+                SystemClock.sleep(Math.min(30000L, remaining));
             }
         }
     }

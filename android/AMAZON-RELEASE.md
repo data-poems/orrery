@@ -21,7 +21,16 @@ overlapping controls and overflowing scale buttons at 200% system text. Its
 failed because graphics memory grew from 436 MB to 1.40 GB without settling.
 Evidence tied to any predecessor cannot be reused; 781 must not be uploaded.
 
+The September 5 investigation reproduced a tour scheduling feedback loop and
+separated its timer lifetime from selection-dependent callbacks. See
+`FIRE-GRAPHICS-INVESTIGATION.md` for the debug comparison. This is not yet a new
+signed release or permission to reuse 781's evidence.
+
 ## Build and verification
+
+Before building, preserve existing native artifacts outside `dist/`: Vite clears
+that directory during web assembly. Do not set `VITE_ORRERY_GRAPHICS_PROBE` for
+a release; its fixed tour shuffle and route logs are diagnostic-only.
 
 ```sh
 cd /Users/luke/workspace/android-release-toolkit

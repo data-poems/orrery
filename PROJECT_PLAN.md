@@ -48,7 +48,10 @@
   and 780 makes Android hardware Back dismiss the current in-app surface before
   leaving the app. Build 781 fixes row overlap and scale overflow at 200% text,
   but its completed Fire observation failed the memory-stability criterion
-  (graphics PSS grew from 436 MB to 1.40 GB). Diagnose and fix that regression,
+  (graphics PSS grew from 436 MB to 1.40 GB). The September 5 investigation
+  reproduced and corrected a selection-triggered ambient-tour timer restart
+  loop; its debug comparison is in `android/FIRE-GRAPHICS-INVESTIGATION.md`.
+  Complete memory validation of that fix,
   advance the shared native build, and earn fresh exact-byte device evidence
   before the remaining exploration, spoken-navigation, and screenshot gates.
 - Paste the 1.2.2 release notes into App Store Connect and re-verify the privacy questionnaire.

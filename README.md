@@ -92,6 +92,10 @@ toggle buttons retain names in the Fire OS accessibility tree. Android hardware
 Back now dismisses in-app panels and selections before leaving the app. Controls
 grow and scale buttons wrap at enlarged system text sizes. It retains
 marketing version 1.2.2 and does not change the public direct-download catalog.
+Build 781 is blocked by its failed foreground memory-stability gate. The
+September 5 investigation reproduced a tour timer restart loop; its source fix
+must earn a new signed build and fresh Fire evidence before submission. See
+[`android/FIRE-GRAPHICS-INVESTIGATION.md`](android/FIRE-GRAPHICS-INVESTIGATION.md).
 See [`android/AMAZON-RELEASE.md`](android/AMAZON-RELEASE.md).
 
 The Capacitor Android shell uses the same `1.2.2` marketing version as

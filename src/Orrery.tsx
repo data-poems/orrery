@@ -36,6 +36,8 @@ import { claimFirstVisitCinematic } from './lib/launchExperience';
 import { restoreHudControlFocus } from './lib/hudFocus';
 import { createReviewPromptCoordinator } from './lib/reviewPrompt';
 import { useImmersiveVrSupported } from './lib/xr';
+import { tourRandom, recordTourTarget } from './lib/tourRandom';
+import { useAmbientTourClock } from './lib/useAmbientTourClock';
 import type { XRStore } from './scene/XRProvider';
 // @react-three/xr lives only in this lazily-loaded module, mounted only when a
 // headset is detected — so non-XR users never download the XR runtime.
@@ -927,7 +929,7 @@ function OrreryInner() {
     const moonTargets = planetIndices.flatMap((planetIdx) => {
       const moons = getMoonsForPlanet(planetIdx);
       if (moons.length === 0) return [];
-      return [{ kind: 'moon' as const, planetIdx, moonIdx: Math.floor(Math.random() * moons.length) }];
+      return [{ kind: 'moon' as const, planetIdx, moonIdx: Math.floor(tourRandom() * moons.length) }];
     });
     // ALL_BODIES = [...PLANETS (0-7), ...DWARF_PLANETS (8-10)].
     const dwarfIndices: number[] = [];
@@ -1019,36 +1021,27 @@ function OrreryInner() {
   }, [cinematic, buildDestinations, cancelScheduledReviewPrompt, goToTarget]);
 
   // Ambient tour — a manual-toggle "screensaver" that cycles a shuffled playlist
-  // of the whole pool, one stop every TOUR_STEP_MS, until toggled off. Each cycle
+  // of the whole pool, one stop every ten seconds, until toggled off. Each cycle
   // reshuffles (and re-randomizes which moons appear). Pauses for the cinematic.
   const [tourActive, setTourActive] = useState(false);
   const tourPlaylistRef = useRef<DiceTarget[]>([]);
   const tourIdxRef = useRef(0);
-  useEffect(() => {
-    if (!tourActive || cinematic || !sceneReady) return;
-    const TOUR_STEP_MS = 10000;
-    const advance = () => {
-      if (tabHiddenRef.current) return;
-      if (tourIdxRef.current >= tourPlaylistRef.current.length) {
-        // Fisher-Yates shuffle of a fresh pool.
-        const pool = buildDestinations();
-        for (let i = pool.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [pool[i], pool[j]] = [pool[j], pool[i]];
-        }
-        tourPlaylistRef.current = pool;
-        tourIdxRef.current = 0;
+  useAmbientTourClock(tourActive && !cinematic && sceneReady, (restart) => {
+    if (restart) tourIdxRef.current = tourPlaylistRef.current.length;
+    if (tabHiddenRef.current) return;
+    if (tourIdxRef.current >= tourPlaylistRef.current.length) {
+      // Fisher-Yates shuffle of a fresh pool.
+      const pool = buildDestinations();
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(tourRandom() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
       }
-      const t = tourPlaylistRef.current[tourIdxRef.current++];
-      if (t) { lastTourPickRef.current = t.key; goToTarget(t); }
-    };
-    // Force a reshuffle on (re)start, then jump immediately so the tour visibly
-    // begins the moment it's toggled on.
-    tourIdxRef.current = tourPlaylistRef.current.length;
-    advance();
-    const id = setInterval(advance, TOUR_STEP_MS);
-    return () => clearInterval(id);
-  }, [tourActive, cinematic, sceneReady, buildDestinations, goToTarget]);
+      tourPlaylistRef.current = pool;
+      tourIdxRef.current = 0;
+    }
+    const t = tourPlaylistRef.current[tourIdxRef.current++];
+    if (t) { recordTourTarget(t.key); lastTourPickRef.current = t.key; goToTarget(t); }
+  });
 
   const toggleTour = useCallback(() => {
     cancelScheduledReviewPrompt();

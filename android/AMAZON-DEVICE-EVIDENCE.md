@@ -7,7 +7,7 @@ Target: Orrery 1.2.2 (781), package `solar.orrery.android`.
 Status: **Failed Fire stability gate**. Build 780 failed the Fire OS 200% text
 check: fixed-height controls overlapped and its five-column scale row overflowed.
 Build 781 uses content-height rows and wrapping scale buttons, but its exact
-60-minute Fire run shows unbounded graphics-memory growth. It is not eligible
+60-minute Fire run shows sustained graphics-memory growth without settling. It is not eligible
 for the Amazon listing checkpoint. No prior binary's device or listing evidence
 transfers to these bytes.
 
@@ -17,6 +17,16 @@ transfers to these bytes.
 - Certificate SHA-256: `52320cb3df703842ea9a349cba6825349a04cbf7d6b33181b12be544d0fc772e`
 - Device: Amazon KFRASWI / Fire OS 8, Android 11 build `0030132734852`,
   serial `GVW3T505623706SG`.
+
+September 5 follow-up: the unchanged installed PID later fell to 581,195 KB PSS
+while another app was foreground. This does not overturn the foreground failure,
+but it does not support calling the allocation growth permanently unbounded.
+The diagnostic build command cleared the local `dist/` staging shelf. The exact
+781 APK was recovered from the installed device and its original SHA-256 verified;
+the preserved copy is
+`/Users/luke/Library/Caches/orrery-fire-evidence/orrery-1.2.2-781-signed.apk`.
+The old AAB checksum above is historical; that staged AAB was not recovered.
+Archive native artifacts outside `dist/` before running web-build commands.
 
 Measured:
 

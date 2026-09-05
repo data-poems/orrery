@@ -43,7 +43,7 @@
 
 - Verify privacy policy URL endpoint intended for submission (`https://orrery.solar/orrery/privacy.html`) is live.
 - Capture current iPhone/iPad screenshots from the 1.2.2/build 777 release candidate.
-- Validate Android/Fire tablet 1.2.2 build 781. Build 778 introduced the
+- Validate Android/Fire tablet 1.2.2 build 782. Build 778 introduced the
   explicit required-touchscreen boundary, 779 preserved readable toggle names,
   and 780 makes Android hardware Back dismiss the current in-app surface before
   leaving the app. Build 781 fixes row overlap and scale overflow at 200% text,
@@ -51,8 +51,8 @@
   (graphics PSS grew from 436 MB to 1.40 GB). The September 5 investigation
   reproduced and corrected a selection-triggered ambient-tour timer restart
   loop; its debug comparison is in `android/FIRE-GRAPHICS-INVESTIGATION.md`.
-  Complete memory validation of that fix,
-  advance the shared native build, and earn fresh exact-byte device evidence
+  Signed 782 includes that fix. Complete its full-hour memory validation
+  and earn fresh exact-byte device evidence
   before the remaining exploration, spoken-navigation, and screenshot gates.
 - Paste the 1.2.2 release notes into App Store Connect and re-verify the privacy questionnaire.
 - Validate iPad panel behavior in portrait, landscape, and split view after safe-area/close-button patch.

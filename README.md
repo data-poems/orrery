@@ -86,7 +86,7 @@ Android build is in testing. The release pipeline has produced locally verified
 signed APK and AAB artifacts; store upload and physical-device validation remain
 manual release steps.
 
-The Amazon Fire-tablet candidate advances the shared native build to **781** so
+The Amazon Fire-tablet candidate advances the shared native build to **782** so
 its manifest requires a physical touchscreen, excludes Fire TV, and its WebView
 toggle buttons retain names in the Fire OS accessibility tree. Android hardware
 Back now dismisses in-app panels and selections before leaving the app. Controls
@@ -94,7 +94,7 @@ grow and scale buttons wrap at enlarged system text sizes. It retains
 marketing version 1.2.2 and does not change the public direct-download catalog.
 Build 781 is blocked by its failed foreground memory-stability gate. The
 September 5 investigation reproduced a tour timer restart loop; its source fix
-must earn a new signed build and fresh Fire evidence before submission. See
+is included in signed 782, which needs fresh full-hour Fire evidence before submission. See
 [`android/FIRE-GRAPHICS-INVESTIGATION.md`](android/FIRE-GRAPHICS-INVESTIGATION.md).
 See [`android/AMAZON-RELEASE.md`](android/AMAZON-RELEASE.md).
 

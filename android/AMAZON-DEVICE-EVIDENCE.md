@@ -1,6 +1,34 @@
 # Orrery Fire tablet evidence
 
-Target: Orrery 1.2.2 (781), package `solar.orrery.android`.
+Target: Orrery 1.2.2 (782), package `solar.orrery.android`.
+
+## Build 782 — 2026-09-05
+
+Status: **Private candidate; device gates pending**. Includes the ambient-tour
+timer lifetime fix. Ordinary random tour behavior is retained; diagnostic seed
+and route logging are absent. Prior builds' physical evidence does not transfer.
+
+- APK SHA-256: `b97efeb815e81769eb5aa941f164fd5914d7147f74e2e0592731d0012c94b530`
+- AAB SHA-256: `d2c0c7aea2e275c8e70651730f8dea2337bd5b83e07dbe8ce194446986e66620`
+- Certificate SHA-256: `52320cb3df703842ea9a349cba6825349a04cbf7d6b33181b12be544d0fc772e`
+- Both signed artifacts and checksum/signing records are archived outside the
+  disposable web output at `/Users/luke/Library/Caches/orrery-fire-evidence/releases/782/`.
+- 34 web tests, ESLint, TypeScript/build, Android release unit tests and lint pass.
+- APK/AAB signatures, required touchscreen, package/version, and absence of GMS
+  and diagnostic route markers verified. Signed upgrade cold-launched on Fire.
+- Device: Amazon KFRASWI, Fire OS 8 / Android 11, serial `GVW3T505623706SG`.
+- Full-hour active-tour recorder: `scripts/fire-release-soak.mjs`; evidence at
+  `/Users/luke/Library/Caches/orrery-fire-evidence/782-soak-final/`.
+  Installed APK read-back must match the above hash. Completion alone is not a
+  memory pass: review the full PSS/graphics trend, frames, and final interaction.
+- Initial recorder attempts in `782-soak/` and `782-soak-verified/` were invalidated
+  before samples by output-buffer and remote timestamp-quoting errors. Their
+  cleanup restored the timeout; neither counts toward the hour.
+- Remaining: full-hour result review, lifecycle/offline/large-text/accessibility
+  and exploration checks on these bytes, then five matching listing screenshots.
+
+Public direct build 777 is unchanged. No Amazon upload or submission is authorized
+by this evidence record.
 
 ## Build 781 — 2026-09-04 (local date)
 

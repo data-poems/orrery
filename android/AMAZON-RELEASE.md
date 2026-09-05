@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Package | `solar.orrery.android` |
-| Version | `1.2.2 (781)` |
+| Version | `1.2.2 (782)` |
 | Device family | Fire tablets only |
 | Console state | No record as of 2026-09-04 |
 | Direct-download state | 1.2.2 (777) remains unchanged |
@@ -23,8 +23,9 @@ Evidence tied to any predecessor cannot be reused; 781 must not be uploaded.
 
 The September 5 investigation reproduced a tour scheduling feedback loop and
 separated its timer lifetime from selection-dependent callbacks. See
-`FIRE-GRAPHICS-INVESTIGATION.md` for the debug comparison. This is not yet a new
-signed release or permission to reuse 781's evidence.
+`FIRE-GRAPHICS-INVESTIGATION.md` for the debug comparison. Signed build 782 contains
+that fix without diagnostic flags. It remains private pending fresh exact-byte
+Fire stability, interaction, accessibility, and listing evidence.
 
 ## Build and verification
 
@@ -41,7 +42,7 @@ scripts/android-release with-signing --profile orrery -- \
 ```
 
 Before device testing, verify APK and AAB signatures and checksums, package
-`solar.orrery.android`, version code 781, required touchscreen targeting, and
+`solar.orrery.android`, version code 782, required touchscreen targeting, and
 absence of Google Play Services.
 
 Listing copy and asset provenance are tracked in

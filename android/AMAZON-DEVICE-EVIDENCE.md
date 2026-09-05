@@ -4,10 +4,12 @@ Target: Orrery 1.2.2 (781), package `solar.orrery.android`.
 
 ## Build 781 — 2026-09-04 (local date)
 
-Status: **Partial**. Build 780 failed the Fire OS 200% text check: fixed-height
-controls overlapped and its five-column scale row overflowed. Build 781 uses
-content-height rows and wrapping scale buttons. No prior binary's device or
-listing evidence transfers to these bytes.
+Status: **Failed Fire stability gate**. Build 780 failed the Fire OS 200% text
+check: fixed-height controls overlapped and its five-column scale row overflowed.
+Build 781 uses content-height rows and wrapping scale buttons, but its exact
+60-minute Fire run shows unbounded graphics-memory growth. It is not eligible
+for the Amazon listing checkpoint. No prior binary's device or listing evidence
+transfers to these bytes.
 
 - APK: `dist/android/orrery-1.2.2-781-signed.apk`
 - APK SHA-256: `e090498e8724af8ec300c88f5d4bba65f1eb8e41008942180e6fd0cdf360c99f`
@@ -46,16 +48,30 @@ Observed on these bytes:
 - [ ] Complete the remaining Sky/cinematic/deep-space exploration and final
   VoiceView spoken-navigation checks on 781.
 - [ ] Recapture the five listing screenshots from 781.
-- [ ] Complete and review the uninterrupted 60-minute foreground run.
+- [x] Complete the uninterrupted 60-minute foreground observation.
+- [ ] Pass the stability gate: the completed observation failed its memory
+  criterion, so it is not device-certified.
 
-The ambient-tour observation started at `2026-09-05T03:03:09Z` (September 4,
-20:03 local), PID `21782`. Initial PSS: 445,764 KB; battery temperature:
-33.3 °C; thermal status: 0; no crash/ANR events. Samples and ten-minute frames
-are in `/Users/luke/Library/Caches/orrery-fire-evidence/781-soak/`; the bounded
-runner is `/tmp/orrery781-fire-soak.py`. It invalidates on PID changes, loss of
-foreground/wakefulness, observation gaps, disconnects, crash/ANR, or severe
-thermal status. Completion still requires memory/frame review and a final
-interaction check; it is not an automatic device-certification result.
+The ambient-tour observation ran from `2026-09-05T03:03:09Z` through
+`04:03:10Z` (September 4, 20:03–21:03 local), PID `21782`, with 61 samples.
+The app remained awake and foreground throughout; there were no crash/ANR
+events, and thermal status remained 0. Battery temperature rose from 33.3 °C
+to 39.7 °C. Final touch verification opened Controls and exposed the expected
+interactive rows after the run.
+
+The run nevertheless **fails**: total PSS grew from 445,764 KB to 1,438,027 KB
+and did not settle. A post-run measurement while the unchanged app remained
+foreground was 1,508,938 KB; graphics accounted for the overwhelming share.
+`graphics-investigation.md` records the limited source and desktop-WebGL lead:
+continuous orbit-path updates cause repeated line geometry/program allocation.
+That is an inference, not the established Fire root cause. A fix must use a new
+version code and earn fresh exact-byte device evidence.
+
+Samples, ten-minute frames, `memory-midrun.txt`, `memory-late-run.txt`, and the
+diagnostic note are in `/Users/luke/Library/Caches/orrery-fire-evidence/781-soak/`.
+The bounded runner was `/tmp/orrery781-fire-soak.py`; it restored the timeout
+after completion. These files preserve the failure evidence and must not be
+misrepresented as a passed stability gate.
 
 The runner restores the temporary timeout from `2147483647` to `3600000` ms
 if it still owns that setting. Wi-Fi is enabled, airplane mode is disabled,

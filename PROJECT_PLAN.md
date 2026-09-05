@@ -46,9 +46,11 @@
 - Validate Android/Fire tablet 1.2.2 build 781. Build 778 introduced the
   explicit required-touchscreen boundary, 779 preserved readable toggle names,
   and 780 makes Android hardware Back dismiss the current in-app surface before
-  leaving the app. Build 781 fixes row overlap and scale overflow at 200% text.
-  Its exact-byte soak, remaining exploration, spoken-navigation, and listing
-  screenshot gates remain open in `android/AMAZON-DEVICE-EVIDENCE.md`.
+  leaving the app. Build 781 fixes row overlap and scale overflow at 200% text,
+  but its completed Fire observation failed the memory-stability criterion
+  (graphics PSS grew from 436 MB to 1.40 GB). Diagnose and fix that regression,
+  advance the shared native build, and earn fresh exact-byte device evidence
+  before the remaining exploration, spoken-navigation, and screenshot gates.
 - Paste the 1.2.2 release notes into App Store Connect and re-verify the privacy questionnaire.
 - Validate iPad panel behavior in portrait, landscape, and split view after safe-area/close-button patch.
 - Verify first-install cinematic, returning launch, Replay Cinematic Tour, and

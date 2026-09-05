@@ -16,8 +16,10 @@ inside the two WebView toggle buttons after 778 exposed them as unnamed controls
 on Android. Fire testing then showed that hardware Back left the app while the
 controls panel was open. Build 780 routes Back through the web UI first and only
 leaves the app when there is no dismissible in-app state. Build 781 fixes
-overlapping controls and overflowing scale buttons at 200% system text.
-Evidence tied to any predecessor cannot be reused.
+overlapping controls and overflowing scale buttons at 200% system text. Its
+60-minute Fire observation completed without crash or thermal escalation but
+failed because graphics memory grew from 436 MB to 1.40 GB without settling.
+Evidence tied to any predecessor cannot be reused; 781 must not be uploaded.
 
 ## Build and verification
 
@@ -51,7 +53,7 @@ Verify:
 
 ## Human console checkpoint
 
-After the exact 781 candidate passes, create a standard tablet-only Amazon
+After a replacement candidate passes, create a standard tablet-only Amazon
 record, upload the APK, inspect the generated supported-device list, complete
 the listing/privacy/rating/reviewer fields, and submit. Repository tooling never
 logs into Amazon.

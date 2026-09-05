@@ -12,6 +12,10 @@ fix; they are not substitutes for the five listing scenes:
 - `screenshots/781-large-text-lower-controls.png`: SHA-256
   `ac6c643bdf205103a17de2e9580d56007435354e398efac70755f2de020823ab`
 
+Build 781 is not upload-ready: its completed 60-minute Fire observation failed
+the graphics-memory stability criterion. Do not derive listing frames or a
+promotional image from it; a replacement candidate must pass first.
+
 ## Copy
 
 - Title: `Orrery`

@@ -86,10 +86,11 @@ Android build is in testing. The release pipeline has produced locally verified
 signed APK and AAB artifacts; store upload and physical-device validation remain
 manual release steps.
 
-The Amazon Fire-tablet candidate advances the shared native build to **780** so
+The Amazon Fire-tablet candidate advances the shared native build to **781** so
 its manifest requires a physical touchscreen, excludes Fire TV, and its WebView
 toggle buttons retain names in the Fire OS accessibility tree. Android hardware
-Back now dismisses in-app panels and selections before leaving the app. It retains
+Back now dismisses in-app panels and selections before leaving the app. Controls
+grow and scale buttons wrap at enlarged system text sizes. It retains
 marketing version 1.2.2 and does not change the public direct-download catalog.
 See [`android/AMAZON-RELEASE.md`](android/AMAZON-RELEASE.md).
 

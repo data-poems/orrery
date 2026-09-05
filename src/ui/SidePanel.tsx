@@ -74,15 +74,15 @@ export default function SidePanel({ accent, onAction, layerState, open, onOpenCh
   };
   // Aligned 3-column row: [28px glyph][flex label][22px indicator].
   const row = (active: boolean): React.CSSProperties => ({
-    display: 'flex', alignItems: 'center', gap: 12, width: '100%', height: 48,
-    padding: '0 4px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+    display: 'flex', alignItems: 'center', gap: 12, width: '100%', minHeight: 48,
+    padding: '10px 4px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
     background: 'transparent', border: 'none',
     borderBottom: '1px solid rgba(255,255,255,0.07)',
     color: active ? accent : 'rgba(255,255,255,0.85)',
     transition: PREFERS_REDUCED_MOTION ? 'none' : 'color 0.18s',
   });
   const glyphCell: React.CSSProperties = { width: 28, flexShrink: 0, display: 'grid', placeItems: 'center', fontSize: 15 };
-  const labelCell: React.CSSProperties = { flex: 1, fontSize: 14, letterSpacing: 0.4 };
+  const labelCell: React.CSSProperties = { flex: 1, minWidth: 0, overflowWrap: 'anywhere', fontSize: 14, lineHeight: 1.35, letterSpacing: 0.4 };
   const markCell: React.CSSProperties = { width: 22, flexShrink: 0, textAlign: 'center', fontSize: 15 };
 
   const act = (a: string, arg?: string, close = false) => { onAction(a, arg); if (close) onOpenChange(false); };
@@ -120,10 +120,10 @@ export default function SidePanel({ accent, onAction, layerState, open, onOpenCh
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 20, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' }}>Controls</span>
+          <span style={{ minWidth: 0, overflowWrap: 'anywhere', fontSize: 20, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' }}>Controls</span>
           <button type="button" aria-label="Close controls" onClick={() => onOpenChange(false)}
             style={{
-              width: 44, height: 44, borderRadius: 8, cursor: 'pointer', display: 'grid', placeItems: 'center',
+              width: 44, height: 44, flexShrink: 0, borderRadius: 8, cursor: 'pointer', display: 'grid', placeItems: 'center',
               background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.7)',
               fontFamily: 'inherit', fontSize: 22,
             }}>
@@ -139,11 +139,11 @@ export default function SidePanel({ accent, onAction, layerState, open, onOpenCh
         </button>
 
         <h3 style={heading}>Scale</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           {VIEW_PRESETS.map(p => (
             <button key={p} type="button" onClick={() => act('preset', p, true)}
               style={{
-                height: 44, borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
+                minHeight: 44, minWidth: 44, maxWidth: '100%', flex: '1 0 auto', padding: '8px 6px', overflowWrap: 'anywhere', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
                 fontSize: 11.5, letterSpacing: 0.3,
                 background: 'transparent', border: '1px solid rgba(255,255,255,0.16)', color: 'rgba(255,255,255,0.85)',
               }}>{p}</button>

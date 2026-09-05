@@ -1,6 +1,16 @@
 # Amazon Appstore asset map — Orrery
 
-Target binary: `solar.orrery.android` 1.2.2 (780), Fire tablets only.
+Target binary: `solar.orrery.android` 1.2.2 (781), Fire tablets only.
+
+The five 780 listing frames below are **superseded historical evidence**, not
+upload-ready assets for 781. Recapture them after the new exact-byte gates pass.
+Two 781 verification-only captures demonstrate the 200% system-text regression
+fix; they are not substitutes for the five listing scenes:
+
+- `screenshots/781-large-text-controls.png`: SHA-256
+  `f189306f9ec56d9b6c5a012399cb9ab5e1e0cdfa8d4be9724d56efec6e3e8a4c`
+- `screenshots/781-large-text-lower-controls.png`: SHA-256
+  `ac6c643bdf205103a17de2e9580d56007435354e398efac70755f2de020823ab`
 
 ## Copy
 
@@ -17,8 +27,8 @@ Target binary: `solar.orrery.android` 1.2.2 (780), Fire tablets only.
 | Amazon field | Source | State |
 |---|---|---|
 | App icon | `ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png` | Source identified; export to Amazon's current dimensions without redesigning it |
-| Fire-tablet screenshots | `screenshots/01-full-system.png` through `screenshots/05-deep-space.png`, captured from the exact signed 780 APK on Amazon KFRASWI | Complete; hashes below |
-| Promotional image | Derive from a current 780 hero scene only if the console requires it | Open |
+| Fire-tablet screenshots | `screenshots/01-full-system.png` through `screenshots/05-deep-space.png`, captured from the superseded signed 780 APK on Amazon KFRASWI | Historical only; 781 recapture open |
+| Promotional image | Derive from a current 781 hero scene only if the console requires it | Open |
 
 Capture at least five landscape or portrait frames that match the submitted
 binary: full-system hero, planet detail, Sky/constellations, cinematic tour,

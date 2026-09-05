@@ -1,8 +1,68 @@
 # Orrery Fire tablet evidence
 
-Target: Orrery 1.2.2 (780), package `solar.orrery.android`.
+Target: Orrery 1.2.2 (781), package `solar.orrery.android`.
 
-## Automated release evidence — 2026-09-04
+## Build 781 — 2026-09-04 (local date)
+
+Status: **Partial**. Build 780 failed the Fire OS 200% text check: fixed-height
+controls overlapped and its five-column scale row overflowed. Build 781 uses
+content-height rows and wrapping scale buttons. No prior binary's device or
+listing evidence transfers to these bytes.
+
+- APK: `dist/android/orrery-1.2.2-781-signed.apk`
+- APK SHA-256: `e090498e8724af8ec300c88f5d4bba65f1eb8e41008942180e6fd0cdf360c99f`
+- AAB SHA-256: `e711dcc0f00abafb7477ffd4bd5fa8544f7e29e1659f999876611a9181a53be2`
+- Certificate SHA-256: `52320cb3df703842ea9a349cba6825349a04cbf7d6b33181b12be544d0fc772e`
+- Device: Amazon KFRASWI / Fire OS 8, Android 11 build `0030132734852`,
+  serial `GVW3T505623706SG`.
+
+Measured:
+
+- [x] Regression test fails on fixed-height rows before the fix; all 31 web
+  tests across nine files and ESLint pass afterward.
+- [x] TypeScript, signed APK/AAB staging, Android release unit tests, and lint
+  pass using JDK 21 and Android SDK 36.
+- [x] Package 1.2.2 (781), unchanged certificate, required touchscreen, no
+  Leanback targeting, and no GMS class markers verified.
+- [x] Installed APK read back from Fire matches the staged SHA-256 exactly.
+
+Observed on these bytes:
+
+- [x] 200% system text: controls grow with labels, all five scale buttons wrap
+  within the panel, and scrolling reaches the lower About/keyboard actions.
+- [x] Fresh local test-data reset with animations disabled opens directly in
+  Full System, without the automatic cinematic. Returning after restoring
+  animations still opens exploration rather than replaying the intro.
+- [x] Fresh offline launch renders bundled planets; Earth selection, scale
+  navigation, portrait/landscape, Home/resume, and sleep/wake retain a usable
+  scene. Sleep was explicitly observed as Asleep, followed by Awake and the
+  same foreground app PID after dismissing the keyguard.
+- [x] Hardware Back closes Controls, dismisses Earth to Inner System, then
+  leaves the root to the prior Android task.
+- [x] With VoiceView enabled, the controls expose names/roles/states in the
+  accessibility tree. Tab/Enter opens Controls and focuses Close controls.
+  This is limited exposure/focus evidence, not a complete spoken-navigation
+  or screen-reader usability certification.
+- [ ] Complete the remaining Sky/cinematic/deep-space exploration and final
+  VoiceView spoken-navigation checks on 781.
+- [ ] Recapture the five listing screenshots from 781.
+- [ ] Complete and review the uninterrupted 60-minute foreground run.
+
+The ambient-tour observation started at `2026-09-05T03:03:09Z` (September 4,
+20:03 local), PID `21782`. Initial PSS: 445,764 KB; battery temperature:
+33.3 °C; thermal status: 0; no crash/ANR events. Samples and ten-minute frames
+are in `/Users/luke/Library/Caches/orrery-fire-evidence/781-soak/`; the bounded
+runner is `/tmp/orrery781-fire-soak.py`. It invalidates on PID changes, loss of
+foreground/wakefulness, observation gaps, disconnects, crash/ANR, or severe
+thermal status. Completion still requires memory/frame review and a final
+interaction check; it is not an automatic device-certification result.
+
+The runner restores the temporary timeout from `2147483647` to `3600000` ms
+if it still owns that setting. Wi-Fi is enabled, airplane mode is disabled,
+font scale and animator duration are back to 1.0, and VoiceView is disabled.
+The original plugged-in stay-awake value remains 7.
+
+## Superseded build 780 automated evidence — 2026-09-04
 
 - [x] Signed APK/AAB staged and checksums recorded.
 - [x] Package/version, manifest, dependency graph, and certificate verified.
@@ -56,7 +116,7 @@ ambient-tour toggle buttons as unnamed focusable controls despite their ARIA
 labels. Build 779 kept redundant in-control text alternatives for Android
 WebView. No 778 device or screenshot evidence transferred to later bytes.
 
-## Final build 780 Fire device gate — 2026-09-04
+## Superseded build 780 Fire device gate — 2026-09-04
 
 - [x] APK/AAB SHA-256 and certificate SHA-256 recorded.
 - [x] Signed APK installed and pulled back byte-for-byte on Amazon KFRASWI,

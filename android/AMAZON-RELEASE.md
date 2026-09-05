@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Package | `solar.orrery.android` |
-| Version | `1.2.2 (780)` |
+| Version | `1.2.2 (781)` |
 | Device family | Fire tablets only |
 | Console state | No record as of 2026-09-04 |
 | Direct-download state | 1.2.2 (777) remains unchanged |
@@ -15,19 +15,22 @@ Build 778 introduced that filtering boundary; 779 preserved readable names
 inside the two WebView toggle buttons after 778 exposed them as unnamed controls
 on Android. Fire testing then showed that hardware Back left the app while the
 controls panel was open. Build 780 routes Back through the web UI first and only
-leaves the app when there is no dismissible in-app state. Evidence tied to any
-predecessor cannot be reused.
+leaves the app when there is no dismissible in-app state. Build 781 fixes
+overlapping controls and overflowing scale buttons at 200% system text.
+Evidence tied to any predecessor cannot be reused.
 
 ## Build and verification
 
 ```sh
 cd /Users/luke/workspace/android-release-toolkit
+JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home \
+ANDROID_HOME=/Users/luke/Library/Android/sdk \
 scripts/android-release with-signing --profile orrery -- \
   /bin/sh -c 'cd /Users/luke/workspace/orrery-app && pnpm android:release'
 ```
 
 Before device testing, verify APK and AAB signatures and checksums, package
-`solar.orrery.android`, version code 780, required touchscreen targeting, and
+`solar.orrery.android`, version code 781, required touchscreen targeting, and
 absence of Google Play Services.
 
 Listing copy and asset provenance are tracked in
@@ -48,7 +51,7 @@ Verify:
 
 ## Human console checkpoint
 
-After the exact 780 candidate passes, create a standard tablet-only Amazon
+After the exact 781 candidate passes, create a standard tablet-only Amazon
 record, upload the APK, inspect the generated supported-device list, complete
 the listing/privacy/rating/reviewer fields, and submit. Repository tooling never
 logs into Amazon.

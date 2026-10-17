@@ -43,8 +43,7 @@ From Earth to the Oort Cloud. Interactive, 41,000 stars, 88 constellations, real
 - Non-overlapping info panels for deep-space selections (left) vs constellation/spacecraft (right)
 - Unified Sky-mode behavior across button and keyboard shortcut (`g`) for consistent immersive state transitions
 - Touch-friendly HUD targets and improved keyboard accessibility for details navigation
-- Time controls from real-time to 100 years per second
-- 4 color themes, including palettes designed for common color-vision differences
+- Real-time simulation clock
 - Mobile-first responsive design with touch controls
 - 2K textures on mobile, 4K on desktop
 - Pre-gzipped data files (82% savings)

@@ -16,13 +16,14 @@
   <p>Orrery does not collect, store, or sell personal information. There is no account system and no analytics SDK in the app.</p>
 
   <h2>Network requests</h2>
-  <p>When you enable live layers, the app may contact these public services from your device:</p>
+  <p>The app contacts these public services from your device:</p>
   <ul>
-    <li>NASA NeoWs — near-Earth object feed</li>
+    <li>NASA NeoWs — near-Earth object feed, requested when the app opens unless today's list is already cached</li>
     <li>JPL Small-Body Database — asteroid orbital elements when you select a NEO</li>
-    <li>NOAA Space Weather Prediction Center — solar wind summary</li>
-    <li>CelesTrak — satellite two-line element sets</li>
+    <li>NOAA Space Weather Prediction Center — solar wind summary, requested when the app opens</li>
+    <li>CelesTrak — satellite two-line element sets when you turn on the Satellites layer</li>
   </ul>
+  <p>On the website, the page also loads its typeface from Google Fonts.</p>
   <p>Static star, constellation, and deep-sky catalogs ship with the app bundle.</p>
 
   <h2>Local storage</h2>

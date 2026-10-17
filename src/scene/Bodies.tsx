@@ -10,7 +10,7 @@ import { buildTextureUrls } from '../data/planets';
 import { useIsMobile } from '../ui/styles';
 import { BODY_SYMBOLS } from '../data/body-symbols';
 import type { PlanetDef } from '../lib/kepler';
-import { planetXYZ, orbitPath } from '../lib/kepler';
+import { planetXYZ, orbitPath, orbitPathEpoch, moonOrbitPath } from '../lib/kepler';
 import type { MoonDef } from '../data/moons';
 
 function useTextures() {
@@ -427,28 +427,20 @@ export function Satellite({ moon, parentPos, jd, selected, onSelect, hovered, on
 
 /** Orbit ring for a satellite around its parent */
 export function SatelliteOrbit({ moon, parentPos }: { moon: MoonDef; parentPos: [number, number, number] }) {
-  const inc = (moon.i || 0) * (Math.PI / 180);
-  const pts = useMemo(() => {
-    const points: THREE.Vector3[] = [];
-    for (let i = 0; i <= 64; i++) {
-      const theta = (i / 64) * Math.PI * 2;
-      points.push(new THREE.Vector3(
-        parentPos[0] + moon.a * Math.cos(theta),
-        parentPos[1] + moon.a * Math.sin(inc) * Math.sin(theta),
-        parentPos[2] + moon.a * Math.sin(theta) * Math.cos(inc),
-      ));
-    }
-    return points;
-  }, [moon, parentPos, inc]);
+  // Points are relative to the parent and the group follows it, so the line's
+  // geometry is built once instead of every time the parent moves.
+  const pts = useMemo(() => moonOrbitPath(moon.a, moon.i || 0), [moon.a, moon.i]);
 
   return (
-    <Line
-      points={pts}
-      color="#ffffff"
-      lineWidth={0.4}
-      transparent
-      opacity={0.15}
-    />
+    <group position={parentPos}>
+      <Line
+        points={pts}
+        color="#ffffff"
+        lineWidth={0.4}
+        transparent
+        opacity={0.15}
+      />
+    </group>
   );
 }
 
@@ -457,7 +449,8 @@ export function SatelliteOrbit({ moon, parentPos }: { moon: MoonDef; parentPos: 
 export function OrbitRing({ planet, T, dim, highlighted, cameraDistance = 0 }: {
   planet: PlanetDef; T: number; dim: boolean; highlighted: boolean; cameraDistance?: number;
 }) {
-  const pts = useMemo(() => orbitPath(planet, T), [planet, T]);
+  const orbitT = orbitPathEpoch(T);
+  const pts = useMemo(() => orbitPath(planet, orbitT), [planet, orbitT]);
   // Fade out orbit rings — invisible from deep space (Oort/tour start)
   const farFade = cameraDistance > 200 ? Math.max(0, 1 - (cameraDistance - 200) / 400) : 1;
   if (farFade <= 0) return null;

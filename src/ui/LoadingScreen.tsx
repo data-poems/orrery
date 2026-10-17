@@ -15,8 +15,8 @@ const OBSERVATORY_STATS = [
 ];
 
 const ORRERY_STATS = [
-  '8 planets · 32 moons',
-  '3,000 main-belt asteroids',
+  '8 planets · 30 moons',
+  '5,000 main-belt asteroids',
   '20+ comets · 14 meteor showers',
   'live near-Earth objects',
 ];

@@ -152,7 +152,7 @@ function AboutDialog({ open, onClose, accent, accentRgb }: {
     { label: '41,119 stars · HYG Database', href: 'https://astronexus.com/projects/hyg' },
     { label: '88 constellations · IAU / d3-celestial', href: 'https://github.com/ofrohn/d3-celestial' },
     { label: '8 planets + 3 dwarf planets · JPL Horizons', href: 'https://ssd.jpl.nasa.gov/horizons/' },
-    { label: '32 moons · JPL Horizons', href: 'https://ssd.jpl.nasa.gov/horizons/' },
+    { label: '30 moons · JPL Horizons', href: 'https://ssd.jpl.nasa.gov/horizons/' },
     { label: '5,000 main-belt asteroids · synthetic Kirkwood model', href: 'https://en.wikipedia.org/wiki/Kirkwood_gap' },
     { label: '2,000 distant objects · MPC Distant.txt', href: 'https://minorplanetcenter.net/iau/MPCORB.html' },
     { label: '20+ comets · MPC CometEls.txt', href: 'https://minorplanetcenter.net/iau/Ephemerides/Comets/Soft03Cmt.txt' },

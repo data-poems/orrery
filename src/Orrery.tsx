@@ -256,7 +256,9 @@ function OrreryInner() {
   const [canvasCreated, setCanvasCreated] = useState(false);
   const [canvasKey, setCanvasKey] = useState(0);
   const lastCanvasRemountRef = useRef(-Infinity);
-  const glCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  // The live WebGL canvas. State, not a ref, so the context-loss listeners
+  // move to the replacement canvas when the Canvas remounts.
+  const [glCanvas, setGlCanvas] = useState<HTMLCanvasElement | null>(null);
   const cinematicExitButtonRef = useRef<HTMLButtonElement | null>(null);
   const tabHiddenRef = useRef(false);
   const [loadingTasks, setLoadingTasks] = useState<Record<string, boolean>>({
@@ -1297,15 +1299,18 @@ function OrreryInner() {
   }, []);
 
   useEffect(() => {
-    const canvas = glCanvasRef.current;
-    if (!canvas) return;
-    const onLost = (e: Event) => {
+    if (!glCanvas) return;
+    const canvas: HTMLCanvasElement = glCanvas;
+    function onLost(e: Event) {
       e.preventDefault();
       setPlaying(false);
       setCinematic(false);
       reloadLoadingTasks();
-    };
-    const onRestored = () => {
+    }
+    function onRestored() {
+      // onLost stopped the sim clock, and touch devices have no control to
+      // restart it.
+      setPlaying(true);
       reloadLoadingTasks();
       // Backoff: remounting the Canvas rebuilds every GPU resource. If the
       // device is dropping contexts under memory pressure (common on Android),
@@ -1314,16 +1319,20 @@ function OrreryInner() {
       const now = performance.now();
       if (now - lastCanvasRemountRef.current > 30000) {
         lastCanvasRemountRef.current = now;
+        // Unmounting makes R3F force a context loss on this canvas. Stop
+        // listening first so that teardown is not handled as a new loss.
+        detach();
         setCanvasKey(k => k + 1);
       }
-    };
-    canvas.addEventListener('webglcontextlost', onLost);
-    canvas.addEventListener('webglcontextrestored', onRestored);
-    return () => {
+    }
+    function detach() {
       canvas.removeEventListener('webglcontextlost', onLost);
       canvas.removeEventListener('webglcontextrestored', onRestored);
-    };
-  }, [canvasCreated, reloadLoadingTasks]);
+    }
+    canvas.addEventListener('webglcontextlost', onLost);
+    canvas.addEventListener('webglcontextrestored', onRestored);
+    return detach;
+  }, [glCanvas, reloadLoadingTasks]);
 
   // Extracted so it can render either bare or wrapped in the lazy XRProvider
   // without duplicating the prop list.
@@ -1409,7 +1418,7 @@ function OrreryInner() {
         // traffic on Adreno/Mali and the scene is mostly points/lines anyway.
         gl={{ antialias: !IS_ANDROID, logarithmicDepthBuffer: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.2 }}
         onCreated={({ gl }) => {
-          glCanvasRef.current = gl.domElement;
+          setGlCanvas(gl.domElement);
           setCanvasCreated(true);
           if (cinematic) startCinematicTour();
         }}

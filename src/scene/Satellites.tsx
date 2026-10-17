@@ -82,16 +82,25 @@ export function SatelliteField({ visible, simTime, earthPos, cameraDistance, sel
   const earthPosRef = useRef(earthPos);
   const shouldRender = visible && cameraDistance <= SATELLITE_MAX_CAMERA_DISTANCE;
 
+  const [loaded, setLoaded] = useState(false);
   // Fetch TLEs when first made visible
   useEffect(() => {
-    if (!visible) { onLoad?.(); return; }
+    if (!visible) return;
     fetchTLEs()
       .then(d => {
         setRecords(d);
-        onLoad?.();
+        setLoaded(true);
       })
       .catch(() => {});
-  }, [visible, onLoad]);
+  }, [visible]);
+
+  // Report readiness the way the star layers do. Scene passes a new onLoad
+  // arrow on every render, so it stays out of the fetch effect above: with
+  // it there, a visible layer refetched its data on every render. This
+  // effect does repeat, which re-reports after a loading reset.
+  useEffect(() => {
+    if (!visible || loaded) onLoad?.();
+  }, [visible, loaded, onLoad]);
 
   useEffect(() => {
     simTimeRef.current = simTime;

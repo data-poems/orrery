@@ -38,6 +38,7 @@ import { createReviewPromptCoordinator } from './lib/reviewPrompt';
 import { useImmersiveVrSupported } from './lib/xr';
 import { tourRandom, recordTourTarget } from './lib/tourRandom';
 import { useAmbientTourClock } from './lib/useAmbientTourClock';
+import { simClockTickMs } from './lib/simClock';
 import type { XRStore } from './scene/XRProvider';
 // @react-three/xr lives only in this lazily-loaded module, mounted only when a
 // headset is detected — so non-XR users never download the XR runtime.
@@ -620,13 +621,17 @@ function OrreryInner() {
     positionsRef.current = m;
   }, []);
 
-  // Time tick (~60fps) — skipped while tab is hidden
+  // Sim clock tick, skipped while the tab is hidden. A 16 ms tick at real-time
+  // speed re-rendered the whole app, including every label's own React root,
+  // about 60 times a second without changing anything on screen; see
+  // simClockTickMs for the cadence.
   useEffect(() => {
     if (!playing) return;
+    const tickMs = simClockTickMs(speed);
     const id = setInterval(() => {
       if (tabHiddenRef.current) return;
-      setSimTime(p => new Date(p.getTime() + speed * 16));
-    }, 16);
+      setSimTime(p => new Date(p.getTime() + speed * tickMs));
+    }, tickMs);
     return () => clearInterval(id);
   }, [playing, speed]);
 

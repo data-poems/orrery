@@ -5,7 +5,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue.svg)](https://www.typescriptlang.org/)
 [![Three.js](https://img.shields.io/badge/Three.js-r183-black.svg)](https://threejs.org/)
 
-From Earth to the Oort Cloud. Interactive, 41,000 stars, 88 constellations, real data, mostly live. Fake scales. Now in VR on Vision Pro, Quest, and more.
+From Earth to the Oort Cloud. Interactive, 41,000 stars (5,000 on phones), 88 constellations, real data, mostly live. Fake scales. Now in VR on Vision Pro, Quest, and more.
 
 **[orrery.solar](https://orrery.solar)**
 
@@ -13,7 +13,7 @@ From Earth to the Oort Cloud. Interactive, 41,000 stars, 88 constellations, real
 
 ## What's in it
 
-- **41,119 stars** from the HYG Database, plotted by magnitude and B-V color index
+- **41,487 stars** from the HYG Database down to magnitude 8, plotted by magnitude and B-V color index; screens 768 px wide or narrower load a 5,019-star naked-eye set instead
 - **88 constellations** with IAU stick figures (d3-celestial)
 - **8 planets + 3 dwarf planets + 32 moons** from JPL Horizons (J2000 Keplerian elements with secular rates)
 - **3,000 main-belt asteroids** with Kirkwood gap distribution
@@ -43,8 +43,7 @@ From Earth to the Oort Cloud. Interactive, 41,000 stars, 88 constellations, real
 - Non-overlapping info panels for deep-space selections (left) vs constellation/spacecraft (right)
 - Unified Sky-mode behavior across button and keyboard shortcut (`g`) for consistent immersive state transitions
 - Touch-friendly HUD targets and improved keyboard accessibility for details navigation
-- Time controls from real-time to 100 years per second
-- 4 color themes, including palettes designed for common color-vision differences
+- Real-time simulation clock (Space pauses and resumes)
 - Mobile-first responsive design with touch controls
 - 2K textures on mobile, 4K on desktop
 - Pre-gzipped data files (82% savings)

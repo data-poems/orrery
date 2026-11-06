@@ -18,7 +18,7 @@ orrery-ios-001
 English (U.S.)
 
 ## Promotional Text
-Fly from deep space to Earth, explore planets and constellations, and scrub time across the solar system with a cinematic, touch-first astronomy experience.
+Fly from deep space to Earth, explore planets and constellations, and watch the solar system move in real time with a cinematic, touch-first astronomy experience.
 
 ## Description
 Orrery is an interactive, real-time model of the solar system and nearby sky built for curiosity and wonder.
@@ -28,10 +28,9 @@ Start with a cinematic opening on your first visit, then return directly to an i
 Features:
 - First-visit cinematic tour from deep space to Earth, replayable from Controls
 - Interactive planets, dwarf planets, moons, asteroids, comets, and spacecraft
-- 41,000+ stars and 88 constellation line patterns
-- Time controls from real-time to accelerated simulation
+- About 41,000 stars on wider screens and 5,000 on an upright iPhone, plus 88 constellation line patterns
+- Planets placed for today's date, moving in real time
 - Touch-first camera controls for quick orbit, zoom, and focus
-- Four color themes, including palettes designed for common color-vision differences
 - Live feeds for near-Earth objects, solar wind, and satellite elements
 
 Built for learners, stargazers, educators, and anyone who wants to explore scale and motion in the solar system.
@@ -91,6 +90,6 @@ Main review flow:
 3. Relaunch to verify the interactive Full System view appears directly.
 4. Open Controls and choose Replay Cinematic Tour.
 5. Toggle sky overlays and constellation labels.
-6. Use time controls to accelerate and scrub simulation time.
+6. Open Controls and turn on the Near-Earth objects or Satellites layer.
 
 No account, sign-in, or demo credentials are required.

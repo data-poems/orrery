@@ -31,7 +31,7 @@ This document is the single source of truth for App Store and TestFlight submiss
 
 #### Promotional Text (170 chars max)
 
-`Fly from deep space to Earth, explore planets and constellations, and scrub time across the solar system with a cinematic, touch-first astronomy experience.`
+`Fly from deep space to Earth, explore planets and constellations, and watch the solar system move in real time with a cinematic, touch-first astronomy experience.`
 
 #### Full Description
 
@@ -42,10 +42,9 @@ Start with a cinematic opening on your first visit, then return directly to an i
 Features:
 - First-visit cinematic tour from deep space to Earth, replayable from Controls
 - Interactive planets, dwarf planets, moons, asteroids, comets, and spacecraft
-- 41,000+ stars and 88 constellation line patterns
-- Time controls from real-time to accelerated simulation
+- About 41,000 stars on wider screens and 5,000 on an upright iPhone, plus 88 constellation line patterns
+- Planets placed for today's date, moving in real time
 - Touch-first camera controls for quick orbit, zoom, and focus
-- Four color themes, including palettes designed for common color-vision differences
 - Live feeds for near-Earth objects, solar wind, and satellite elements
 
 Built for learners, stargazers, educators, and anyone who wants to explore scale and motion in the solar system.
@@ -61,7 +60,7 @@ Questions or feedback: luke@lukesteuber.com
 - Toggle Sky overlays and constellation labels.
 - Toggle Deep Space layer (spacecraft / nearby star markers / galaxy markers) and verify no streak artifacts.
 - Verify iPad sidebar opens and closes reliably with the in-panel close button.
-- Use time controls and verify fast-forward updates without stalling.
+- Leave the app open for several minutes and verify the scene keeps updating without stalling.
 - Verify orientation behavior in portrait and landscape.
 
 ## Privacy and Compliance Pack
@@ -115,7 +114,7 @@ Suggested sequence:
 1. Cinematic hero view (space-to-Earth opening frame)
 2. Planet detail view (Earth + moon context)
 3. Sky mode with constellations
-4. Time controls in use
+4. Near-Earth objects or Satellites layer
 5. Deep space / spacecraft orbits
 
 Use one clear headline per screenshot and keep labels readable at phone scale.

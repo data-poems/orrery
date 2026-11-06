@@ -40,10 +40,9 @@ Start with a cinematic opening on your first visit, then return directly to an i
 Features:
 - First-visit cinematic tour from deep space to Earth, replayable from Controls
 - Interactive planets, dwarf planets, moons, asteroids, comets, and spacecraft
-- 41,000+ stars and 88 constellation line patterns
-- Time controls from real-time to accelerated simulation
+- About 41,000 stars on wider screens and 5,000 on an upright iPhone, plus 88 constellation line patterns
+- Planets placed for today's date, moving in real time
 - Touch-first camera controls for quick orbit, zoom, and focus
-- Four color themes, including palettes designed for common color-vision differences
 - Live feeds for near-Earth objects, solar wind, and satellite elements
 
 Built for learners, stargazers, educators, and anyone who wants to explore scale and motion in the solar system.
@@ -56,7 +55,7 @@ Questions or feedback: luke@lukesteuber.com
 
 ## Promotional Text (170 char max)
 
-`Fly from deep space to Earth, explore planets and constellations, and scrub time across the solar system with a cinematic, touch-first astronomy experience.`
+`Fly from deep space to Earth, explore planets and constellations, and watch the solar system move in real time with a cinematic, touch-first astronomy experience.`
 
 ## What's New in This Version
 
@@ -88,7 +87,7 @@ Fixed an issue that could prevent Uranus and Neptune textures from loading on iP
 1. Hero cinematic view
 2. Planet detail exploration
 3. Constellation overlays in Sky mode
-4. Time controls panel with accelerated simulation
+4. Near-Earth objects or Satellites layer
 5. Deep-space context (comets/spacecraft/outer solar system)
 
 ## App Review Information
@@ -103,7 +102,7 @@ Main test flow:
 3. Relaunch to verify the interactive Full System view appears directly.
 4. Open Controls and choose Replay Cinematic Tour.
 5. Toggle sky overlays and constellations.
-6. Use time controls to scrub simulation time.
+6. Open Controls and turn on the Near-Earth objects or Satellites layer.
 
 No account, login, or demo credentials are required.
 

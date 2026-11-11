@@ -4,6 +4,9 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue.svg)](https://www.typescriptlang.org/)
 [![Three.js](https://img.shields.io/badge/Three.js-r183-black.svg)](https://threejs.org/)
+[![App Store](https://img.shields.io/badge/App_Store-iPhone_and_iPad-blue)](https://apps.apple.com/us/app/solar-orrery/id6768309076)
+[![Android download](https://img.shields.io/badge/Android-direct_download-34A853)](https://dr.eamer.dev/downloads/apps/solar-orrery/)
+[![F-Droid repository](https://img.shields.io/badge/F--Droid-LocalType_releases_repo-1976D2)](https://dr.eamer.dev/downloads/fdroid/)
 
 From Earth to the Oort Cloud. Interactive, 41,000 stars (5,000 on phones), 88 constellations, real data, mostly live. Fake scales. Now in VR on Vision Pro, Quest, and more.
 

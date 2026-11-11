@@ -176,7 +176,10 @@ manual steps outside this pipeline.
 
 ## License
 
-MIT. Planet textures are CC BY 4.0 (Solar System Scope). NASA/NOAA data is public domain.
+MIT for the source code, see [LICENSE](LICENSE). Bundled data and assets under `public/`
+(star catalogs, textures, orbital catalogs and similar files) are not covered by it; see
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for their licenses and attribution.
+Planet textures are CC BY 4.0 (Solar System Scope). NASA/NOAA data is public domain.
 
 ## Author
 

@@ -6,6 +6,18 @@ All notable changes to Orrery are documented here.
 
 ### Fixed
 
+- Android build 783: the launcher icon is the orrery artwork instead of the
+  Android Studio template.
+- Android: the bands behind the status and navigation bars are black in light
+  and dark mode, with light icons, instead of white or dark gray.
+- The asteroid belt, comet, meteor shower and satellite layers load their data
+  once when shown. They used to reload it on every render, about 40 times a
+  second, including during the opening tour.
+- The opening tour's text lines no longer overlap on a phone.
+- The JPL orbit lookup for a near-Earth object works in the iPhone, iPad and
+  Android apps. It used a parameter JPL rejects and a request the web view was
+  not allowed to read. The website still shows the approximate orbit.
+- The About panel and loading screen give counts that match the bundled data.
 - Bundled the Uranus and Neptune textures so iPhone and iPad no longer depend
   on a CloudFront origin that returns 403 responses.
 

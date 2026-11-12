@@ -16,6 +16,7 @@ import { getMoonsForPlanet } from './data/moons';
 import type { NEO, FocusTarget } from './lib/kepler';
 import { julianDate, moonPhase } from './lib/kepler';
 import { fetchSbdbOrbit } from './lib/sbdb';
+import { parseSolarWindSpeed } from './lib/solarWind';
 import { dismissTopForBack } from './lib/backDismiss';
 import { ThemeProvider, useTheme } from './lib/themes';
 import { getConstellationCentroid } from './lib/constellationCentroids';
@@ -384,8 +385,9 @@ function OrreryInner() {
   useEffect(() => {
     fetch('https://services.swpc.noaa.gov/products/summary/solar-wind-speed.json')
       .then(r => r.json())
-      .then(data => {
-        if (data?.WindSpeed) setSolarWind(`${Math.round(Number(data.WindSpeed))} km/s`);
+      .then((data: unknown) => {
+        const speed = parseSolarWindSpeed(data);
+        if (speed) setSolarWind(speed);
       })
       .catch(() => {});
   }, []);

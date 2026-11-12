@@ -18,6 +18,12 @@ All notable changes to Orrery are documented here.
   Android apps. It used a parameter JPL rejects and a request the web view was
   not allowed to read. The website still shows the approximate orbit.
 - The About panel and loading screen give counts that match the bundled data.
+- The solar wind speed shows in the opening tour again. NOAA changed the shape
+  of its feed and the app was reading a field that no longer exists.
+- Android Back closes the About and Keyboard shortcuts dialogs and returns from
+  the bundled privacy page instead of leaving the app.
+- At large system text sizes on Android, the tour text no longer overlaps and
+  the top of the About and Keyboard shortcuts dialogs can be reached.
 - Bundled the Uranus and Neptune textures so iPhone and iPad no longer depend
   on a CloudFront origin that returns 403 responses.
 

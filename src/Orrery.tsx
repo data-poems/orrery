@@ -16,6 +16,7 @@ import { getMoonsForPlanet } from './data/moons';
 import type { NEO, FocusTarget } from './lib/kepler';
 import { julianDate, moonPhase } from './lib/kepler';
 import { fetchSbdbOrbit } from './lib/sbdb';
+import { dismissTopForBack } from './lib/backDismiss';
 import { ThemeProvider, useTheme } from './lib/themes';
 import { getConstellationCentroid } from './lib/constellationCentroids';
 import type { CometDef } from './data/comets';
@@ -1156,6 +1157,8 @@ function OrreryInner() {
   useEffect(() => {
     const previousHandler = window.__ORRERY_HANDLE_ANDROID_BACK__;
     window.__ORRERY_HANDLE_ANDROID_BACK__ = () => {
+      // About and Keyboard shortcuts sit above everything else.
+      if (dismissTopForBack()) return true;
       if (cinematic) {
         exitCinematic();
         return true;

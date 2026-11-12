@@ -22,6 +22,7 @@ import type { MeteorShower } from '../scene/Meteors';
 import type { SatellitePosition } from '../lib/satellites';
 import { MYTHOLOGY, CONSTELLATION_NAMES } from '../data/mythology';
 import { OBSERVATORY_MODE } from '../lib/mode';
+import { registerBackDismiss } from '../lib/backDismiss';
 import { ASTERISMS } from '../data/asterisms';
 import type { NearStar, GalaxyMarker } from '../data/deepspace';
 
@@ -496,6 +497,15 @@ export default function Panels(props: PanelProps) {
       window.removeEventListener('orrery:open-info', openInfo);
     };
   }, []);
+  // Android's Back closes these dialogs before it does anything else.
+  useEffect(() => {
+    if (!showInfo) return;
+    return registerBackDismiss(() => setShowInfo(false));
+  }, [showInfo]);
+  useEffect(() => {
+    if (!showShortcuts) return;
+    return registerBackDismiss(() => setShowShortcuts(false));
+  }, [showShortcuts]);
   const sp = selPlanet !== null ? ALL_BODIES[selPlanet] : null;
 
   // Selected moon info

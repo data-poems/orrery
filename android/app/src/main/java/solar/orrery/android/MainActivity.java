@@ -28,9 +28,18 @@ public class MainActivity extends BridgeActivity {
         }
 
         bridge.getWebView().evaluateJavascript(ANDROID_BACK_HANDLER, result -> {
-            if (!didJavaScriptConsumeBack(result)) {
-                runOnUiThread(() -> finishWithSystemBack(callback));
+            if (didJavaScriptConsumeBack(result)) {
+                return;
             }
+            runOnUiThread(() -> {
+                // The bundled privacy page replaces the app in the web view and
+                // has no Back handler of its own: return to the app from it.
+                if (bridge != null && bridge.getWebView() != null && bridge.getWebView().canGoBack()) {
+                    bridge.getWebView().goBack();
+                } else {
+                    finishWithSystemBack(callback);
+                }
+            });
         });
     }
 

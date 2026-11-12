@@ -33,6 +33,17 @@
 
   <h2>Contact</h2>
   <p><a href="https://lukesteuber.com">Luke Steuber</a>, <a href="mailto:luke@lukesteuber.com">luke@lukesteuber.com</a></p>
-  <p><a href="/">Back to Orrery</a></p>
+  <p><a href="/" id="back-to-app">Back to Orrery</a></p>
+  <script>
+    // Inside the installed apps this page replaces the app in the same web
+    // view. Go back to it instead of loading it again on top of this page,
+    // so the system Back button does not return here afterwards.
+    document.getElementById('back-to-app').addEventListener('click', function (event) {
+      if (window.Capacitor && window.history.length > 1) {
+        event.preventDefault();
+        window.history.back();
+      }
+    });
+  </script>
 </body>
 </html>

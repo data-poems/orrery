@@ -9,7 +9,7 @@ import { useState, useEffect } from 'react';
 import { OBSERVATORY_MODE } from '../lib/mode';
 
 const OBSERVATORY_STATS = [
-  '41,119 stars',
+  '41,487 stars',
   '88 constellations',
   '19 asterisms',
 ];
@@ -17,7 +17,7 @@ const OBSERVATORY_STATS = [
 const ORRERY_STATS = [
   '8 planets · 30 moons',
   '5,000 main-belt asteroids',
-  '20+ comets · 14 meteor showers',
+  '95 comets · 113 meteor showers',
   'live near-Earth objects',
 ];
 

@@ -540,7 +540,9 @@ export default function Panels(props: PanelProps) {
         }}
       >
         <div style={{
-          marginTop: mobile ? safeAreaTop(20) : safeAreaTop(32),
+          // On a phone the date and time sit in the top right corner
+          // (Orrery.tsx); start below them so the lines never share a row.
+          marginTop: mobile ? safeAreaTop(64) : safeAreaTop(32),
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
         }}>
           <div style={{
@@ -565,9 +567,10 @@ export default function Panels(props: PanelProps) {
           </div>
         </div>
 
-        {/* Exit hint */}
+        {/* Exit hint. On a phone it sits above the Exit button, which is
+            anchored 20px from the bottom and at least 44px tall. */}
         <div style={{
-          position: 'absolute', bottom: mobile ? safeAreaBottom(48) : safeAreaBottom(56),
+          position: 'absolute', bottom: mobile ? safeAreaBottom(84) : safeAreaBottom(56),
           color: 'rgba(255,255,255,0.72)', fontSize: mobile ? 16 : 18,
           letterSpacing: 3, fontWeight: 300, fontStyle: 'italic',
         }}        >
@@ -853,8 +856,8 @@ export default function Panels(props: PanelProps) {
               </>
             )}
             {selNeo.orbit?.loaded && selNeo.orbit.synthetic && (
-              <div style={{ gridColumn: '1/-1', color: 'rgba(255,200,120,0.9)', fontSize: 11, fontStyle: 'italic', lineHeight: 1.4 }}>
-                Approximate orbit — JPL SBDB unavailable
+              <div style={{ gridColumn: '1/-1', color: 'rgba(255,255,255,0.7)', fontSize: 11, fontStyle: 'italic', lineHeight: 1.4 }}>
+                Orbit shown is approximate. The JPL orbit for this object did not load.
               </div>
             )}
             {selNeo.orbit && !selNeo.orbit.loaded && (

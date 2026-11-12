@@ -14,7 +14,7 @@ import { jdToDate } from '../lib/kepler';
 import { ALL_BODIES } from '../data/planets';
 import { getMoonsForPlanet } from '../data/moons';
 import { useTheme } from '../lib/themes';
-import { bokehCard, useIsMobile, useIsCompact, useTextScale, Z, BLUR } from './styles';
+import { bokehCard, useIsMobile, useIsCompact, useTextScale, isTouchPrimary, Z, BLUR } from './styles';
 import { PREFERS_REDUCED_MOTION } from '../lib/motion';
 import BodyStats from './BodyStats';
 import type { CometDef } from '../data/comets';
@@ -590,7 +590,7 @@ export default function Panels(props: PanelProps) {
           color: 'rgba(255,255,255,0.72)', fontSize: mobile ? 16 : 18,
           letterSpacing: 3, fontWeight: 300, fontStyle: 'italic',
         }}        >
-          {mobile ? 'tap' : 'click'} to explore
+          {mobile || isTouchPrimary() ? 'tap' : 'click'} to explore
         </div>
       </div>
     );

@@ -86,3 +86,9 @@ export function useTextScale(): number {
   const [scale] = useState(measureTextScale);
   return scale;
 }
+
+/** True when the main pointer is a finger (phones and tablets at any width). */
+export function isTouchPrimary(): boolean {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    && window.matchMedia('(pointer: coarse)').matches;
+}

@@ -109,16 +109,25 @@ export function MeteorField({ jd, visible, selMeteor, setSelMeteor, onLoad }: Me
   const groupRef = useRef<THREE.Group>(null);
   const { camera } = useThree();
 
+  const [loaded, setLoaded] = useState(false);
   useEffect(() => {
-    if (!visible) { onLoad?.(); return; }
+    if (!visible) return;
     fetch(BASE_PATH + 'meteor-showers.json')
       .then(r => r.json())
       .then(d => {
         setShowers(d);
-        onLoad?.();
+        setLoaded(true);
       })
       .catch(() => {});
-  }, [visible, onLoad]);
+  }, [visible]);
+
+  // Report readiness the way the star layers do. Scene passes a new onLoad
+  // arrow on every render, so it stays out of the fetch effect above: with
+  // it there, a visible layer refetched its data on every render. This
+  // effect does repeat, which re-reports after a loading reset.
+  useEffect(() => {
+    if (!visible || loaded) onLoad?.();
+  }, [visible, loaded, onLoad]);
 
   const solLon = useMemo(() => solarLongitude(jd), [jd]);
 

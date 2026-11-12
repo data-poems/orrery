@@ -22,16 +22,25 @@ export function RealAsteroidBelt({ jd, visible, onLoad }: { jd: number; visible:
   const [data, setData] = useState<AsteroidData[] | null>(null);
   const lastJd = useRef(0);
 
+  const [loaded, setLoaded] = useState(false);
   useEffect(() => {
-    if (!visible) { onLoad?.(); return; }
+    if (!visible) return;
     fetch(REAL_BELT_PATH)
       .then(r => r.json())
       .then(d => {
         setData(d);
-        onLoad?.();
+        setLoaded(true);
       })
       .catch(() => {});
-  }, [visible, onLoad]);
+  }, [visible]);
+
+  // Report readiness the way the star layers do. Scene passes a new onLoad
+  // arrow on every render, so it stays out of the fetch effect above: with
+  // it there, a visible layer refetched its data on every render. This
+  // effect does repeat, which re-reports after a loading reset.
+  useEffect(() => {
+    if (!visible || loaded) onLoad?.();
+  }, [visible, loaded, onLoad]);
 
   // Recompute positions when jd changes by >0.5 days
   useEffect(() => {

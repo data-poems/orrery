@@ -128,6 +128,35 @@ export function planetXYZ(p: PlanetDef, T: number): [number, number, number] {
 
 // ─── Full orbit path (closed ellipse) ───────────────────────────────────────────
 
+/**
+ * Orbit-path epoch for a simulation time, held to whole days (T is in Julian
+ * centuries). Orbital elements drift by a few parts per billion per day, so
+ * the drawn ellipse is visually unchanged. Without this, every change of T
+ * gave each orbit line new points, and the line rebuilt its GPU geometry and
+ * disposed its material (forcing a shader relink) about once per second.
+ */
+export function orbitPathEpoch(T: number): number {
+  return Math.floor(T * 36525) / 36525;
+}
+
+/**
+ * A moon's circular orbit centred on the origin. Callers translate it to the
+ * parent's position, so the points stay identical while the parent moves.
+ */
+export function moonOrbitPath(a: number, incDeg = 0, n = 64): THREE.Vector3[] {
+  const inc = incDeg * DEG;
+  const pts: THREE.Vector3[] = [];
+  for (let i = 0; i <= n; i++) {
+    const theta = (i / n) * Math.PI * 2;
+    pts.push(new THREE.Vector3(
+      a * Math.cos(theta),
+      a * Math.sin(inc) * Math.sin(theta),
+      a * Math.sin(theta) * Math.cos(inc),
+    ));
+  }
+  return pts;
+}
+
 export function orbitPath(p: PlanetDef, T: number, n = 180): THREE.Vector3[] {
   const a = p.a + p.aR * T, e = p.e + p.eR * T;
   const I = (p.I + p.IR * T) * DEG;

@@ -15,6 +15,7 @@ import { ALL_BODIES, CAMS, CAM_PRESET_LAYER_EFFECTS, camIndex } from './data/pla
 import { getMoonsForPlanet } from './data/moons';
 import type { NEO, FocusTarget } from './lib/kepler';
 import { julianDate, moonPhase } from './lib/kepler';
+import { fetchSbdbOrbit } from './lib/sbdb';
 import { ThemeProvider, useTheme } from './lib/themes';
 import { getConstellationCentroid } from './lib/constellationCentroids';
 import type { CometDef } from './data/comets';
@@ -138,19 +139,6 @@ interface NeoFeedEntry {
 
 interface NeoFeedResponse {
   near_earth_objects?: Record<string, NeoFeedEntry[]>;
-}
-
-interface SbdbOrbitElement {
-  label?: string;
-  name?: string;
-  value: string;
-}
-
-interface SbdbOrbitResponse {
-  orbit?: {
-    epoch?: string;
-    elements?: SbdbOrbitElement[];
-  };
 }
 
 const PENDING_NEO_ORBIT: NeoOrbit = {
@@ -701,31 +689,17 @@ function OrreryInner() {
     setSelNeo(neo);
   }, []);
 
-  // Fetch asteroid orbital elements from NASA SBDB on NEO selection
+  // Fetch asteroid orbital elements from JPL SBDB on NEO selection. Any failure
+  // (offline, blocked by CORS on the website, no elements) shows the fallback.
   useEffect(() => {
     if (!selNeo) return;
     if (!selNeo.orbit || selNeo.orbit.loaded) return;
 
     let cancelled = false;
 
-    fetch(`https://ssd-api.jpl.nasa.gov/sbdb.api?spk=${selNeo.id}&phys-par=false&close-approach=false`)
-      .then(r => r.json())
-      .then((data: SbdbOrbitResponse) => {
+    fetchSbdbOrbit(selNeo.id)
+      .then((orbit) => {
         if (cancelled) return;
-        const elems = data?.orbit?.elements;
-        if (!elems) {
-          throw new Error('missing orbital elements');
-        }
-        const get = (label: string) => {
-          const el = elems.find((entry) => entry.label === label || entry.name === label);
-          return el ? parseFloat(el.value) : 0;
-        };
-        const orbit: NeoOrbit = {
-          a: get('a'), e: get('e'), i: get('i'), om: get('om'), w: get('w'),
-          ma: get('ma'),
-          epoch: parseFloat(data?.orbit?.epoch || '0'),
-          loaded: true,
-        };
         setNeos(prev => prev.map(n => n.id === selNeo.id ? { ...n, orbit } : n));
         setSelNeo(prev => prev?.id === selNeo.id ? { ...prev, orbit } : prev);
       })

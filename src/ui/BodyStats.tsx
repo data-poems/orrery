@@ -113,7 +113,7 @@ export default function BodyStats({ name, subtitle, color, stats, accent, accent
         >
           {dot}
           <span style={{ whiteSpace: 'nowrap' }}>{name}</span>
-          <span style={{ color: 'rgba(255,255,255,0.8)' }}>· Details</span>
+          <span style={{ color: 'rgba(255,255,255,0.8)', whiteSpace: 'nowrap' }}>· Details</span>
         </button>,
       );
     }

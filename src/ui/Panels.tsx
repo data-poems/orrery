@@ -14,7 +14,7 @@ import { jdToDate } from '../lib/kepler';
 import { ALL_BODIES } from '../data/planets';
 import { getMoonsForPlanet } from '../data/moons';
 import { useTheme } from '../lib/themes';
-import { bokehCard, useIsMobile, useIsCompact, Z, BLUR } from './styles';
+import { bokehCard, useIsMobile, useIsCompact, useTextScale, Z, BLUR } from './styles';
 import { PREFERS_REDUCED_MOTION } from '../lib/motion';
 import BodyStats from './BodyStats';
 import type { CometDef } from '../data/comets';
@@ -174,8 +174,10 @@ function AboutDialog({ open, onClose, accent, accentRgb }: {
         position: 'fixed', inset: 0, zIndex: Z.modal,
         background: 'rgba(0,0,0,0.85)',
         backdropFilter: `blur(${BLUR.card}px)`, WebkitBackdropFilter: `blur(${BLUR.card}px)`,
+        // The dialog centers itself with margin auto. Centering here with
+        // justify-content put the top of a tall dialog (large text, short
+        // screens) above the scrollable area, title and close button included.
         display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
         padding: 24, overflow: 'auto',
         fontFamily: "'Cormorant Garamond','Garamond','Baskerville','Georgia',serif",
       }}
@@ -186,7 +188,7 @@ function AboutDialog({ open, onClose, accent, accentRgb }: {
         aria-modal="true"
         aria-labelledby="about-dialog-title"
         onClick={e => e.stopPropagation()}
-        style={{ maxWidth: 360, width: '100%', position: 'relative' }}
+        style={{ maxWidth: 360, width: '100%', position: 'relative', margin: 'auto' }}
       >
         <button
           ref={closeBtnRef}
@@ -312,7 +314,9 @@ function ShortcutsSheet({ open, onClose, accent, accentRgb }: {
         position: 'fixed', inset: 0, zIndex: Z.modal,
         background: 'rgba(0,0,0,0.85)',
         backdropFilter: `blur(${BLUR.card}px)`, WebkitBackdropFilter: `blur(${BLUR.card}px)`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        // Centered by the dialog's own margin auto so a tall dialog stays
+        // scrollable from its top (see AboutDialog).
+        display: 'flex',
         padding: 24, overflow: 'auto',
         fontFamily: "'Cormorant Garamond','Garamond','Baskerville','Georgia',serif",
       }}
@@ -323,7 +327,7 @@ function ShortcutsSheet({ open, onClose, accent, accentRgb }: {
         aria-modal="true"
         aria-labelledby="shortcuts-dialog-title"
         onClick={e => e.stopPropagation()}
-        style={{ ...bokehCard, maxWidth: 380, width: '100%', position: 'relative', padding: '24px 26px' }}
+        style={{ ...bokehCard, maxWidth: 380, width: '100%', position: 'relative', padding: '24px 26px', margin: 'auto' }}
       >
         <button
           ref={closeBtnRef}
@@ -469,6 +473,7 @@ export default function Panels(props: PanelProps) {
   const accent = theme.uiAccent;
   const accentRgb = theme.uiAccentRgb;
   const mobile = useIsMobile();
+  const textScale = useTextScale();
   const compact = useIsCompact();
   const [showInfo, setShowInfo] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -551,7 +556,8 @@ export default function Panels(props: PanelProps) {
         <div style={{
           // On a phone the date and time sit in the top right corner
           // (Orrery.tsx); start below them so the lines never share a row.
-          marginTop: mobile ? safeAreaTop(64) : safeAreaTop(32),
+          // Android's text size setting makes those two lines taller.
+          marginTop: mobile ? safeAreaTop(Math.round(64 * textScale)) : safeAreaTop(32),
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
         }}>
           <div style={{
@@ -577,9 +583,10 @@ export default function Panels(props: PanelProps) {
         </div>
 
         {/* Exit hint. On a phone it sits above the Exit button, which is
-            anchored 20px from the bottom and at least 44px tall. */}
+            anchored 20px from the bottom and at least 44px tall, taller
+            with a larger system text size. */}
         <div style={{
-          position: 'absolute', bottom: mobile ? safeAreaBottom(84) : safeAreaBottom(56),
+          position: 'absolute', bottom: mobile ? safeAreaBottom(Math.round(64 + 20 * textScale)) : safeAreaBottom(56),
           color: 'rgba(255,255,255,0.72)', fontSize: mobile ? 16 : 18,
           letterSpacing: 3, fontWeight: 300, fontStyle: 'italic',
         }}        >

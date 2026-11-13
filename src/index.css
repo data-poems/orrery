@@ -25,6 +25,12 @@ canvas {
 
 button { font-family: inherit; }
 
+/* Names drawn inside the 3D scene. Android's text size setting enlarges them
+   like any other text; past 130 percent they run off the screen, so main.tsx
+   sets this factor to hold them at 130 percent. Panels, cards and controls
+   are not affected and follow the setting in full. */
+.scene-label { zoom: var(--scene-label-zoom, 1); }
+
 /* Pulse the controls edge handle briefly after the cinematic tour hands off,
    drawing the eye to where sky/constellation controls now live. */
 .sky-toggle-blink {

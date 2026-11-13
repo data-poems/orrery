@@ -39,7 +39,7 @@ function SatDot({ sat, selected, onSelect }: {
       )}
       {/* Labels only appear on explicit selection */}
       {selected && (
-        <Html
+        <Html className="scene-label"
           position={[0, size + 0.008, 0]}
           center
           distanceFactor={2}

@@ -68,7 +68,7 @@ function RadiantMarker({ shower, active, selected, onSelect }: {
       ))}
       {/* Label */}
       {(selected || active) && (
-        <Html
+        <Html className="scene-label"
           center
           distanceFactor={80}
           style={{ pointerEvents: 'none' }}

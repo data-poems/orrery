@@ -35,7 +35,7 @@ function BodyGlyph({
   if (!symbol) return null;
 
   return (
-    <Html center distanceFactor={distanceFactor} style={{ pointerEvents: 'none' }} zIndexRange={[1, 0]}>
+    <Html className="scene-label" center distanceFactor={distanceFactor} style={{ pointerEvents: 'none' }} zIndexRange={[1, 0]}>
       <svg
         viewBox={symbol.viewBox}
         width={size}
@@ -112,7 +112,7 @@ export function Sun({
       )}
       <pointLight intensity={cameraDistance > 2 ? 5.8 : 6.4} color="#fff3d2" distance={0} />
       <pointLight intensity={cameraDistance > 2 ? 2.6 : 3.0} color="#ffb25c" distance={0} />
-      <Html
+      <Html className="scene-label"
         position={[0, 0.25, 0]}
         center
         distanceFactor={3}
@@ -317,7 +317,7 @@ export function Planet({ planet, T, selected, onSelect, hovered, onHover, moonFo
         />
       )}
       {/* Always-visible label */}
-      <Html
+      <Html className="scene-label"
         position={[0, labelOffset, 0]}
         center
         distanceFactor={planet.isDwarf ? Math.min(labelDistanceFactor, 1.9) : labelDistanceFactor}
@@ -398,7 +398,7 @@ export function Satellite({ moon, parentPos, jd, selected, onSelect, hovered, on
       </mesh>
       {/* Always-visible label */}
       <group position={pos}>
-        <Html
+        <Html className="scene-label"
           position={[0, labelOffset, 0]}
           center
           distanceFactor={labelDistanceFactor}

@@ -441,7 +441,7 @@ export function StarField({ visible, showDesignations, onLoad, selectedConstella
       {starData?.namedStars.map(star => (
         visibleNames.has(star.name) && (
           <group key={star.name} position={star.pos}>
-            <Html
+            <Html className="scene-label"
               center
               distanceFactor={80}
               style={{ pointerEvents: 'none' }}
@@ -467,7 +467,7 @@ export function StarField({ visible, showDesignations, onLoad, selectedConstella
       {showDesignations && starData?.bayerStars.map((star, i) => (
         visibleDesignations.has(i) && (
           <group key={`bayer-${i}`} position={star.pos}>
-            <Html
+            <Html className="scene-label"
               center
               distanceFactor={80}
               style={{ pointerEvents: 'none' }}
@@ -947,7 +947,7 @@ export function ConstellationLabels({ visible, focus, tourPulse = false, revealT
           return (
           <group key={c.id} position={c.pos}>
             {visibleLabels.has(c.id) && (
-              <Html
+              <Html className="scene-label"
                 center
                 {...(focus ? {} : { distanceFactor: 80 })}
                 style={{ pointerEvents: onSelect ? 'auto' : 'none' }}

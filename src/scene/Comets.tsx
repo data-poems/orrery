@@ -94,7 +94,7 @@ function CometDot({ comet, jd, selected, onSelect }: {
       )}
       {/* Label for notable comets */}
       {(selected || comet.notable) && (
-        <Html
+        <Html className="scene-label"
           position={[0, size + 0.015, 0]}
           center
           distanceFactor={3}

@@ -10,6 +10,7 @@
  * Interior is a single aligned grid: every row is [glyph | label | indicator]
  * so labels and ●/○ markers line up regardless of text length.
  */
+import { hideBackgroundFromAssistiveTech } from '../lib/modalBackground';
 import { useEffect } from 'react';
 import { PREFERS_REDUCED_MOTION } from '../lib/motion';
 
@@ -62,14 +63,16 @@ export default function SidePanel({ accent, onAction, layerState, open, onOpenCh
       else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
     };
     document.addEventListener('keydown', onKey);
+    const restoreBackground = hideBackgroundFromAssistiveTech(root);
     return () => {
       document.removeEventListener('keydown', onKey);
+      restoreBackground();
       prev?.focus?.();
     };
   }, [onOpenChange, open]);
 
   const heading: React.CSSProperties = {
-    color: 'rgba(255,255,255,0.45)', fontSize: 10, letterSpacing: 2, fontWeight: 400,
+    color: 'rgba(255,255,255,0.58)', fontSize: 10, letterSpacing: 2, fontWeight: 400,
     textTransform: 'uppercase', margin: '20px 0 8px',
   };
   // Aligned 3-column row: [28px glyph][flex label][22px indicator].
@@ -123,7 +126,7 @@ export default function SidePanel({ accent, onAction, layerState, open, onOpenCh
           <span style={{ minWidth: 0, overflowWrap: 'anywhere', fontSize: 20, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' }}>Controls</span>
           <button type="button" aria-label="Close controls" onClick={() => onOpenChange(false)}
             style={{
-              width: 44, height: 44, flexShrink: 0, borderRadius: 8, cursor: 'pointer', display: 'grid', placeItems: 'center',
+              width: 48, height: 48, flexShrink: 0, borderRadius: 8, cursor: 'pointer', display: 'grid', placeItems: 'center',
               background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.7)',
               fontFamily: 'inherit', fontSize: 22,
             }}>
@@ -147,7 +150,7 @@ export default function SidePanel({ accent, onAction, layerState, open, onOpenCh
           {VIEW_PRESETS.map(p => (
             <button key={p} type="button" onClick={() => act('preset', p, true)}
               style={{
-                minHeight: 44, minWidth: 44, maxWidth: '100%', flex: '1 0 auto', padding: '8px 6px', overflowWrap: 'anywhere', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
+                minHeight: 48, minWidth: 48, maxWidth: '100%', flex: '1 0 auto', padding: '8px 6px', overflowWrap: 'anywhere', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
                 fontSize: 11.5, letterSpacing: 0.3,
                 background: 'transparent', border: '1px solid rgba(255,255,255,0.16)', color: 'rgba(255,255,255,0.85)',
               }}>{p}</button>

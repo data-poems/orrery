@@ -30,6 +30,6 @@ describe('SidePanel controlled state', () => {
     const inner = buttons.find(item => item.textContent === 'Inner')!;
     expect(inner.parentElement?.style.flexWrap).toBe('wrap');
     expect(inner.style.height).toBe('');
-    expect(inner.style.minHeight).toBe('44px');
+    expect(inner.style.minHeight).toBe('48px');
   });
 });

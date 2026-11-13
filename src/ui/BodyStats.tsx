@@ -103,11 +103,11 @@ export default function BodyStats({ name, subtitle, color, stats, accent, accent
           ref={detailsButton}
           type="button"
           onClick={(e) => { e.stopPropagation(); setExpanded(true); }}
-          aria-label={`${name} — show details`}
+          aria-label={`${name}, show details`}
           aria-expanded={false}
           style={{
             ...surface, display: 'inline-flex', alignItems: 'center', gap: 9,
-            minHeight: 44, padding: '8px 14px', borderRadius: 22, cursor: 'pointer',
+            minHeight: 48, padding: '8px 14px', borderRadius: 24, cursor: 'pointer',
             color: '#fff', fontSize: 16, letterSpacing: 0.5, textShadow: shadow,
           }}
         >
@@ -118,11 +118,11 @@ export default function BodyStats({ name, subtitle, color, stats, accent, accent
       );
     }
 
-    // Two 44-point icon tiles, matching the BottomCluster's minimum hit area:
+    // Two 48-point icon tiles, matching the BottomCluster's minimum hit area:
     // collapse (chevron-down → back to the chip) is neutral, back (arrow-left →
     // clear the selection) carries the theme accent.
     const iconTile = {
-      flexShrink: 0, width: 44, height: 44, padding: 0, borderRadius: 9,
+      flexShrink: 0, width: 48, height: 48, padding: 0, borderRadius: 9,
       display: 'grid', placeItems: 'center', cursor: 'pointer',
       WebkitTapHighlightColor: 'transparent',
     } as const;
@@ -174,7 +174,7 @@ export default function BodyStats({ name, subtitle, color, stats, accent, accent
         onClick={(e) => { e.stopPropagation(); onBack(); }}
         aria-label="Back (zoom out)"
         style={{
-          position: 'absolute', top: 6, right: 6, width: 44, height: 44,
+          position: 'absolute', top: 6, right: 6, width: 48, height: 48,
           display: 'grid', placeItems: 'center', padding: 0, borderRadius: 9,
           background: `rgba(${accentRgb},0.10)`, border: `1px solid rgba(${accentRgb},0.42)`,
           cursor: 'pointer', color: accent,

@@ -31,6 +31,7 @@ import SidePanel from './ui/SidePanel';
 import BottomCluster from './ui/BottomCluster';
 import LoadingScreen from './ui/LoadingScreen';
 import OrreryDiagOverlay from './ui/OrreryDiagOverlay';
+import { useTextScale } from './ui/styles';
 import { neoFeedUrlForDay } from './lib/neoFeed';
 import { OBSERVATORY_MODE } from './lib/mode';
 import { IS_ANDROID } from './lib/platform';
@@ -190,6 +191,7 @@ const CINEMATIC_DEFAULTS: Omit<CinematicStep, 'duration' | 'label'> = {
 
 function OrreryInner() {
   const { theme } = useTheme();
+  const textScale = useTextScale();
   const launchStartsCinematic = LAUNCH_STARTS_CINEMATIC;
   // Only true in a real WebXR browser on a headset (Vision Pro Safari, Quest);
   // always false on phone/desktop/iOS shell, so the entry point stays hidden.
@@ -1546,7 +1548,7 @@ function OrreryInner() {
               left: 'calc(env(safe-area-inset-left, 0px) + 20px)',
               bottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)',
               zIndex: 25,
-              minHeight: 44,
+              minHeight: 48,
               padding: '9px 14px',
               borderRadius: 8,
               border: '1px solid rgba(255,255,255,0.28)',
@@ -1575,7 +1577,7 @@ function OrreryInner() {
             <div style={{ fontSize: 15, letterSpacing: 1, fontWeight: 300 }}>
               {simTime.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}
             </div>
-            <div style={{ fontSize: 12, letterSpacing: 2.5, opacity: 0.75, fontVariantNumeric: 'tabular-nums' }}>
+            <div style={{ fontSize: 12, letterSpacing: 2.5, fontVariantNumeric: 'tabular-nums' }}>
               {simTime.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
             </div>
           </div>
@@ -1587,7 +1589,8 @@ function OrreryInner() {
           aria-live="polite"
           style={{
             position: 'fixed',
-            top: 'calc(env(safe-area-inset-top, 0px) + 52px)',
+            // Below the area label, which grows with the system text size.
+            top: `calc(env(safe-area-inset-top, 0px) + ${Math.round(28 + 24 * textScale)}px)`,
             right: 62,
             zIndex: 25,
             pointerEvents: 'none',

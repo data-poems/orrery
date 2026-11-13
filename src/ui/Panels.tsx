@@ -23,6 +23,7 @@ import type { SatellitePosition } from '../lib/satellites';
 import { MYTHOLOGY, CONSTELLATION_NAMES } from '../data/mythology';
 import { OBSERVATORY_MODE } from '../lib/mode';
 import { registerBackDismiss } from '../lib/backDismiss';
+import { hideBackgroundFromAssistiveTech } from '../lib/modalBackground';
 import { ASTERISMS } from '../data/asterisms';
 import type { NearStar, GalaxyMarker } from '../data/deepspace';
 
@@ -47,7 +48,7 @@ function Btn({ children, onClick, style, label }: {
     <button onClick={onClick} aria-label={label} style={{
       background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)',
       fontSize: 15, cursor: 'pointer', fontFamily: 'inherit',
-      padding: '4px 8px', lineHeight: 1.4, minWidth: 44, minHeight: 44,
+      padding: '4px 8px', lineHeight: 1.4, minWidth: 48, minHeight: 48,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       ...style,
     }}>
@@ -103,6 +104,7 @@ function AboutDialog({ open, onClose, accent, accentRgb }: {
     if (!open) return;
     const prevFocus = document.activeElement as HTMLElement | null;
     closeBtnRef.current?.focus();
+    const restoreBackground = hideBackgroundFromAssistiveTech(dialogRef.current);
 
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { e.preventDefault(); onClose(); return; }
@@ -124,6 +126,7 @@ function AboutDialog({ open, onClose, accent, accentRgb }: {
     document.addEventListener('keydown', handleKey);
     return () => {
       document.removeEventListener('keydown', handleKey);
+      restoreBackground();
       prevFocus?.focus?.();
     };
   }, [open, onClose]);
@@ -157,7 +160,7 @@ function AboutDialog({ open, onClose, accent, accentRgb }: {
     { label: '5,000 main-belt asteroids · synthetic Kirkwood model', href: 'https://en.wikipedia.org/wiki/Kirkwood_gap' },
     { label: '95 comets · MPC CometEls.txt', href: 'https://minorplanetcenter.net/iau/Ephemerides/Comets/Soft03Cmt.txt' },
     { label: '113 meteor showers · IAU Meteor Data Center', href: 'https://www.ta3.sk/IAUC22DB/MDC2007/' },
-    { label: '5 spacecraft · NASA/JPL mission tracking', href: 'https://eyes.nasa.gov/apps/solar-system/#/home' },
+    { label: '5 spacecraft · approximate distances for 2026, NASA/JPL', href: 'https://eyes.nasa.gov/apps/solar-system/#/home' },
     { label: '2K/4K textures · Solar System Scope (CC BY 4.0)', href: 'https://www.solarsystemscope.com/textures/' },
   ] as const;
   const liveSources = [
@@ -205,8 +208,8 @@ function AboutDialog({ open, onClose, accent, accentRgb }: {
             fontSize: 22,
             fontFamily: 'inherit',
             padding: '4px 8px',
-            minWidth: 44,
-            minHeight: 44,
+            minWidth: 48,
+            minHeight: 48,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -289,6 +292,7 @@ function ShortcutsSheet({ open, onClose, accent, accentRgb }: {
     if (!open) return;
     const prevFocus = document.activeElement as HTMLElement | null;
     closeBtnRef.current?.focus();
+    const restoreBackground = hideBackgroundFromAssistiveTech(dialogRef.current);
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { e.preventDefault(); onClose(); return; }
       if (e.key !== 'Tab') return;
@@ -302,7 +306,7 @@ function ShortcutsSheet({ open, onClose, accent, accentRgb }: {
       else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
     };
     document.addEventListener('keydown', handleKey);
-    return () => { document.removeEventListener('keydown', handleKey); prevFocus?.focus?.(); };
+    return () => { document.removeEventListener('keydown', handleKey); restoreBackground(); prevFocus?.focus?.(); };
   }, [open, onClose]);
 
   if (!open) return null;
@@ -336,7 +340,7 @@ function ShortcutsSheet({ open, onClose, accent, accentRgb }: {
           aria-label="Close keyboard shortcuts"
           style={{
             position: 'absolute', top: 8, right: 10,
-            width: 44, height: 44, display: 'grid', placeItems: 'center', padding: 0,
+            width: 48, height: 48, display: 'grid', placeItems: 'center', padding: 0,
             background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)',
             fontSize: 22, lineHeight: 1, cursor: 'pointer',
           }}
@@ -562,9 +566,10 @@ export default function Panels(props: PanelProps) {
         }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: mobile ? 8 : 12,
-            opacity: 0.45,
+            // 0.7 text alpha x 0.75 keeps this line at 4.5:1 or better on black.
+            opacity: 0.75,
           }}>
-            <span style={{ ...dim, fontSize: mobile ? 11 : 12 }}>{moon.name}, {moon.ill}%</span>
+            <span style={{ ...dim, fontSize: mobile ? 11 : 12 }}>{`${moon.name}, ${moon.ill}%`}</span>
             {solarWind && (
               <>
                 <span style={{ ...dim, fontSize: mobile ? 11 : 12, color: 'rgba(255,255,255,0.12)' }}>{'\u00b7'}</span>

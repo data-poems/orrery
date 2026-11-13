@@ -102,7 +102,7 @@ export default function LoadingScreen({
       </div>
 
       <div style={{
-        color: 'rgba(255,255,255,0.4)',
+        color: 'rgba(255,255,255,0.55)',
         fontSize: 18, fontStyle: 'italic',
         fontWeight: 300, letterSpacing: 2,
         marginBottom: 32,
@@ -134,7 +134,7 @@ export default function LoadingScreen({
       <ul style={{
         listStyle: 'none', padding: 0, margin: 0,
         textAlign: 'center',
-        color: 'rgba(255,255,255,0.32)',
+        color: 'rgba(255,255,255,0.55)',
         fontSize: 12, fontWeight: 300, letterSpacing: 1.4,
         fontStyle: 'italic',
         lineHeight: 1.85,
@@ -144,7 +144,7 @@ export default function LoadingScreen({
 
       {stuck && !ready && (
         <div style={{ marginTop: 28, textAlign: 'center', maxWidth: 280 }}>
-          <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13, marginBottom: 12, lineHeight: 1.5 }}>
+          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginBottom: 12, lineHeight: 1.5 }}>
             Still loading: the full star catalog is sizable.
           </p>
           <button
@@ -160,7 +160,7 @@ export default function LoadingScreen({
               textTransform: 'uppercase',
               padding: '10px 20px',
               cursor: 'pointer',
-              minHeight: 44,
+              minHeight: 48,
             }}
           >
             {retries >= MAX_RETRIES ? 'Reload page' : 'Reload if this stalls'}

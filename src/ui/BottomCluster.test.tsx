@@ -25,8 +25,8 @@ describe('BottomCluster accessibility', () => {
       />,
     );
 
-    expect(html).toContain('aria-label="Stargaze — sky and constellations"');
-    expect(html).toContain('>Stargaze — sky and constellations</span>');
+    expect(html).toContain('aria-label="Stargaze: sky and constellations"');
+    expect(html).toContain('>Stargaze: sky and constellations</span>');
     expect(html).toContain('aria-label="Start ambient tour"');
     expect(html).toContain('>Start ambient tour</span>');
   });

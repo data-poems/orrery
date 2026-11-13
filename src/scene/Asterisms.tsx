@@ -85,9 +85,11 @@ export function AsterismField({ visible, onSelect }: { visible: boolean; onSelec
         {/* Asterism labels at centroids */}
         {centroids.map(c => (
           <group key={c.name} position={c.pos}>
-            <Html
+            <Html className="scene-label"
               center
-              distanceFactor={80}
+              // No distanceFactor: this sphere follows the camera, so the labels
+              // are always 300 units away, where a factor of 80 drew them about
+              // 2px tall. A fixed size keeps the names readable and tappable.
               style={{ pointerEvents: onSelect ? 'auto' : 'none' }}
               zIndexRange={[1, 0]}
             >
@@ -97,8 +99,8 @@ export function AsterismField({ visible, onSelect }: { visible: boolean; onSelec
                 onClick={onSelect ? (e) => { e.stopPropagation(); onSelect(c.name); } : undefined}
                 onKeyDown={onSelect ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(c.name); } } : undefined}
                 style={{
-                  color: 'rgba(255,220,160,0.5)',
-                  fontSize: 9,
+                  color: 'rgba(255,220,160,0.85)',
+                  fontSize: 14,
                   fontFamily: "'Cormorant Garamond', serif",
                   fontWeight: 300,
                   fontStyle: 'italic',

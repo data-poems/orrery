@@ -18,10 +18,10 @@ From Earth to the Oort Cloud. Interactive, 41,000 stars (5,000 on phones), 88 co
 
 - **41,487 stars** from the HYG Database down to magnitude 8, plotted by magnitude and B-V color index; screens 768 px wide or narrower load a 5,019-star naked-eye set instead
 - **88 constellations** with IAU stick figures (d3-celestial)
-- **8 planets + 3 dwarf planets + 32 moons** from JPL Horizons (J2000 Keplerian elements with secular rates)
-- **3,000 main-belt asteroids** with Kirkwood gap distribution
-- **20+ comets** from the Minor Planet Center
-- **14 meteor shower radiants** from the IAU Meteor Data Center
+- **8 planets + 3 dwarf planets + 30 moons** from JPL Horizons (J2000 Keplerian elements with secular rates)
+- **5,000 main-belt asteroids** from a synthetic model with Kirkwood gaps
+- **95 comets** from the Minor Planet Center
+- **113 meteor shower radiants** from the IAU Meteor Data Center
 - **5 interstellar spacecraft** (Voyager 1 at 165 AU, Voyager 2 at 139 AU, New Horizons, Pioneer 10/11)
 - **Oort Cloud** particle shell (2,000-50,000 AU)
 

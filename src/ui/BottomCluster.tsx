@@ -8,7 +8,7 @@
  * the scale ladder (− at the outermost rung, + at the innermost). Glyphs are
  * inline monochrome SVGs (no emoji).
  */
-import { useIsMobile, Z } from './styles';
+import { Z } from './styles';
 import { PREFERS_REDUCED_MOTION } from '../lib/motion';
 
 /** Inline monochrome gear (currentColor) — avoids the ⚙ emoji-presentation risk. */
@@ -133,9 +133,9 @@ function Tile({ id, label, caption, glyph, onClick, size, accent, accentRgb, dis
 export default function BottomCluster({
   visible, onVisibilityChange, pulse, accent, accentRgb, onAction, atInnermost, atOutermost, skyActive, tourActive,
 }: BottomClusterProps) {
-  const mobile = useIsMobile();
-  const size = mobile ? 44 : 48;
-  const textButton = { minWidth: 44, minHeight: 44, padding: '6px 8px', color: '#fff',
+  // 48 on every screen: Android's minimum touch target.
+  const size = 48;
+  const textButton = { minWidth: 48, minHeight: 48, padding: '6px 8px', color: '#fff',
     background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 10,
     fontFamily: 'system-ui, sans-serif', fontSize: 12, cursor: 'pointer' } as const;
   const setVisible = (next: boolean) => {
@@ -169,7 +169,7 @@ export default function BottomCluster({
         disabled={atOutermost} onClick={() => onAction('zoom', 'out')} />
       <Tile label="Zoom in" glyph={<PlusIcon />} size={size} accent={accent} accentRgb={accentRgb}
         disabled={atInnermost} onClick={() => onAction('zoom', 'in')} />
-      <Tile label="Stargaze — sky and constellations" caption="Sky" glyph={<StarIcon />} size={size} accent={accent} accentRgb={accentRgb}
+      <Tile label="Stargaze: sky and constellations" caption="Sky" glyph={<StarIcon />} size={size} accent={accent} accentRgb={accentRgb}
         active={skyActive} pressed={skyActive}
         className={pulse ? 'sky-toggle-blink' : undefined}
         glyphClass={skyActive ? 'orrery-twinkle' : undefined}

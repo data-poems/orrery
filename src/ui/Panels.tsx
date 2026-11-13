@@ -14,7 +14,7 @@ import { jdToDate } from '../lib/kepler';
 import { ALL_BODIES } from '../data/planets';
 import { getMoonsForPlanet } from '../data/moons';
 import { useTheme } from '../lib/themes';
-import { bokehCard, useIsMobile, useIsCompact, Z, BLUR } from './styles';
+import { bokehCard, useIsMobile, useIsCompact, useTextScale, isTouchPrimary, Z, BLUR } from './styles';
 import { PREFERS_REDUCED_MOTION } from '../lib/motion';
 import BodyStats from './BodyStats';
 import type { CometDef } from '../data/comets';
@@ -22,6 +22,8 @@ import type { MeteorShower } from '../scene/Meteors';
 import type { SatellitePosition } from '../lib/satellites';
 import { MYTHOLOGY, CONSTELLATION_NAMES } from '../data/mythology';
 import { OBSERVATORY_MODE } from '../lib/mode';
+import { registerBackDismiss } from '../lib/backDismiss';
+import { hideBackgroundFromAssistiveTech } from '../lib/modalBackground';
 import { ASTERISMS } from '../data/asterisms';
 import type { NearStar, GalaxyMarker } from '../data/deepspace';
 
@@ -46,7 +48,7 @@ function Btn({ children, onClick, style, label }: {
     <button onClick={onClick} aria-label={label} style={{
       background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)',
       fontSize: 15, cursor: 'pointer', fontFamily: 'inherit',
-      padding: '4px 8px', lineHeight: 1.4, minWidth: 44, minHeight: 44,
+      padding: '4px 8px', lineHeight: 1.4, minWidth: 48, minHeight: 48,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       ...style,
     }}>
@@ -102,6 +104,7 @@ function AboutDialog({ open, onClose, accent, accentRgb }: {
     if (!open) return;
     const prevFocus = document.activeElement as HTMLElement | null;
     closeBtnRef.current?.focus();
+    const restoreBackground = hideBackgroundFromAssistiveTech(dialogRef.current);
 
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { e.preventDefault(); onClose(); return; }
@@ -123,6 +126,7 @@ function AboutDialog({ open, onClose, accent, accentRgb }: {
     document.addEventListener('keydown', handleKey);
     return () => {
       document.removeEventListener('keydown', handleKey);
+      restoreBackground();
       prevFocus?.focus?.();
     };
   }, [open, onClose]);
@@ -149,15 +153,14 @@ function AboutDialog({ open, onClose, accent, accentRgb }: {
   ] as const;
 
   const catalogSources = [
-    { label: '41,119 stars · HYG Database', href: 'https://astronexus.com/projects/hyg' },
+    { label: '41,487 stars, 5,019 on small screens · HYG Database', href: 'https://astronexus.com/projects/hyg' },
     { label: '88 constellations · IAU / d3-celestial', href: 'https://github.com/ofrohn/d3-celestial' },
     { label: '8 planets + 3 dwarf planets · JPL Horizons', href: 'https://ssd.jpl.nasa.gov/horizons/' },
-    { label: '32 moons · JPL Horizons', href: 'https://ssd.jpl.nasa.gov/horizons/' },
+    { label: '30 moons · JPL Horizons', href: 'https://ssd.jpl.nasa.gov/horizons/' },
     { label: '5,000 main-belt asteroids · synthetic Kirkwood model', href: 'https://en.wikipedia.org/wiki/Kirkwood_gap' },
-    { label: '2,000 distant objects · MPC Distant.txt', href: 'https://minorplanetcenter.net/iau/MPCORB.html' },
-    { label: '20+ comets · MPC CometEls.txt', href: 'https://minorplanetcenter.net/iau/Ephemerides/Comets/Soft03Cmt.txt' },
-    { label: '14 meteor showers · IAU Meteor Data Center', href: 'https://www.ta3.sk/IAUC22DB/MDC2007/' },
-    { label: '5 spacecraft · NASA/JPL mission tracking', href: 'https://eyes.nasa.gov/apps/solar-system/#/home' },
+    { label: '95 comets · MPC CometEls.txt', href: 'https://minorplanetcenter.net/iau/Ephemerides/Comets/Soft03Cmt.txt' },
+    { label: '113 meteor showers · IAU Meteor Data Center', href: 'https://www.ta3.sk/IAUC22DB/MDC2007/' },
+    { label: '5 spacecraft · approximate distances for 2026, NASA/JPL', href: 'https://eyes.nasa.gov/apps/solar-system/#/home' },
     { label: '2K/4K textures · Solar System Scope (CC BY 4.0)', href: 'https://www.solarsystemscope.com/textures/' },
   ] as const;
   const liveSources = [
@@ -174,8 +177,10 @@ function AboutDialog({ open, onClose, accent, accentRgb }: {
         position: 'fixed', inset: 0, zIndex: Z.modal,
         background: 'rgba(0,0,0,0.85)',
         backdropFilter: `blur(${BLUR.card}px)`, WebkitBackdropFilter: `blur(${BLUR.card}px)`,
+        // The dialog centers itself with margin auto. Centering here with
+        // justify-content put the top of a tall dialog (large text, short
+        // screens) above the scrollable area, title and close button included.
         display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
         padding: 24, overflow: 'auto',
         fontFamily: "'Cormorant Garamond','Garamond','Baskerville','Georgia',serif",
       }}
@@ -186,7 +191,7 @@ function AboutDialog({ open, onClose, accent, accentRgb }: {
         aria-modal="true"
         aria-labelledby="about-dialog-title"
         onClick={e => e.stopPropagation()}
-        style={{ maxWidth: 360, width: '100%', position: 'relative' }}
+        style={{ maxWidth: 360, width: '100%', position: 'relative', margin: 'auto' }}
       >
         <button
           ref={closeBtnRef}
@@ -203,8 +208,8 @@ function AboutDialog({ open, onClose, accent, accentRgb }: {
             fontSize: 22,
             fontFamily: 'inherit',
             padding: '4px 8px',
-            minWidth: 44,
-            minHeight: 44,
+            minWidth: 48,
+            minHeight: 48,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -287,6 +292,7 @@ function ShortcutsSheet({ open, onClose, accent, accentRgb }: {
     if (!open) return;
     const prevFocus = document.activeElement as HTMLElement | null;
     closeBtnRef.current?.focus();
+    const restoreBackground = hideBackgroundFromAssistiveTech(dialogRef.current);
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { e.preventDefault(); onClose(); return; }
       if (e.key !== 'Tab') return;
@@ -300,7 +306,7 @@ function ShortcutsSheet({ open, onClose, accent, accentRgb }: {
       else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
     };
     document.addEventListener('keydown', handleKey);
-    return () => { document.removeEventListener('keydown', handleKey); prevFocus?.focus?.(); };
+    return () => { document.removeEventListener('keydown', handleKey); restoreBackground(); prevFocus?.focus?.(); };
   }, [open, onClose]);
 
   if (!open) return null;
@@ -312,7 +318,9 @@ function ShortcutsSheet({ open, onClose, accent, accentRgb }: {
         position: 'fixed', inset: 0, zIndex: Z.modal,
         background: 'rgba(0,0,0,0.85)',
         backdropFilter: `blur(${BLUR.card}px)`, WebkitBackdropFilter: `blur(${BLUR.card}px)`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        // Centered by the dialog's own margin auto so a tall dialog stays
+        // scrollable from its top (see AboutDialog).
+        display: 'flex',
         padding: 24, overflow: 'auto',
         fontFamily: "'Cormorant Garamond','Garamond','Baskerville','Georgia',serif",
       }}
@@ -323,7 +331,7 @@ function ShortcutsSheet({ open, onClose, accent, accentRgb }: {
         aria-modal="true"
         aria-labelledby="shortcuts-dialog-title"
         onClick={e => e.stopPropagation()}
-        style={{ ...bokehCard, maxWidth: 380, width: '100%', position: 'relative', padding: '24px 26px' }}
+        style={{ ...bokehCard, maxWidth: 380, width: '100%', position: 'relative', padding: '24px 26px', margin: 'auto' }}
       >
         <button
           ref={closeBtnRef}
@@ -332,7 +340,7 @@ function ShortcutsSheet({ open, onClose, accent, accentRgb }: {
           aria-label="Close keyboard shortcuts"
           style={{
             position: 'absolute', top: 8, right: 10,
-            width: 44, height: 44, display: 'grid', placeItems: 'center', padding: 0,
+            width: 48, height: 48, display: 'grid', placeItems: 'center', padding: 0,
             background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)',
             fontSize: 22, lineHeight: 1, cursor: 'pointer',
           }}
@@ -469,6 +477,7 @@ export default function Panels(props: PanelProps) {
   const accent = theme.uiAccent;
   const accentRgb = theme.uiAccentRgb;
   const mobile = useIsMobile();
+  const textScale = useTextScale();
   const compact = useIsCompact();
   const [showInfo, setShowInfo] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -497,6 +506,15 @@ export default function Panels(props: PanelProps) {
       window.removeEventListener('orrery:open-info', openInfo);
     };
   }, []);
+  // Android's Back closes these dialogs before it does anything else.
+  useEffect(() => {
+    if (!showInfo) return;
+    return registerBackDismiss(() => setShowInfo(false));
+  }, [showInfo]);
+  useEffect(() => {
+    if (!showShortcuts) return;
+    return registerBackDismiss(() => setShowShortcuts(false));
+  }, [showShortcuts]);
   const sp = selPlanet !== null ? ALL_BODIES[selPlanet] : null;
 
   // Selected moon info
@@ -540,14 +558,18 @@ export default function Panels(props: PanelProps) {
         }}
       >
         <div style={{
-          marginTop: mobile ? safeAreaTop(20) : safeAreaTop(32),
+          // On a phone the date and time sit in the top right corner
+          // (Orrery.tsx); start below them so the lines never share a row.
+          // Android's text size setting makes those two lines taller.
+          marginTop: mobile ? safeAreaTop(Math.round(64 * textScale)) : safeAreaTop(32),
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
         }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: mobile ? 8 : 12,
-            opacity: 0.45,
+            // 0.7 text alpha x 0.75 keeps this line at 4.5:1 or better on black.
+            opacity: 0.75,
           }}>
-            <span style={{ ...dim, fontSize: mobile ? 11 : 12 }}>{moon.name}, {moon.ill}%</span>
+            <span style={{ ...dim, fontSize: mobile ? 11 : 12 }}>{`${moon.name}, ${moon.ill}%`}</span>
             {solarWind && (
               <>
                 <span style={{ ...dim, fontSize: mobile ? 11 : 12, color: 'rgba(255,255,255,0.12)' }}>{'\u00b7'}</span>
@@ -565,13 +587,15 @@ export default function Panels(props: PanelProps) {
           </div>
         </div>
 
-        {/* Exit hint */}
+        {/* Exit hint. On a phone it sits above the Exit button, which is
+            anchored 20px from the bottom and at least 44px tall, taller
+            with a larger system text size. */}
         <div style={{
-          position: 'absolute', bottom: mobile ? safeAreaBottom(48) : safeAreaBottom(56),
+          position: 'absolute', bottom: mobile ? safeAreaBottom(Math.round(64 + 20 * textScale)) : safeAreaBottom(56),
           color: 'rgba(255,255,255,0.72)', fontSize: mobile ? 16 : 18,
           letterSpacing: 3, fontWeight: 300, fontStyle: 'italic',
         }}        >
-          {mobile ? 'tap' : 'click'} to explore
+          {mobile || isTouchPrimary() ? 'tap' : 'click'} to explore
         </div>
       </div>
     );
@@ -853,8 +877,8 @@ export default function Panels(props: PanelProps) {
               </>
             )}
             {selNeo.orbit?.loaded && selNeo.orbit.synthetic && (
-              <div style={{ gridColumn: '1/-1', color: 'rgba(255,200,120,0.9)', fontSize: 11, fontStyle: 'italic', lineHeight: 1.4 }}>
-                Approximate orbit — JPL SBDB unavailable
+              <div style={{ gridColumn: '1/-1', color: 'rgba(255,255,255,0.7)', fontSize: 11, fontStyle: 'italic', lineHeight: 1.4 }}>
+                Orbit shown is approximate. The JPL orbit for this object did not load.
               </div>
             )}
             {selNeo.orbit && !selNeo.orbit.loaded && (

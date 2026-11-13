@@ -6,6 +6,28 @@ All notable changes to Orrery are documented here.
 
 ### Fixed
 
+- Android build 784, accessibility: touch targets are at least 48dp, TalkBack
+  stays inside an open dialog, low-contrast text is raised to 4.5:1, names in
+  the scene stop growing at 130 percent text size, and asterism names are
+  readable.
+- Android build 783: the launcher icon is the orrery artwork instead of the
+  Android Studio template.
+- Android: the bands behind the status and navigation bars are black in light
+  and dark mode, with light icons, instead of white or dark gray.
+- The asteroid belt, comet, meteor shower and satellite layers load their data
+  once when shown. They used to reload it on every render, about 40 times a
+  second, including during the opening tour.
+- The opening tour's text lines no longer overlap on a phone.
+- The JPL orbit lookup for a near-Earth object works in the iPhone, iPad and
+  Android apps. It used a parameter JPL rejects and a request the web view was
+  not allowed to read. The website still shows the approximate orbit.
+- The About panel and loading screen give counts that match the bundled data.
+- The solar wind speed shows in the opening tour again. NOAA changed the shape
+  of its feed and the app was reading a field that no longer exists.
+- Android Back closes the About and Keyboard shortcuts dialogs and returns from
+  the bundled privacy page instead of leaving the app.
+- At large system text sizes on Android, the tour text no longer overlaps and
+  the top of the About and Keyboard shortcuts dialogs can be reached.
 - Bundled the Uranus and Neptune textures so iPhone and iPad no longer depend
   on a CloudFront origin that returns 403 responses.
 

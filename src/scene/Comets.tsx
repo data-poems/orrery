@@ -94,7 +94,7 @@ function CometDot({ comet, jd, selected, onSelect }: {
       )}
       {/* Label for notable comets */}
       {(selected || comet.notable) && (
-        <Html
+        <Html className="scene-label"
           position={[0, size + 0.015, 0]}
           center
           distanceFactor={3}
@@ -157,16 +157,25 @@ export interface CometFieldProps {
 export function CometField({ jd, visible, selComet, setSelComet, onLoad }: CometFieldProps) {
   const [comets, setComets] = useState<CometDef[]>([]);
 
+  const [loaded, setLoaded] = useState(false);
   useEffect(() => {
-    if (!visible) { onLoad?.(); return; }
+    if (!visible) return;
     fetch(BASE_PATH + 'comets.json')
       .then(r => r.json())
       .then(d => {
         setComets(d);
-        onLoad?.();
+        setLoaded(true);
       })
       .catch(() => {});
-  }, [visible, onLoad]);
+  }, [visible]);
+
+  // Report readiness the way the star layers do. Scene passes a new onLoad
+  // arrow on every render, so it stays out of the fetch effect above: with
+  // it there, a visible layer refetched its data on every render. This
+  // effect does repeat, which re-reports after a loading reset.
+  useEffect(() => {
+    if (!visible || loaded) onLoad?.();
+  }, [visible, loaded, onLoad]);
 
   if (!visible || comets.length === 0) return null;
 

@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { OBSERVATORY_MODE } from './lib/mode'
+import { measureTextScale } from './ui/styles'
 
 declare global {
   interface Window {
@@ -37,6 +38,15 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 )
+
+{
+  // See .scene-label in index.css.
+  const textScale = measureTextScale();
+  const cap = 1.3;
+  if (textScale > cap) {
+    document.documentElement.style.setProperty('--scene-label-zoom', String(cap / textScale));
+  }
+}
 
 if (import.meta.env.VITE_CAPACITOR === 'true') {
   void import('@capacitor/status-bar')

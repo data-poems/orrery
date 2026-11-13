@@ -22,7 +22,7 @@ it('keeps explicitly opened details readable and closes without navigating', asy
     expect(close).not.toBeNull();
     await act(async () => close!.click());
     expect(back).not.toHaveBeenCalled();
-    expect(document.activeElement?.getAttribute('aria-label')).toBe('Sun — show details');
+    expect(document.activeElement?.getAttribute('aria-label')).toBe('Sun, show details');
   } finally {
     await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals();
   }

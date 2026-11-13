@@ -13,6 +13,11 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        <!-- The scene is black in both system themes. Capacitor paints the window
+             with this color wherever the web view does not reach behind the
+             system bars, so it must not follow the light/dark theme. -->
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:navigationBarColor">@android:color/black</item>
     </style>
 
 

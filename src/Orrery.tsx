@@ -15,6 +15,9 @@ import { ALL_BODIES, CAMS, CAM_PRESET_LAYER_EFFECTS, camIndex } from './data/pla
 import { getMoonsForPlanet } from './data/moons';
 import type { NEO, FocusTarget } from './lib/kepler';
 import { julianDate, moonPhase } from './lib/kepler';
+import { fetchSbdbOrbit } from './lib/sbdb';
+import { parseSolarWindSpeed } from './lib/solarWind';
+import { dismissTopForBack } from './lib/backDismiss';
 import { ThemeProvider, useTheme } from './lib/themes';
 import { getConstellationCentroid } from './lib/constellationCentroids';
 import type { CometDef } from './data/comets';
@@ -28,6 +31,7 @@ import SidePanel from './ui/SidePanel';
 import BottomCluster from './ui/BottomCluster';
 import LoadingScreen from './ui/LoadingScreen';
 import OrreryDiagOverlay from './ui/OrreryDiagOverlay';
+import { useTextScale } from './ui/styles';
 import { neoFeedUrlForDay } from './lib/neoFeed';
 import { OBSERVATORY_MODE } from './lib/mode';
 import { IS_ANDROID } from './lib/platform';
@@ -38,6 +42,7 @@ import { createReviewPromptCoordinator } from './lib/reviewPrompt';
 import { useImmersiveVrSupported } from './lib/xr';
 import { tourRandom, recordTourTarget } from './lib/tourRandom';
 import { useAmbientTourClock } from './lib/useAmbientTourClock';
+import { simClockTickMs } from './lib/simClock';
 import type { XRStore } from './scene/XRProvider';
 // @react-three/xr lives only in this lazily-loaded module, mounted only when a
 // headset is detected — so non-XR users never download the XR runtime.
@@ -139,19 +144,6 @@ interface NeoFeedResponse {
   near_earth_objects?: Record<string, NeoFeedEntry[]>;
 }
 
-interface SbdbOrbitElement {
-  label?: string;
-  name?: string;
-  value: string;
-}
-
-interface SbdbOrbitResponse {
-  orbit?: {
-    epoch?: string;
-    elements?: SbdbOrbitElement[];
-  };
-}
-
 const PENDING_NEO_ORBIT: NeoOrbit = {
   a: 0,
   e: 0,
@@ -199,6 +191,7 @@ const CINEMATIC_DEFAULTS: Omit<CinematicStep, 'duration' | 'label'> = {
 
 function OrreryInner() {
   const { theme } = useTheme();
+  const textScale = useTextScale();
   const launchStartsCinematic = LAUNCH_STARTS_CINEMATIC;
   // Only true in a real WebXR browser on a headset (Vision Pro Safari, Quest);
   // always false on phone/desktop/iOS shell, so the entry point stays hidden.
@@ -255,7 +248,9 @@ function OrreryInner() {
   const [canvasCreated, setCanvasCreated] = useState(false);
   const [canvasKey, setCanvasKey] = useState(0);
   const lastCanvasRemountRef = useRef(-Infinity);
-  const glCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  // The live WebGL canvas. State, not a ref, so the context-loss listeners
+  // move to the replacement canvas when the Canvas remounts.
+  const [glCanvas, setGlCanvas] = useState<HTMLCanvasElement | null>(null);
   const cinematicExitButtonRef = useRef<HTMLButtonElement | null>(null);
   const tabHiddenRef = useRef(false);
   const [loadingTasks, setLoadingTasks] = useState<Record<string, boolean>>({
@@ -392,8 +387,9 @@ function OrreryInner() {
   useEffect(() => {
     fetch('https://services.swpc.noaa.gov/products/summary/solar-wind-speed.json')
       .then(r => r.json())
-      .then(data => {
-        if (data?.WindSpeed) setSolarWind(`${Math.round(Number(data.WindSpeed))} km/s`);
+      .then((data: unknown) => {
+        const speed = parseSolarWindSpeed(data);
+        if (speed) setSolarWind(speed);
       })
       .catch(() => {});
   }, []);
@@ -620,13 +616,17 @@ function OrreryInner() {
     positionsRef.current = m;
   }, []);
 
-  // Time tick (~60fps) — skipped while tab is hidden
+  // Sim clock tick, skipped while the tab is hidden. A 16 ms tick at real-time
+  // speed re-rendered the whole app, including every label's own React root,
+  // about 60 times a second without changing anything on screen; see
+  // simClockTickMs for the cadence.
   useEffect(() => {
     if (!playing) return;
+    const tickMs = simClockTickMs(speed);
     const id = setInterval(() => {
       if (tabHiddenRef.current) return;
-      setSimTime(p => new Date(p.getTime() + speed * 16));
-    }, 16);
+      setSimTime(p => new Date(p.getTime() + speed * tickMs));
+    }, tickMs);
     return () => clearInterval(id);
   }, [playing, speed]);
 
@@ -694,31 +694,17 @@ function OrreryInner() {
     setSelNeo(neo);
   }, []);
 
-  // Fetch asteroid orbital elements from NASA SBDB on NEO selection
+  // Fetch asteroid orbital elements from JPL SBDB on NEO selection. Any failure
+  // (offline, blocked by CORS on the website, no elements) shows the fallback.
   useEffect(() => {
     if (!selNeo) return;
     if (!selNeo.orbit || selNeo.orbit.loaded) return;
 
     let cancelled = false;
 
-    fetch(`https://ssd-api.jpl.nasa.gov/sbdb.api?spk=${selNeo.id}&phys-par=false&close-approach=false`)
-      .then(r => r.json())
-      .then((data: SbdbOrbitResponse) => {
+    fetchSbdbOrbit(selNeo.id)
+      .then((orbit) => {
         if (cancelled) return;
-        const elems = data?.orbit?.elements;
-        if (!elems) {
-          throw new Error('missing orbital elements');
-        }
-        const get = (label: string) => {
-          const el = elems.find((entry) => entry.label === label || entry.name === label);
-          return el ? parseFloat(el.value) : 0;
-        };
-        const orbit: NeoOrbit = {
-          a: get('a'), e: get('e'), i: get('i'), om: get('om'), w: get('w'),
-          ma: get('ma'),
-          epoch: parseFloat(data?.orbit?.epoch || '0'),
-          loaded: true,
-        };
         setNeos(prev => prev.map(n => n.id === selNeo.id ? { ...n, orbit } : n));
         setSelNeo(prev => prev?.id === selNeo.id ? { ...prev, orbit } : prev);
       })
@@ -1175,6 +1161,8 @@ function OrreryInner() {
   useEffect(() => {
     const previousHandler = window.__ORRERY_HANDLE_ANDROID_BACK__;
     window.__ORRERY_HANDLE_ANDROID_BACK__ = () => {
+      // About and Keyboard shortcuts sit above everything else.
+      if (dismissTopForBack()) return true;
       if (cinematic) {
         exitCinematic();
         return true;
@@ -1292,15 +1280,18 @@ function OrreryInner() {
   }, []);
 
   useEffect(() => {
-    const canvas = glCanvasRef.current;
-    if (!canvas) return;
-    const onLost = (e: Event) => {
+    if (!glCanvas) return;
+    const canvas: HTMLCanvasElement = glCanvas;
+    function onLost(e: Event) {
       e.preventDefault();
       setPlaying(false);
       setCinematic(false);
       reloadLoadingTasks();
-    };
-    const onRestored = () => {
+    }
+    function onRestored() {
+      // onLost stopped the sim clock, and touch devices have no control to
+      // restart it.
+      setPlaying(true);
       reloadLoadingTasks();
       // Backoff: remounting the Canvas rebuilds every GPU resource. If the
       // device is dropping contexts under memory pressure (common on Android),
@@ -1309,16 +1300,20 @@ function OrreryInner() {
       const now = performance.now();
       if (now - lastCanvasRemountRef.current > 30000) {
         lastCanvasRemountRef.current = now;
+        // Unmounting makes R3F force a context loss on this canvas. Stop
+        // listening first so that teardown is not handled as a new loss.
+        detach();
         setCanvasKey(k => k + 1);
       }
-    };
-    canvas.addEventListener('webglcontextlost', onLost);
-    canvas.addEventListener('webglcontextrestored', onRestored);
-    return () => {
+    }
+    function detach() {
       canvas.removeEventListener('webglcontextlost', onLost);
       canvas.removeEventListener('webglcontextrestored', onRestored);
-    };
-  }, [canvasCreated, reloadLoadingTasks]);
+    }
+    canvas.addEventListener('webglcontextlost', onLost);
+    canvas.addEventListener('webglcontextrestored', onRestored);
+    return detach;
+  }, [glCanvas, reloadLoadingTasks]);
 
   // Extracted so it can render either bare or wrapped in the lazy XRProvider
   // without duplicating the prop list.
@@ -1404,7 +1399,7 @@ function OrreryInner() {
         // traffic on Adreno/Mali and the scene is mostly points/lines anyway.
         gl={{ antialias: !IS_ANDROID, logarithmicDepthBuffer: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.2 }}
         onCreated={({ gl }) => {
-          glCanvasRef.current = gl.domElement;
+          setGlCanvas(gl.domElement);
           setCanvasCreated(true);
           if (cinematic) startCinematicTour();
         }}
@@ -1553,7 +1548,7 @@ function OrreryInner() {
               left: 'calc(env(safe-area-inset-left, 0px) + 20px)',
               bottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)',
               zIndex: 25,
-              minHeight: 44,
+              minHeight: 48,
               padding: '9px 14px',
               borderRadius: 8,
               border: '1px solid rgba(255,255,255,0.28)',
@@ -1582,7 +1577,7 @@ function OrreryInner() {
             <div style={{ fontSize: 15, letterSpacing: 1, fontWeight: 300 }}>
               {simTime.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}
             </div>
-            <div style={{ fontSize: 12, letterSpacing: 2.5, opacity: 0.75, fontVariantNumeric: 'tabular-nums' }}>
+            <div style={{ fontSize: 12, letterSpacing: 2.5, fontVariantNumeric: 'tabular-nums' }}>
               {simTime.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
             </div>
           </div>
@@ -1594,7 +1589,8 @@ function OrreryInner() {
           aria-live="polite"
           style={{
             position: 'fixed',
-            top: 'calc(env(safe-area-inset-top, 0px) + 52px)',
+            // Below the area label, which grows with the system text size.
+            top: `calc(env(safe-area-inset-top, 0px) + ${Math.round(28 + 24 * textScale)}px)`,
             right: 62,
             zIndex: 25,
             pointerEvents: 'none',

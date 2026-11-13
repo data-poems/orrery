@@ -132,7 +132,7 @@ function SpacecraftDot({ craft, selected, onSelect }: {
         </Billboard>
       </group>
       {/* Label */}
-      <Html position={[pos[0], pos[1] + 3, pos[2]]} center distanceFactor={50} style={{ pointerEvents: 'none' }} zIndexRange={[1, 0]}>
+      <Html className="scene-label" position={[pos[0], pos[1] + 3, pos[2]]} center distanceFactor={50} style={{ pointerEvents: 'none' }} zIndexRange={[1, 0]}>
         <div style={{
           color: selected ? '#fff' : 'rgba(255,255,255,0.7)',
           fontSize: 9,
@@ -205,7 +205,7 @@ function NearStarMarkers({ selNearStar, setSelNearStar }: {
                 <meshBasicMaterial visible={false} />
               </mesh>
             </Billboard>
-            <Html position={[pos[0], pos[1] + 4, pos[2]]} center distanceFactor={200} style={{ pointerEvents: 'none' }} zIndexRange={[1, 0]}>
+            <Html className="scene-label" position={[pos[0], pos[1] + 4, pos[2]]} center distanceFactor={200} style={{ pointerEvents: 'none' }} zIndexRange={[1, 0]}>
               <div style={{
                 color: selected ? '#ffffff' : 'rgba(255,255,255,0.7)',
                 fontSize: 8,
@@ -261,7 +261,7 @@ function GalaxyMarkers({ selGalaxy, setSelGalaxy }: {
                 <meshBasicMaterial visible={false} />
               </mesh>
             </Billboard>
-            <Html position={[pos[0], pos[1] + 5, pos[2]]} center distanceFactor={200} style={{ pointerEvents: 'none' }} zIndexRange={[1, 0]}>
+            <Html className="scene-label" position={[pos[0], pos[1] + 5, pos[2]]} center distanceFactor={200} style={{ pointerEvents: 'none' }} zIndexRange={[1, 0]}>
               <div style={{
                 color: selected ? '#ffffff' : 'rgba(200,180,255,0.7)',
                 fontSize: 8,

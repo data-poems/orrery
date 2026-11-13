@@ -64,3 +64,31 @@ function useMaxWidth(px: number): boolean {
   }, [px]);
   return match;
 }
+
+/**
+ * How much the system text size setting enlarges text: 1 at the default, 2 at
+ * Android's 200%. The Android web view scales rendered text but not px, em or
+ * rem lengths, so offsets that have to clear a line of text multiply by this.
+ */
+export function measureTextScale(): number {
+  if (typeof document === 'undefined' || !document.body) return 1;
+  const probe = document.createElement('span');
+  probe.style.cssText = 'position:absolute;visibility:hidden;font-size:16px;line-height:1;';
+  probe.textContent = 'M';
+  document.body.appendChild(probe);
+  const rendered = parseFloat(getComputedStyle(probe).fontSize);
+  probe.remove();
+  const scale = rendered / 16;
+  return Number.isFinite(scale) && scale > 0 ? Math.max(1, Math.min(3, scale)) : 1;
+}
+
+export function useTextScale(): number {
+  const [scale] = useState(measureTextScale);
+  return scale;
+}
+
+/** True when the main pointer is a finger (phones and tablets at any width). */
+export function isTouchPrimary(): boolean {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    && window.matchMedia('(pointer: coarse)').matches;
+}

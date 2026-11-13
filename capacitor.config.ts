@@ -20,6 +20,11 @@ const config: CapacitorConfig = {
       splashFullScreen: true,
       splashImmersive: true,
     },
+    // Android: white status and navigation bar icons in both system themes,
+    // because the scene behind them is always black.
+    SystemBars: {
+      style: 'DARK',
+    },
     StatusBar: {
       style: 'DARK',
       backgroundColor: '#000000',

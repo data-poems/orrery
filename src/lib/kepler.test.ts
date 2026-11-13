@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { julianDate, planetXYZ, raDecTo3D } from './kepler';
+import { julianDate, planetXYZ, raDecTo3D, orbitPath, orbitPathEpoch, moonOrbitPath } from './kepler';
 import type { PlanetDef } from './kepler';
 
 /** Minimal Earth/Mars/Jupiter defs (J2000 epoch) for golden-vector tests. */
@@ -56,5 +56,41 @@ describe('raDecTo3D round-trip', () => {
 describe('julianDate', () => {
   it('matches J2000 noon', () => {
     expect(julianDate(new Date('2000-01-01T12:00:00Z'))).toBeCloseTo(2451545.5, 2);
+  });
+});
+
+describe('orbit line geometry stays stable while time runs', () => {
+  const DAY = 1 / 36525;
+
+  it('keeps one orbit epoch for the whole simulated day', () => {
+    const start = julianDate(new Date('2026-09-05T17:10:53Z'));
+    const later = julianDate(new Date('2026-09-05T18:10:54Z'));
+    const tStart = (start - 2451545) / 36525;
+    const tLater = (later - 2451545) / 36525;
+    expect(tLater).not.toBe(tStart);
+    expect(orbitPathEpoch(tLater)).toBe(orbitPathEpoch(tStart));
+    expect(orbitPathEpoch(tStart + DAY)).toBeGreaterThan(orbitPathEpoch(tStart));
+  });
+
+  it('draws the same ellipse as the exact epoch to within a micro-AU', () => {
+    const T = 0.2678912345;
+    const exact = orbitPath(JUPITER, T);
+    const held = orbitPath(JUPITER, orbitPathEpoch(T));
+    const worst = Math.max(...exact.map((p, i) => p.distanceTo(held[i])));
+    expect(worst).toBeLessThan(1e-6);
+  });
+
+  it('matches the former world-space moon orbit once translated to the parent', () => {
+    const parent: [number, number, number] = [-4.81, 0.11, 1.37];
+    const a = 0.09, incDeg = 1.8;
+    const inc = incDeg * (Math.PI / 180);
+    const local = moonOrbitPath(a, incDeg);
+    expect(local).toHaveLength(65);
+    local.forEach((p, i) => {
+      const theta = (i / 64) * Math.PI * 2;
+      expect(p.x + parent[0]).toBeCloseTo(parent[0] + a * Math.cos(theta), 12);
+      expect(p.y + parent[1]).toBeCloseTo(parent[1] + a * Math.sin(inc) * Math.sin(theta), 12);
+      expect(p.z + parent[2]).toBeCloseTo(parent[2] + a * Math.sin(theta) * Math.cos(inc), 12);
+    });
   });
 });

@@ -6,6 +6,10 @@ All notable changes to Orrery are documented here.
 
 ### Fixed
 
+- Android build 784, accessibility: touch targets are at least 48dp, TalkBack
+  stays inside an open dialog, low-contrast text is raised to 4.5:1, names in
+  the scene stop growing at 130 percent text size, and asterism names are
+  readable.
 - Android build 783: the launcher icon is the orrery artwork instead of the
   Android Studio template.
 - Android: the bands behind the status and navigation bars are black in light

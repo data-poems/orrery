@@ -9,8 +9,9 @@
  * Two poses change the layout while the device is partly open:
  * - tabletop (fold across the screen): the scene stands on the upper half, and
  *   the controls and readouts sit on the half resting on the table;
- * - book (fold down the screen): the scene keeps the full width, and the control
- *   strip and planet chip move to the right page, off the fold.
+ * - book (fold down the screen): the scene keeps the full width but centers on
+ *   the left page (a camera view offset), and the control strip and planet chip
+ *   move to the right page, off the fold.
  * Fully open, the system reports no active fold. Held sideways the controls stay
  * on the right page anyway (the crease is still down the middle, and moving them
  * as the hinge opens would be noise); held upright the scene fills the screen.
@@ -77,6 +78,18 @@ export function duoLayoutFor(
 
 export function sameDuoLayout(a: DuoLayout, b: DuoLayout): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/**
+ * A camera view offset that puts the scene's center on the left page while the
+ * canvas still fills the screen. The rendered canvas is a window into a wider
+ * virtual view whose optical axis lands at the left page's center; the height,
+ * and so the vertical field of view and every object's size, stay the same.
+ */
+export function bookViewOffset(layout: { foldLeft: number }, size: { width: number; height: number }) {
+  const center = layout.foldLeft / 2;
+  const fullWidth = 2 * (size.width - center);
+  return { fullWidth, fullHeight: size.height, x: fullWidth / 2 - center, y: 0 };
 }
 
 /** Center and width of the page right of the fold, in viewport px. */

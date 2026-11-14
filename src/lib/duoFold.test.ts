@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { duoLayoutFor, rightPage, sameDuoLayout, type DuoFoldState } from './duoFold';
+import { bookViewOffset, duoLayoutFor, rightPage, sameDuoLayout, type DuoFoldState } from './duoFold';
 
 // The Duo simulator's regions: 40 pt bands at 455.5.
 const tabletop: DuoFoldState = { hinge: true, pose: 'laptop', fold: { x: 0, y: 455.5, width: 669, height: 40 } };
@@ -43,6 +43,15 @@ describe('duoLayoutFor', () => {
 
   it('ignores a fold whose direction does not match the pose', () => {
     expect(duoLayoutFor({ ...tabletop, pose: 'book' }, { width: 669, height: 951 })).toBeNull();
+  });
+});
+
+describe('bookViewOffset', () => {
+  it('puts the optical axis at the left page center without changing the height', () => {
+    const o = bookViewOffset({ foldLeft: 455.5 }, { width: 951, height: 669 });
+    expect(o).toEqual({ fullWidth: 1446.5, fullHeight: 669, x: 495.5, y: 0 });
+    // The full view's center, seen through the canvas window, is the left page's center.
+    expect(o.fullWidth / 2 - o.x).toBe(455.5 / 2);
   });
 });
 

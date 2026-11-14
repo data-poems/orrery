@@ -26,6 +26,7 @@ import type { SatellitePosition } from './lib/satellites';
 import type { Spacecraft, NearStar, GalaxyMarker } from './data/deepspace';
 import { SPACECRAFT, heliocentricXYZ } from './data/deepspace';
 import Scene from './scene/Scene';
+import DuoViewOffset from './scene/DuoViewOffset';
 import Panels from './ui/Panels';
 import SidePanel from './ui/SidePanel';
 import BottomCluster from './ui/BottomCluster';
@@ -1427,6 +1428,7 @@ function OrreryInner() {
           }
         }}
       >
+        <DuoViewOffset layout={duoLayout} />
         <Suspense fallback={null}>
           {/* null = XR support check still pending (XR-capable browsers only);
               withholding the first mount until it resolves keeps Scene from

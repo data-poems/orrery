@@ -7,7 +7,9 @@ All notable changes to Orrery are documented here.
 ### Changed
 
 - Version 1.3.0, shared native build 785: the iOS TestFlight build, and the
-  numbers the next Android build uses.
+  numbers the next Android build uses. iOS 1.3.0 (785) went to TestFlight on
+  November 14 (internal group only, like 777) from af85893; IPA SHA-256
+  83b940ab26da4e42480260a824188c145d4260e27a9ea93e06500b24deed140c.
 
 ### Added
 

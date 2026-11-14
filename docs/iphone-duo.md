@@ -1,6 +1,7 @@
 # iPhone Duo
 
-November 14, 2026. Not released or uploaded.
+November 14, 2026. In iOS 1.3.0 (785) on TestFlight (internal group); not on the
+App Store yet.
 
 ## What changes
 

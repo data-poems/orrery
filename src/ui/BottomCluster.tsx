@@ -10,6 +10,7 @@
  */
 import { Z } from './styles';
 import { PREFERS_REDUCED_MOTION } from '../lib/motion';
+import { rightPage, useDuoLayout } from '../lib/duoFold';
 
 /** Inline monochrome gear (currentColor) — avoids the ⚙ emoji-presentation risk. */
 function GearIcon() {
@@ -135,6 +136,9 @@ export default function BottomCluster({
 }: BottomClusterProps) {
   // 48 on every screen: Android's minimum touch target.
   const size = 48;
+  // iPhone Duo book pose: the strip moves to the right page, off the fold.
+  const duo = useDuoLayout();
+  const page = duo?.kind === 'book' ? rightPage(duo) : null;
   const textButton = { minWidth: 48, minHeight: 48, padding: '6px 8px', color: '#fff',
     background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 10,
     fontFamily: 'system-ui, sans-serif', fontSize: 12, cursor: 'pointer' } as const;
@@ -151,8 +155,8 @@ export default function BottomCluster({
       style={{
         position: 'fixed', zIndex: Z.controls,
         bottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)',
-        left: '50%', transform: 'translateX(-50%)',
-        display: 'flex', gap: 4, padding: 6, maxWidth: '94vw', overflowX: 'auto',
+        left: page ? page.center : '50%', transform: 'translateX(-50%)',
+        display: 'flex', gap: 4, padding: 6, maxWidth: page ? page.width - 16 : '94vw', overflowX: 'auto',
         background: 'rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.08)',
         borderRadius: 14, backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
         opacity: 1,

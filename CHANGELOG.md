@@ -4,6 +4,14 @@ All notable changes to Orrery are documented here.
 
 ## Unreleased
 
+### Added
+
+- iPhone Duo: standing half-open like a laptop (tabletop), the solar system
+  fills the upper half and the controls and planet readout sit on the half
+  resting on the table. Held sideways (book or fully open), the control strip
+  and planet readout move to the right page, off the fold. Other screens,
+  including the website, are unchanged. See [iPhone Duo](docs/iphone-duo.md).
+
 ### Fixed
 
 - Android build 784, accessibility: touch targets are at least 48dp, TalkBack

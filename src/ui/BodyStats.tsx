@@ -12,6 +12,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { PREFERS_REDUCED_MOTION } from '../lib/motion';
+import { rightPage, useDuoLayout } from '../lib/duoFold';
 
 export interface BodyStat { label: string; value: string }
 
@@ -50,6 +51,13 @@ function ArrowLeftIcon({ size = 18 }: { size?: number }) {
 
 export default function BodyStats({ name, subtitle, color, stats, accent, accentRgb, onBack, compact, hudVisible = true }: BodyStatsProps) {
   const [expanded, setExpanded] = useState(false);
+  // iPhone Duo: on the right page in book pose; kept below the fold in tabletop.
+  const duo = useDuoLayout();
+  const page = duo?.kind === 'book' ? rightPage(duo) : null;
+  const chipMaxWidth = page ? `min(${page.width - 16}px, 560px)` : 'min(94vw, 560px)';
+  const chipMaxHeight = duo?.kind === 'tabletop'
+    ? `calc(100dvh - ${duo.foldBottom + 8}px - 100px - env(safe-area-inset-bottom,0px))`
+    : 'calc(100dvh - 160px)';
   const detailsButton = useRef<HTMLButtonElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
   const wasExpanded = useRef(false);
@@ -84,13 +92,13 @@ export default function BodyStats({ name, subtitle, color, stats, accent, accent
         style={{
           // Reading never covers the navigation controls or moves their anchor.
           position: 'fixed', zIndex: 28,
-          left: '50%', transform: 'translateX(-50%)',
+          left: page ? page.center : '50%', transform: 'translateX(-50%)',
           bottom: 'calc(env(safe-area-inset-bottom,0px) + 100px)',
           ...fade,
           transition: PREFERS_REDUCED_MOTION ? undefined : 'opacity 0.5s ease, bottom 0.32s cubic-bezier(0.4,0,0.2,1)',
-          width: expanded ? 'min(94vw, 560px)' : undefined,
-          maxWidth: 'min(94vw, 560px)',
-          maxHeight: 'calc(100dvh - 160px)', overflowY: 'auto',
+          width: expanded ? chipMaxWidth : undefined,
+          maxWidth: chipMaxWidth,
+          maxHeight: chipMaxHeight, overflowY: 'auto',
         }}
       >
         {children}

@@ -105,7 +105,7 @@ growth (479,768 to 931,087 KB PSS). Both builds remain blocked from submission. 
 [`android/FIRE-GRAPHICS-INVESTIGATION.md`](android/FIRE-GRAPHICS-INVESTIGATION.md).
 See [`android/AMAZON-RELEASE.md`](android/AMAZON-RELEASE.md).
 
-The Capacitor Android shell uses the same `1.2.2` marketing version as
+The Capacitor Android shell uses the same marketing version (`1.3.0`) as
 `package.json` and iOS, and the same positive native build number as iOS
 `CURRENT_PROJECT_VERSION`. Gradle stops if those values drift. Android keeps the
 existing low-GPU profile: Android WebViews use 2K textures, reduced blended star

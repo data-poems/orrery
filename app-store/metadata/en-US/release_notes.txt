@@ -1,1 +1,1 @@
-Fixed an issue that could prevent Uranus and Neptune textures from loading on iPhone and iPad.
+Ready for iPhone Duo. Half-open like a laptop, the solar system stands on the top half with the controls below. Held sideways, the scene and the controls each get their own page. Also built for iOS 27.

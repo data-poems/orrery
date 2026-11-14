@@ -4,6 +4,11 @@ All notable changes to Orrery are documented here.
 
 ## Unreleased
 
+### Changed
+
+- Version 1.3.0, shared native build 785: the iOS TestFlight build, and the
+  numbers the next Android build uses.
+
 ### Added
 
 - iPhone Duo: standing half-open like a laptop (tabletop), the solar system

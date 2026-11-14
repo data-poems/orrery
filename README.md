@@ -75,6 +75,10 @@ React 19, TypeScript 5.9, Three.js (r183) via @react-three/fiber + @react-three/
 
 - iOS sync pipeline: `pnpm ios:sync`
 - Optional compile gate: `pnpm ios:compile`
+- UIScene life cycle: `ios/App/App/SceneDelegate.swift` and `UIApplicationSceneManifest`
+  in `Info.plist`. Keep both: UIKit refuses to launch an app built with the iOS 27 SDK
+  without them (Apple TN3187). Check a build on an iOS 27 simulator: the log must have
+  no "UIScene life cycle is required" line
 - iPad panel updates: safe-area aligned right drawer with explicit close button
 - Launch stability note: the current build disables the Milky Way backdrop in deep space to avoid iPad streak artifacts
 - App Store submission kit:

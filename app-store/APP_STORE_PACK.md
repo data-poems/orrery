@@ -15,8 +15,8 @@ This document is the single source of truth for App Store and TestFlight submiss
 | Team ID | `596T7J7FB6` |
 | iOS bundle ID | `solar.orrery` |
 | Capacitor app ID | `solar.orrery` |
-| Marketing version | `1.2.2` |
-| Build number | `777` (global App Store Connect build floor: `22`) |
+| Marketing version | `1.3.0` |
+| Build number | `785` (TestFlight; App Store live: 1.2.2 build `777`) |
 
 ## App Store Metadata Pack
 
@@ -53,15 +53,16 @@ Questions or feedback: luke@lukesteuber.com
 
 #### What to Test (TestFlight)
 
-- Launch app and verify splash transitions into the 3D scene.
-- Let the cinematic intro complete and verify interactive HUD appears.
-- Relaunch and verify the app starts in the interactive Full System view; use Controls -> Replay Cinematic Tour to replay the intro.
-- Select Earth and other planets, then drill into moon-level views.
-- Toggle Sky overlays and constellation labels.
-- Toggle Deep Space layer (spacecraft / nearby star markers / galaxy markers) and verify no streak artifacts.
-- Verify iPad sidebar opens and closes reliably with the in-panel close button.
+1.3.0 (785): built with the iOS 27 SDK, and ready for iPhone Duo.
+
+- Launch on iOS 27 and verify the splash hands off to the 3D scene.
+- iPhone Duo, half-open upright like a laptop: the solar system stands on the upper half; the controls and planet readout sit on the lower half.
+- iPhone Duo, sideways: the scene centers on the left page; the controls and readout sit on the right page, with nothing to tap on the crease.
+- iPhone Duo: fold, unfold and rotate mid-session; the scene follows without reloading.
+- Select the Sun and planets, open Details, then drill into moon-level views.
+- Toggle Sky overlays, constellation labels and the Deep Space layer.
+- Relaunch and verify the app starts in the interactive Full System view; Controls -> Replay Cinematic Tour replays the intro.
 - Leave the app open for several minutes and verify the scene keeps updating without stalling.
-- Verify orientation behavior in portrait and landscape.
 
 ## Privacy and Compliance Pack
 

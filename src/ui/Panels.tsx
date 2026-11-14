@@ -16,6 +16,7 @@ import { getMoonsForPlanet } from '../data/moons';
 import { useTheme } from '../lib/themes';
 import { bokehCard, useIsMobile, useIsCompact, useTextScale, isTouchPrimary, Z, BLUR } from './styles';
 import { PREFERS_REDUCED_MOTION } from '../lib/motion';
+import { useDuoLayout, type DuoLayout } from '../lib/duoFold';
 import BodyStats from './BodyStats';
 import type { CometDef } from '../data/comets';
 import type { MeteorShower } from '../scene/Meteors';
@@ -379,6 +380,12 @@ function ShortcutsSheet({ open, onClose, accent, accentRgb }: {
 // container as BodyStats (no bottom modal). Title + subtitle + description and
 // optional children (stat rows).
 const infoShadow = '0 1px 10px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.9)';
+/** Bottom-anchored phone panels; on iPhone Duo in tabletop pose they stop below the fold. */
+function infoPanelMaxHeight(mobile: boolean, duo: DuoLayout): string {
+  if (!mobile) return 'calc(100vh - 80px)';
+  if (duo?.kind === 'tabletop') return `min(48vh, calc(100dvh - ${duo.foldBottom + 8}px - 92px - env(safe-area-inset-bottom,0px)))`;
+  return '48vh';
+}
 function InfoPanel({
   sectionTitle, title, subtitle, description, accentRgb, mobile, onClose, closeLabel, children,
 }: {
@@ -387,6 +394,7 @@ function InfoPanel({
   onClose: () => void; closeLabel: string;
   children?: React.ReactNode;
 }) {
+  const duo = useDuoLayout();
   return (
     <div
       role="region"
@@ -400,7 +408,7 @@ function InfoPanel({
         top: mobile ? 'auto' : '50%',
         bottom: mobile ? 'calc(env(safe-area-inset-bottom,0px) + 92px)' : 'auto',
         transform: mobile ? 'none' : 'translateY(-50%)',
-        maxWidth: mobile ? 'calc(100vw - 28px)' : 290, maxHeight: mobile ? '48vh' : 'calc(100vh - 80px)', overflowY: 'auto',
+        maxWidth: mobile ? 'calc(100vw - 28px)' : 290, maxHeight: infoPanelMaxHeight(mobile, duo), overflowY: 'auto',
         padding: mobile ? '14px 16px' : '18px 20px',
         background: 'rgba(8,11,22,0.42)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14,
         backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
@@ -477,6 +485,7 @@ export default function Panels(props: PanelProps) {
   const accent = theme.uiAccent;
   const accentRgb = theme.uiAccentRgb;
   const mobile = useIsMobile();
+  const duo = useDuoLayout();
   const textScale = useTextScale();
   const compact = useIsCompact();
   const [showInfo, setShowInfo] = useState(false);
@@ -849,7 +858,7 @@ export default function Panels(props: PanelProps) {
             top: mobile ? 'auto' : '50%',
             bottom: mobile ? 'calc(env(safe-area-inset-bottom,0px) + 92px)' : 'auto',
             transform: mobile ? 'none' : 'translateY(-50%)',
-            maxWidth: mobile ? 'calc(100vw - 28px)' : 300, maxHeight: mobile ? '48vh' : 'calc(100vh - 80px)', overflowY: 'auto',
+            maxWidth: mobile ? 'calc(100vw - 28px)' : 300, maxHeight: infoPanelMaxHeight(mobile, duo), overflowY: 'auto',
             padding: mobile ? '14px 16px' : '18px 20px',
             background: 'rgba(8,11,22,0.42)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14,
             backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',

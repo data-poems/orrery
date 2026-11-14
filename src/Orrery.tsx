@@ -26,12 +26,14 @@ import type { SatellitePosition } from './lib/satellites';
 import type { Spacecraft, NearStar, GalaxyMarker } from './data/deepspace';
 import { SPACECRAFT, heliocentricXYZ } from './data/deepspace';
 import Scene from './scene/Scene';
+import DuoViewOffset from './scene/DuoViewOffset';
 import Panels from './ui/Panels';
 import SidePanel from './ui/SidePanel';
 import BottomCluster from './ui/BottomCluster';
 import LoadingScreen from './ui/LoadingScreen';
 import OrreryDiagOverlay from './ui/OrreryDiagOverlay';
 import { useTextScale } from './ui/styles';
+import { useDuoLayout } from './lib/duoFold';
 import { neoFeedUrlForDay } from './lib/neoFeed';
 import { OBSERVATORY_MODE } from './lib/mode';
 import { IS_ANDROID } from './lib/platform';
@@ -192,6 +194,8 @@ const CINEMATIC_DEFAULTS: Omit<CinematicStep, 'duration' | 'label'> = {
 function OrreryInner() {
   const { theme } = useTheme();
   const textScale = useTextScale();
+  // iPhone Duo tabletop: the scene stands on the upper half (see lib/duoFold).
+  const duoLayout = useDuoLayout();
   const launchStartsCinematic = LAUNCH_STARTS_CINEMATIC;
   // Only true in a real WebXR browser on a headset (Vision Pro Safari, Quest);
   // always false on phone/desktop/iOS shell, so the entry point stays hidden.
@@ -1394,7 +1398,9 @@ function OrreryInner() {
           near: 0.02,
           far: 250000,
         }}
-        style={{ position: 'absolute', inset: 0 }}
+        style={duoLayout?.kind === 'tabletop'
+          ? { position: 'absolute', top: 0, left: 0, right: 0, height: duoLayout.foldTop }
+          : { position: 'absolute', inset: 0 }}
         // Android profile: skip MSAA — multisampling multiplies tile-memory
         // traffic on Adreno/Mali and the scene is mostly points/lines anyway.
         gl={{ antialias: !IS_ANDROID, logarithmicDepthBuffer: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.2 }}
@@ -1422,6 +1428,7 @@ function OrreryInner() {
           }
         }}
       >
+        <DuoViewOffset layout={duoLayout} />
         <Suspense fallback={null}>
           {/* null = XR support check still pending (XR-capable browsers only);
               withholding the first mount until it resolves keeps Scene from

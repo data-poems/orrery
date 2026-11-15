@@ -6,10 +6,17 @@ All notable changes to Orrery are documented here.
 
 ### Changed
 
-- Version 1.3.0, shared native build 785: the iOS TestFlight build, and the
-  numbers the next Android build uses. iOS 1.3.0 (785) went to TestFlight on
+- Version 1.3.0, shared native build 786 (785 before the laptop-pose fix): the
+  iOS build, and the numbers the next Android build uses. iOS 1.3.0 (785) went to TestFlight on
   November 14 (internal group only, like 777) from af85893; IPA SHA-256
   83b940ab26da4e42480260a824188c145d4260e27a9ea93e06500b24deed140c.
+
+### Fixed
+
+- iPhone Duo, half-open like a laptop (build 786): info cards hang from the fold
+  and span the lower half, and only one shows at a time; before, a constellation
+  or comet card opened on top of the planet's details. A planet's details start
+  open there with larger type, and an empty lower half says what it is for.
 
 ### Added
 

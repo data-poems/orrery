@@ -386,6 +386,16 @@ function infoPanelMaxHeight(mobile: boolean, duo: DuoLayout): string {
   if (duo?.kind === 'tabletop') return `min(48vh, calc(100dvh - ${duo.foldBottom + 8}px - 92px - env(safe-area-inset-bottom,0px)))`;
   return '48vh';
 }
+/** iPhone Duo tabletop: info cards hang from the fold and span the lower half's width. */
+function tabletopPlacement(duo: DuoLayout): React.CSSProperties {
+  if (duo?.kind !== 'tabletop') return {};
+  return {
+    top: duo.foldBottom + 12, bottom: 'auto', transform: 'none',
+    left: 'calc(env(safe-area-inset-left,0px) + 14px)', right: 'calc(env(safe-area-inset-right,0px) + 14px)',
+    maxWidth: 'none',
+    maxHeight: `calc(100dvh - ${duo.foldBottom + 12}px - 92px - env(safe-area-inset-bottom,0px))`,
+  };
+}
 function InfoPanel({
   sectionTitle, title, subtitle, description, accentRgb, mobile, onClose, closeLabel, children,
 }: {
@@ -409,6 +419,7 @@ function InfoPanel({
         bottom: mobile ? 'calc(env(safe-area-inset-bottom,0px) + 92px)' : 'auto',
         transform: mobile ? 'none' : 'translateY(-50%)',
         maxWidth: mobile ? 'calc(100vw - 28px)' : 290, maxHeight: infoPanelMaxHeight(mobile, duo), overflowY: 'auto',
+        ...tabletopPlacement(duo),
         padding: mobile ? '14px 16px' : '18px 20px',
         background: 'rgba(8,11,22,0.42)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14,
         backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
@@ -525,6 +536,10 @@ export default function Panels(props: PanelProps) {
     return registerBackDismiss(() => setShowShortcuts(false));
   }, [showShortcuts]);
   const sp = selPlanet !== null ? ALL_BODIES[selPlanet] : null;
+  // iPhone Duo tabletop shows one card at a time under the fold.
+  const tabletop = duo?.kind === 'tabletop' ? duo : null;
+  const otherCardOpen = !!((selConstellation && MYTHOLOGY[selConstellation]) || selAsterism || selSpacecraft
+    || selNearStar || selGalaxy || selComet || selMeteor || selSatellite || selNeo);
 
   // Selected moon info
   const selectedMoon = selPlanet !== null && selMoonIdx !== null
@@ -810,7 +825,19 @@ export default function Panels(props: PanelProps) {
       )}
 
       {/* ── Planet/Moon info card (hidden in observatory / cinematic — tour sets selPlanet for camera) ── */}
-      {!cinematic && !observatoryMode && (selSun || sp || selectedMoon) && (
+      {/* iPhone Duo tabletop: an empty lower half says what it is for. */}
+      {tabletop && !cinematic && !observatoryMode && !otherCardOpen && !(selSun || sp || selectedMoon) && (
+        <p style={{
+          position: 'fixed', zIndex: Z.hud, pointerEvents: 'none', margin: 0,
+          left: 24, right: 24, textAlign: 'center',
+          top: `calc(${tabletop.foldBottom}px + (100dvh - ${tabletop.foldBottom}px - 92px - env(safe-area-inset-bottom,0px)) / 2 - 12px)`,
+          color: 'rgba(255,255,255,0.62)', fontSize: 17, letterSpacing: 0.4,
+          fontFamily: "'Cormorant Garamond','Garamond','Georgia',serif",
+        }}>
+          Tap a planet, moon or star to see its details here.
+        </p>
+      )}
+      {!cinematic && !observatoryMode && (selSun || sp || selectedMoon) && !(tabletop && otherCardOpen) && (
         <BodyStats
           key={selectedMoon ? `m${selectedMoon.name}` : selSun ? 'sun' : sp!.name}
           name={selectedMoon ? selectedMoon.name : selSun ? 'Sun' : sp!.name}
@@ -859,6 +886,7 @@ export default function Panels(props: PanelProps) {
             bottom: mobile ? 'calc(env(safe-area-inset-bottom,0px) + 92px)' : 'auto',
             transform: mobile ? 'none' : 'translateY(-50%)',
             maxWidth: mobile ? 'calc(100vw - 28px)' : 300, maxHeight: infoPanelMaxHeight(mobile, duo), overflowY: 'auto',
+            ...tabletopPlacement(duo),
             padding: mobile ? '14px 16px' : '18px 20px',
             background: 'rgba(8,11,22,0.42)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14,
             backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',

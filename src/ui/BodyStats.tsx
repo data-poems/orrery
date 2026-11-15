@@ -50,9 +50,19 @@ function ArrowLeftIcon({ size = 18 }: { size?: number }) {
 }
 
 export default function BodyStats({ name, subtitle, color, stats, accent, accentRgb, onBack, compact, hudVisible = true }: BodyStatsProps) {
-  const [expanded, setExpanded] = useState(false);
-  // iPhone Duo: on the right page in book pose; kept below the fold in tabletop.
+  // iPhone Duo: on the right page in book pose; hung from the fold in tabletop,
+  // where the lower half has room for the details, so they start open.
   const duo = useDuoLayout();
+  const tabletop = duo?.kind === 'tabletop' ? duo : null;
+  const [expanded, setExpanded] = useState(tabletop !== null);
+  const toggledByUser = useRef(false);
+  const isTabletop = tabletop !== null;
+  // Entering the pose opens the details (state adjusted during render, not in an effect).
+  const [wasTabletop, setWasTabletop] = useState(isTabletop);
+  if (wasTabletop !== isTabletop) {
+    setWasTabletop(isTabletop);
+    if (isTabletop) setExpanded(true);
+  }
   const page = duo?.kind === 'book' ? rightPage(duo) : null;
   const chipMaxWidth = page ? `min(${page.width - 16}px, 560px)` : 'min(94vw, 560px)';
   const chipMaxHeight = duo?.kind === 'tabletop'
@@ -62,8 +72,12 @@ export default function BodyStats({ name, subtitle, color, stats, accent, accent
   const closeButton = useRef<HTMLButtonElement>(null);
   const wasExpanded = useRef(false);
   useEffect(() => {
-    if (expanded) closeButton.current?.focus();
-    else if (wasExpanded.current) detailsButton.current?.focus();
+    // Move focus only when the person opened or closed the details themselves.
+    if (toggledByUser.current) {
+      if (expanded) closeButton.current?.focus();
+      else if (wasExpanded.current) detailsButton.current?.focus();
+      toggledByUser.current = false;
+    }
     wasExpanded.current = expanded;
   }, [expanded]);
   // Drive entrance + idle fade through one opacity transition (replaces the
@@ -99,6 +113,11 @@ export default function BodyStats({ name, subtitle, color, stats, accent, accent
           width: expanded ? chipMaxWidth : undefined,
           maxWidth: chipMaxWidth,
           maxHeight: chipMaxHeight, overflowY: 'auto',
+          ...(tabletop ? {
+            top: tabletop.foldBottom + 12, bottom: 'auto', transform: 'none',
+            left: 'calc(env(safe-area-inset-left,0px) + 14px)', right: 'calc(env(safe-area-inset-right,0px) + 14px)',
+            width: undefined, maxWidth: 'none',
+          } : null),
         }}
       >
         {children}
@@ -110,7 +129,7 @@ export default function BodyStats({ name, subtitle, color, stats, accent, accent
         <button
           ref={detailsButton}
           type="button"
-          onClick={(e) => { e.stopPropagation(); setExpanded(true); }}
+          onClick={(e) => { e.stopPropagation(); toggledByUser.current = true; setExpanded(true); }}
           aria-label={`${name}, show details`}
           aria-expanded={false}
           style={{
@@ -136,12 +155,12 @@ export default function BodyStats({ name, subtitle, color, stats, accent, accent
     } as const;
 
     return wrap(
-      <div style={{ ...surface, padding: '10px 12px 11px', borderRadius: 14 }}>
+      <div style={{ ...surface, padding: tabletop ? '16px 18px 18px' : '10px 12px 11px', borderRadius: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
           {dot}
-          <span style={{ color: '#fff', fontSize: 18, letterSpacing: 0.8, textShadow: shadow, flexShrink: 0 }}>{name}</span>
-          <span style={{ color: 'rgba(255,255,255,0.78)', fontSize: 14, textShadow: shadow, flex: '1 1 100%' }}>{subtitle}</span>
-          <button ref={closeButton} type="button" onClick={(e) => { e.stopPropagation(); setExpanded(false); }} aria-label="Close details" aria-expanded={true}
+          <span style={{ color: '#fff', fontSize: tabletop ? 30 : 18, letterSpacing: 0.8, textShadow: shadow, flexShrink: 0 }}>{name}</span>
+          <span style={{ color: 'rgba(255,255,255,0.78)', fontSize: tabletop ? 17 : 14, textShadow: shadow, flex: '1 1 100%' }}>{subtitle}</span>
+          <button ref={closeButton} type="button" onClick={(e) => { e.stopPropagation(); toggledByUser.current = true; setExpanded(false); }} aria-label="Close details" aria-expanded={true}
             style={{ ...iconTile, width: 'auto', padding: '0 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.16)', color: 'rgba(255,255,255,0.82)' }}>
             Close
           </button>
@@ -150,11 +169,13 @@ export default function BodyStats({ name, subtitle, color, stats, accent, accent
             Zoom out
           </button>
         </div>
-        <div style={{ display: 'flex', gap: 18, overflowX: 'auto', marginTop: 9, paddingBottom: 1, WebkitOverflowScrolling: 'touch' }}>
+        <div style={tabletop
+          ? { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '14px 24px', marginTop: 18 }
+          : { display: 'flex', gap: 18, overflowX: 'auto', marginTop: 9, paddingBottom: 1, WebkitOverflowScrolling: 'touch' }}>
           {stats.map((s) => (
-            <div key={s.label} style={{ flexShrink: 0 }}>
-              <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, letterSpacing: 0.5, textTransform: 'uppercase', textShadow: shadow }}>{s.label}</div>
-              <div style={{ color: '#fff', fontSize: 14, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', marginTop: 1, textShadow: shadow }}>{s.value}</div>
+            <div key={s.label} style={{ flexShrink: 0, minWidth: 0 }}>
+              <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: tabletop ? 13 : 12, letterSpacing: 0.5, textTransform: 'uppercase', textShadow: shadow }}>{s.label}</div>
+              <div style={{ color: '#fff', fontSize: tabletop ? 20 : 14, fontVariantNumeric: 'tabular-nums', whiteSpace: tabletop ? 'normal' : 'nowrap', marginTop: 1, textShadow: shadow }}>{s.value}</div>
             </div>
           ))}
         </div>

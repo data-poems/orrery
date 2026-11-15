@@ -16,7 +16,7 @@ This document is the single source of truth for App Store and TestFlight submiss
 | iOS bundle ID | `solar.orrery` |
 | Capacitor app ID | `solar.orrery` |
 | Marketing version | `1.3.0` |
-| Build number | `785` (TestFlight; App Store live: 1.2.2 build `777`) |
+| Build number | `786` (785 on TestFlight; App Store live: 1.2.2 build `777`) |
 
 ## App Store Metadata Pack
 
@@ -53,7 +53,7 @@ Questions or feedback: luke@lukesteuber.com
 
 #### What to Test (TestFlight)
 
-1.3.0 (785): built with the iOS 27 SDK, and ready for iPhone Duo.
+1.3.0 (786): built with the iOS 27 SDK, and ready for iPhone Duo.
 
 - Launch on iOS 27 and verify the splash hands off to the 3D scene.
 - iPhone Duo, half-open upright like a laptop: the solar system stands on the upper half; the controls and planet readout sit on the lower half.

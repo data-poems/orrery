@@ -13,6 +13,7 @@
 import { hideBackgroundFromAssistiveTech } from '../lib/modalBackground';
 import { useEffect } from 'react';
 import { PREFERS_REDUCED_MOTION } from '../lib/motion';
+import { CloseIcon, StarIcon } from './icons';
 
 export interface SidePanelProps {
   accent: string;
@@ -150,7 +151,7 @@ export default function SidePanel({ accent, onAction, layerState, open, onOpenCh
               background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.7)',
               fontFamily: 'inherit', fontSize: 22,
             }}>
-            <span aria-hidden="true">{'×'}</span>
+            <CloseIcon />
           </button>
         </div>
 
@@ -179,7 +180,7 @@ export default function SidePanel({ accent, onAction, layerState, open, onOpenCh
 
         <h3 style={heading}>Sky</h3>
         <button type="button" style={row(!!layerState.sky)} onClick={() => act('toggleSky')} aria-pressed={!!layerState.sky}>
-          <span aria-hidden="true" style={glyphCell}>✦</span>
+          <span aria-hidden="true" style={glyphCell}><StarIcon size={15} /></span>
           <span style={labelCell}>Sky / constellations</span>
           <span aria-hidden="true" style={markCell}>{layerState.sky ? '●' : '○'}</span>
         </button>

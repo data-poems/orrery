@@ -26,6 +26,7 @@ import { OBSERVATORY_MODE } from '../lib/mode';
 import { registerBackDismiss } from '../lib/backDismiss';
 import { hideBackgroundFromAssistiveTech } from '../lib/modalBackground';
 import { ASTERISMS } from '../data/asterisms';
+import { ArrowRightIcon, CloseIcon } from './icons';
 import type { NearStar, GalaxyMarker } from '../data/deepspace';
 
 /** Distance from top of viewport below notch / status bar (iOS safe area). */
@@ -346,7 +347,7 @@ function ShortcutsSheet({ open, onClose, accent, accentRgb }: {
             fontSize: 22, lineHeight: 1, cursor: 'pointer',
           }}
         >
-          ×
+          <CloseIcon />
         </button>
         <h2
           id="shortcuts-dialog-title"
@@ -895,7 +896,7 @@ export default function Panels(props: PanelProps) {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
             <span style={{ color: '#fff', fontSize: mobile ? 22 : 27, fontWeight: 400, letterSpacing: 0.8, textShadow: infoShadow }}>{selNeo.name}</span>
-            <Btn onClick={() => setSelNeo(null)} label="Close NEO details">{'\u2715'}</Btn>
+            <Btn onClick={() => setSelNeo(null)} label="Close NEO details"><CloseIcon size={16} /></Btn>
           </div>
           {selNeo.hazardous && (
             <div style={{ color: '#ff6a6a', fontSize: 10, letterSpacing: 1.5, marginTop: 2, textTransform: 'uppercase', fontWeight: 400, textShadow: infoShadow }}>Potentially Hazardous</div>
@@ -928,7 +929,7 @@ export default function Panels(props: PanelProps) {
             rel="noopener noreferrer"
             style={{ display: 'inline-block', marginTop: 8, color: accent, fontSize: 9, textDecoration: 'none', borderBottom: `1px solid rgba(${accentRgb},0.3)` }}
           >
-            View on NASA JPL {'\u2192'}
+            View on NASA JPL<ArrowRightIcon />
           </a>
         </div>
       )}

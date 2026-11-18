@@ -31,6 +31,20 @@ describe('no emoji in the interface', () => {
     expect(hits).toEqual([]);
   });
 
+  it('draws control symbols as SVG icons, not font characters', () => {
+    // Close crosses, arrows and stars in controls come from ./icons.tsx; a font
+    // symbol sits off-center, changes shape between fonts and can draw as emoji.
+    const fontSymbol = /[✕✖✦✧➔➜➝]|\\u(2715|2716|2726|2727|2192)|\{'[×→]'\}|^\s*[×→✕]\s*$/;
+    const hits: string[] = [];
+    for (const [file, text] of Object.entries(sources)) {
+      text.split('\n').forEach((line: string, i: number) => {
+        if (/^\s*(\/\/|\*|\/\*)/.test(line)) return;
+        if (fontSymbol.test(line)) hits.push(`${file}:${i + 1}`);
+      });
+    }
+    expect(hits).toEqual([]);
+  });
+
   it('draws every zodiac glyph as text, not emoji', () => {
     const glyphs = Object.values(ZODIAC_UNICODE);
     expect(glyphs).toHaveLength(12);

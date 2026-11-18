@@ -42,6 +42,16 @@ const REPLACEMENTS = [
     '<meta name="twitter:image" content="https://orrery.solar/orrery/og-image-observatory.png" />',
   ],
 
+  // og:image:alt / twitter:image:alt — describe the observatory image
+  [
+    /<meta property="og:image:alt" content="[^"]*" \/>/,
+    '<meta property="og:image:alt" content="Constellation stick figures over a dark starfield: Virgo with its zodiac symbol, Crater, Corvus, Sextans, Hydra, Antlia, Pyxis and Vela, each labeled with its Latin and common name." />',
+  ],
+  [
+    /<meta name="twitter:image:alt" content="[^"]*" \/>/,
+    '<meta name="twitter:image:alt" content="Constellation stick figures over a dark starfield: Virgo with its zodiac symbol, Crater, Corvus, Sextans, Hydra, Antlia, Pyxis and Vela, each labeled with its Latin and common name." />',
+  ],
+
   // og:url
   [/<meta property="og:url" content="https:\/\/orrery\.solar" \/>/, '<meta property="og:url" content="https://orrery.solar/observatory/" />'],
 ];

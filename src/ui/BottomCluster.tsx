@@ -9,6 +9,7 @@
  * inline monochrome SVGs (no emoji).
  */
 import { Z } from './styles';
+import { StarIcon } from './icons';
 import { PREFERS_REDUCED_MOTION } from '../lib/motion';
 import { rightPage, useDuoLayout } from '../lib/duoFold';
 
@@ -43,14 +44,6 @@ function PlusIcon() {
     </svg>
   );
 }
-function StarIcon() {
-  return (
-    <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M12 2 C 13 9 15 11 22 12 C 15 13 13 15 12 22 C 11 15 9 13 2 12 C 9 11 11 9 12 2 Z" />
-    </svg>
-  );
-}
-
 /** Ambient-tour glyph: looping arrows — a continuous auto-cycle through bodies. */
 function TourIcon() {
   return (

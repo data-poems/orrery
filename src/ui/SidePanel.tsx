@@ -34,6 +34,26 @@ const LAYERS: ReadonlyArray<{ label: string; arg: string }> = [
   { label: 'Asterisms', arg: 'asterisms' },
 ];
 
+
+// Inline monochrome glyphs (currentColor). Text arrows and triangles such as
+// U+2197 and U+25B6 can turn into color emoji on some phones.
+function ArrowUpRightIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="7" y1="17" x2="17" y2="7" />
+      <polyline points="8 7 17 7 17 16" />
+    </svg>
+  );
+}
+function PlayIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M7 4.5v15a.5.5 0 0 0 .77.42l11.5-7.5a.5.5 0 0 0 0-.84L7.77 4.08A.5.5 0 0 0 7 4.5z" />
+    </svg>
+  );
+}
+
 export default function SidePanel({ accent, onAction, layerState, open, onOpenChange }: SidePanelProps) {
 
   // Open/close via the shared window event (bottom-cluster ≡ tile, m key).
@@ -136,11 +156,11 @@ export default function SidePanel({ accent, onAction, layerState, open, onOpenCh
 
         <h3 style={heading}>Explore</h3>
         <button type="button" style={row(false)} onClick={() => act('dice', undefined, true)}>
-          <span aria-hidden="true">↗</span>
+          <span aria-hidden="true" style={glyphCell}><ArrowUpRightIcon /></span>
           <span style={labelCell}>Random destination</span>
         </button>
         <button type="button" style={row(false)} onClick={() => act('tour', undefined, true)}>
-          <span aria-hidden="true" style={glyphCell}>▶</span>
+          <span aria-hidden="true" style={glyphCell}><PlayIcon /></span>
           <span style={labelCell}>Replay cinematic tour</span>
           <span style={markCell} />
         </button>

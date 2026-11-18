@@ -1003,6 +1003,8 @@ export function ConstellationLabels({ visible, focus, tourPulse = false, revealT
                         // priority symbol fonts. DejaVu Sans + Symbola are the two reliable Linux fallbacks.
                         fontFamily: "'Noto Sans Symbols 2', 'Apple Symbols', 'Segoe UI Symbol', 'DejaVu Sans', 'Symbola', sans-serif",
                         fontWeight: 300,
+                        // Text glyph, never the color emoji (see constellation-symbols.ts).
+                        fontVariantEmoji: 'text',
                         color: 'rgba(255,247,232,0.96)',
                         // 3 layers — white inner halo + two color halos. The outer black drop is
                         // carried by the parent label's textShadow (rgba(0,0,0,0.95)), so we don't

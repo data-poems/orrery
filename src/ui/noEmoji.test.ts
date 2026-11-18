@@ -34,7 +34,7 @@ describe('no emoji in the interface', () => {
   it('draws control symbols as SVG icons, not font characters', () => {
     // Close crosses, arrows and stars in controls come from ./icons.tsx; a font
     // symbol sits off-center, changes shape between fonts and can draw as emoji.
-    const fontSymbol = /[✕✖✦✧➔➜➝]|\\u(2715|2716|2726|2727|2192)|\{'[×→]'\}|^\s*[×→✕]\s*$/;
+    const fontSymbol = /[✕✖✦✧➔➜➝]|\\u(2715|2716|2726|2727|2192|00[dD]7)|\{'[×→]'\}|^\s*[×→✕]\s*$/;
     const hits: string[] = [];
     for (const [file, text] of Object.entries(sources)) {
       text.split('\n').forEach((line: string, i: number) => {

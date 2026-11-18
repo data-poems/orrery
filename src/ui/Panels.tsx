@@ -218,7 +218,7 @@ function AboutDialog({ open, onClose, accent, accentRgb }: {
             justifyContent: 'center',
           }}
         >
-          <span aria-hidden="true">{'\u00d7'}</span>
+          <CloseIcon />
         </button>
         <h2 id="about-dialog-title" style={{ color: '#fff', fontSize: 22, fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', textAlign: 'center', marginBottom: 16, margin: 0 }}>About</h2>
         <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontStyle: 'italic', textAlign: 'center', marginTop: 16, marginBottom: 20 }}>Real data. Real time.</div>
@@ -429,7 +429,7 @@ function InfoPanel({
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
         <div style={{ color: `rgba(${accentRgb},0.85)`, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', textShadow: infoShadow }}>{sectionTitle}</div>
-        <Btn onClick={onClose} label={closeLabel}>{'\u00d7'}</Btn>
+        <Btn onClick={onClose} label={closeLabel}><CloseIcon size={16} /></Btn>
       </div>
       <div style={{ color: '#fff', fontSize: mobile ? 24 : 30, fontWeight: 400, letterSpacing: 1, marginTop: 2, textShadow: infoShadow }}>{title}</div>
       {subtitle && (

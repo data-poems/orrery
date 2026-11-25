@@ -43,6 +43,8 @@ android/keystore.properties
 screenshots/
 !android/amazon-listing/screenshots/
 !android/amazon-listing/screenshots/*.png
+!fastlane/metadata/android/*/images/*.png
+!fastlane/metadata/android/*/images/phoneScreenshots/*.png
 
 # Playwright
 .playwright-mcp/

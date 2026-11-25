@@ -1,0 +1,1 @@
+Buttons and controls use drawn icons instead of emoji.

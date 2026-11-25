@@ -1,0 +1,22 @@
+Solar Orrery is an interactive model of the solar system and the sky around it. It shows where the planets are right now and keeps time with the clock. Sizes and distances are not to scale.
+
+<b>What's in it</b>
+
+• 8 planets, 3 dwarf planets and 30 moons
+• About 41,000 stars on wide screens and 5,000 on narrow screens, with 88 constellations
+• 5,000 main-belt asteroids generated from a model of the belt, 95 comets and 113 meteor showers
+• Voyager 1 and 2, New Horizons, and Pioneer 10 and 11
+• A tour from deep space to Earth, which you can play anytime from Controls
+• Drag to orbit, pinch to zoom, and tap a planet or moon to focus on it
+
+<b>Live data</b>
+
+The app connects to four public services and nothing else:
+
+• At launch it asks NOAA for the solar wind speed and NASA for today's near-Earth objects.
+• Selecting a near-Earth object asks JPL for its orbit.
+• Turning on Satellites asks CelesTrak for space station orbits.
+
+The model, star charts and planet textures are inside the app and work offline.
+
+No ads, no account and no analytics. The source code is under the MIT license.

@@ -1,1 +1,1 @@
-First release in the F-Droid catalog. Buttons and controls use drawn icons instead of emoji.
+Buttons and controls use drawn icons instead of emoji.

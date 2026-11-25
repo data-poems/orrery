@@ -30,7 +30,6 @@ const LAYERS: ReadonlyArray<{ label: string; arg: string }> = [
   { label: 'Asteroid belt', arg: 'asteroidBelt' },
   { label: 'Comets', arg: 'comets' },
   { label: 'Meteor showers', arg: 'meteors' },
-  { label: 'Satellites', arg: 'satellites' },
   { label: 'Deep space', arg: 'deepSpace' },
   { label: 'Asterisms', arg: 'asterisms' },
 ];

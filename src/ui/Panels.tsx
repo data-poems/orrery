@@ -20,7 +20,6 @@ import { useDuoLayout, type DuoLayout } from '../lib/duoFold';
 import BodyStats from './BodyStats';
 import type { CometDef } from '../data/comets';
 import type { MeteorShower } from '../scene/Meteors';
-import type { SatellitePosition } from '../lib/satellites';
 import { MYTHOLOGY, CONSTELLATION_NAMES } from '../data/mythology';
 import { OBSERVATORY_MODE } from '../lib/mode';
 import { registerBackDismiss } from '../lib/backDismiss';
@@ -169,7 +168,6 @@ function AboutDialog({ open, onClose, accent, accentRgb }: {
     { label: 'Near-Earth objects · NASA NeoWs API', href: 'https://api.nasa.gov/' },
     { label: 'Asteroid orbits · JPL Small-Body Database', href: 'https://ssd-api.jpl.nasa.gov/doc/sbdb.html' },
     { label: 'Solar wind · NOAA SWPC', href: 'https://services.swpc.noaa.gov/' },
-    { label: 'Satellite TLEs · CelesTrak', href: 'https://celestrak.org/NORAD/elements/' },
   ] as const;
 
   return (
@@ -277,7 +275,7 @@ const SHORTCUTS: ReadonlyArray<{ keys: string; label: string }> = [
   { keys: 'Esc', label: 'Back / clear selection' },
   { keys: 'N · D · B', label: 'Near-Earth objects · dwarf planets · asteroid belt' },
   { keys: 'S · L · A', label: 'Stars · constellation lines · asterisms' },
-  { keys: 'C · R · I', label: 'Comets · meteor showers · satellites' },
+  { keys: 'C · R', label: 'Comets · meteor showers' },
   { keys: 'O', label: 'Deep space (spacecraft, galaxies)' },
 ];
 
@@ -463,7 +461,6 @@ export interface PanelProps {
   cameraDistance: number;
   selComet: CometDef | null; setSelComet: (c: CometDef | null) => void;
   selMeteor: MeteorShower | null; setSelMeteor: (m: MeteorShower | null) => void;
-  selSatellite: SatellitePosition | null; setSelSatellite: (s: SatellitePosition | null) => void;
   selSun: boolean;
   selSpacecraft: import('../data/deepspace').Spacecraft | null;
   setSelSpacecraft: (s: import('../data/deepspace').Spacecraft | null) => void;
@@ -484,7 +481,7 @@ export default function Panels(props: PanelProps) {
     selAsterism, setSelAsterism,
     cinematic, navStack,
     selMoonIdx, cameraDistance,
-    selComet, setSelComet, selMeteor, setSelMeteor, selSatellite, setSelSatellite,
+    selComet, setSelComet, selMeteor, setSelMeteor,
     selSun,
     selSpacecraft, setSelSpacecraft,
     selNearStar, setSelNearStar,
@@ -540,7 +537,7 @@ export default function Panels(props: PanelProps) {
   // iPhone Duo tabletop shows one card at a time under the fold.
   const tabletop = duo?.kind === 'tabletop' ? duo : null;
   const otherCardOpen = !!((selConstellation && MYTHOLOGY[selConstellation]) || selAsterism || selSpacecraft
-    || selNearStar || selGalaxy || selComet || selMeteor || selSatellite || selNeo);
+    || selNearStar || selGalaxy || selComet || selMeteor || selNeo);
 
   // Selected moon info
   const selectedMoon = selPlanet !== null && selMoonIdx !== null
@@ -785,28 +782,6 @@ export default function Panels(props: PanelProps) {
         </InfoPanel>
       )}
 
-      {selSatellite && !cinematic && (() => {
-        const rOrbit = 6371 + selSatellite.alt;            // km from Earth centre
-        const periodMin = (2 * Math.PI * Math.sqrt((rOrbit ** 3) / 398600)) / 60;
-        return (
-          <InfoPanel
-            sectionTitle="Satellite"
-            title={selSatellite.name}
-            subtitle={`NORAD ${selSatellite.noradId}`}
-            description=""
-            accent={accent} accentRgb={accentRgb} mobile={mobile}
-            onClose={() => setSelSatellite(null)} closeLabel="Close satellite info"
-          >
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', marginTop: 12 }}>
-              <Stat label="Altitude" val={`${selSatellite.alt.toFixed(0)} km`} />
-              <Stat label="Velocity" val={`${selSatellite.vel.toFixed(2)} km/s`} />
-              <Stat label="Period (approx)" val={`${periodMin.toFixed(0)} min`} />
-              <Stat label="Orbits / day" val={(1440 / periodMin).toFixed(1)} />
-            </div>
-          </InfoPanel>
-        );
-      })()}
-
       {/* ── Background blur overlay when body selected (hidden in observatory / cinematic) ── */}
       {sp && !observatoryMode && !cinematic && (
         <div
@@ -1008,7 +983,6 @@ export default function Panels(props: PanelProps) {
         {selNeo ? `Selected asteroid ${selNeo.name}. Miss distance: ${selNeo.missLunar.toFixed(1)} lunar distances.` : ''}
         {selComet ? `Selected comet ${selComet.name}. Perihelion: ${selComet.q.toFixed(3)} AU.` : ''}
         {selMeteor ? `Selected meteor shower ${selMeteor.name}. Velocity: ${selMeteor.vg.toFixed(1)} km per second.` : ''}
-        {selSatellite ? `Selected satellite ${selSatellite.name}. Altitude: ${selSatellite.alt.toFixed(0)} km.` : ''}
         {selSpacecraft ? `Selected spacecraft ${selSpacecraft.name}. Distance: ${selSpacecraft.distAU} AU.` : ''}
         {selNearStar ? `Selected nearby star ${selNearStar.name}.` : ''}
         {selGalaxy ? `Selected galaxy marker ${selGalaxy.name}.` : ''}

@@ -14,6 +14,12 @@ All notable changes to Orrery are documented here.
 
 ### Changed
 
+- Version 1.3.2, shared native build 788: the Android release build turns on
+  R8 code and resource shrinking, which F-Droid asked for. The unsigned APK
+  drops from 19,062,838 to 16,856,940 bytes (2.2 MB, 11.6%); classes.dex goes
+  from 7.1 MB to 0.8 MB. Capacitor's own rules keep the plugins and the
+  JavaScript bridge, so `proguard-rules.pro` adds nothing. No iOS 1.3.2 build
+  has been made.
 - Version 1.3.1, shared native build 787: the first release without the
   Satellites layer. Android first; no iOS 1.3.1 build has been uploaded.
 - The privacy page is dated November 24, 2026, the day CelesTrak left its list

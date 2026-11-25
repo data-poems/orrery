@@ -1,0 +1,1 @@
+A smaller download: the Android build now strips unused code and resources. The app works the same.

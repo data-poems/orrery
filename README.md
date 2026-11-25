@@ -173,7 +173,7 @@ manual steps outside this pipeline.
 | [JPL Horizons](https://ssd.jpl.nasa.gov/horizons/) | Planetary orbital elements |
 | [HYG Database](https://astronexus.com/projects/hyg) | Star catalog (41K stars) |
 | [d3-celestial](https://github.com/ofrohn/d3-celestial) | Constellation lines, Milky Way outline |
-| [Minor Planet Center](https://minorplanetcenter.net/data) | Asteroids, comets |
+| [Minor Planet Center](https://minorplanetcenter.net/data) | Comets |
 | [IAU MDC](https://www.ta3.sk/IAUC22DB/MDC2007/) | Meteor showers |
 | [Solar System Scope](https://www.solarsystemscope.com/textures/) | Planet textures (CC BY 4.0) |
 | [NASA NeoWs](https://api.nasa.gov/) | Live near-Earth objects |

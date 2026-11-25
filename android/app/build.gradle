@@ -92,8 +92,12 @@ android {
             // Release bytes must not depend on how the source was checked out:
             // F-Droid rebuilds from a clean clone and compares with the signed file.
             vcsInfo.include false
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // R8 shrinks and optimizes the Java side. Capacitor and its plugins
+            // ship consumer rules for the bridge and the plugin classes it loads
+            // by name; proguard-rules.pro holds anything this app adds.
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             if (releaseSigningConfigured) {
                 signingConfig signingConfigs.release
             }

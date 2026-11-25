@@ -4,7 +4,15 @@ import { readFileSync } from 'node:fs'
 
 // ISO stamp baked into every production bundle — check Safari Web Inspector → Console
 // on device to confirm you are running the JS you just built (not a cached copy).
-const buildStamp = new Date().toISOString()
+// With SOURCE_DATE_EPOCH set (seconds, as reproducible-builds.org defines it) the stamp
+// is that moment instead of now, so two builds of one commit come out byte-identical.
+// The Android release command and the F-Droid recipe set it to the commit time.
+const sourceDateEpoch = Number(process.env.SOURCE_DATE_EPOCH)
+const buildStamp = (
+  Number.isFinite(sourceDateEpoch) && sourceDateEpoch > 0
+    ? new Date(sourceDateEpoch * 1000)
+    : new Date()
+).toISOString()
 const packageVersion = (JSON.parse(
   readFileSync(new URL('./package.json', import.meta.url), 'utf8'),
 ) as { version: string }).version

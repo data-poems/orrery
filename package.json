@@ -14,7 +14,7 @@
     "build:android": "tsc -b && VITE_CAPACITOR=true vite build --base=./ && node scripts/postbuild-ios-html.mjs",
     "android:sync": "pnpm build:android && cap sync android",
     "android:apk": "pnpm android:sync && cd android && ./gradlew assembleDebug",
-    "android:release": "pnpm android:sync && cd android && ./gradlew clean stageReleaseArtifacts",
+    "android:release": "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct) pnpm android:sync && cd android && ./gradlew clean stageReleaseArtifacts",
     "lint": "eslint .",
     "test": "vitest run",
     "preview": "vite preview",

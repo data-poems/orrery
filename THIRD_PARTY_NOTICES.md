@@ -16,6 +16,5 @@ Bundled **data** and **assets** retain their upstream licenses:
 | Live NEO feed | NASA NeoWs | Public domain |
 | Live orbits | JPL SBDB | Public domain |
 | Solar wind | NOAA SWPC | Public domain |
-| Satellite TLEs | [CelesTrak](https://celestrak.org/NORAD/elements/), stations group | Orbital elements for space stations, bundled as a fallback for when the live request fails. CelesTrak publishes them openly; I found no license statement for them (checked November 24, 2026) |
 
 Attribution for CC BY-SA and CC BY materials also appears in the in-app About dialog.

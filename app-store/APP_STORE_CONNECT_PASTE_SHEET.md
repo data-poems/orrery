@@ -31,7 +31,7 @@ Features:
 - About 41,000 stars on wider screens and 5,000 on an upright iPhone, plus 88 constellation line patterns
 - Planets placed for today's date, moving in real time
 - Touch-first camera controls for quick orbit, zoom, and focus
-- Live feeds for near-Earth objects, solar wind, and satellite elements
+- Live feeds for near-Earth objects and solar wind
 
 Built for learners, stargazers, educators, and anyone who wants to explore scale and motion in the solar system.
 
@@ -90,6 +90,6 @@ Main review flow:
 3. Relaunch to verify the interactive Full System view appears directly.
 4. Open Controls and choose Replay Cinematic Tour.
 5. Toggle sky overlays and constellation labels.
-6. Open Controls and turn on the Near-Earth objects or Satellites layer.
+6. Open Controls and turn on the Near-Earth objects layer.
 
 No account, sign-in, or demo credentials are required.

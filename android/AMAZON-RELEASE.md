@@ -57,7 +57,7 @@ Verify:
 
 - cold launch and bundled scene without a network connection;
 - planet textures, mobile star catalog, labels, and touch navigation;
-- graceful live-data fallback for NASA, JPL, NOAA, and CelesTrak sources;
+- graceful live-data fallback for NASA, JPL, and NOAA sources;
 - portrait/landscape reflow, Home/resume, sleep/wake, and Back;
 - VoiceView focus and labels, large text, touch targets, and reduced motion;
 - WebGL frame stability, memory, temperature, and battery behavior over a

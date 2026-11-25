@@ -30,7 +30,6 @@ From Earth to the Oort Cloud. Interactive, 41,000 stars (5,000 on phones), 88 co
 - **Near-Earth objects** updated daily from NASA NeoWs
 - **Asteroid orbits on demand** from JPL Small-Body Database
 - **Solar wind speed** from NOAA Space Weather Prediction Center
-- **Satellite TLEs** from CelesTrak (ISS + active stations, SGP4 propagation)
 
 ### Features
 
@@ -179,7 +178,6 @@ manual steps outside this pipeline.
 | [NASA NeoWs](https://api.nasa.gov/) | Live near-Earth objects |
 | [JPL SBDB](https://ssd-api.jpl.nasa.gov/doc/sbdb.html) | Asteroid orbital elements |
 | [NOAA SWPC](https://services.swpc.noaa.gov/) | Live solar wind |
-| [CelesTrak](https://celestrak.org/NORAD/elements/) | Satellite TLEs |
 
 ## License
 

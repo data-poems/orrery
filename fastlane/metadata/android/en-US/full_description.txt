@@ -11,11 +11,10 @@ Solar Orrery is an interactive model of the solar system and the sky around it. 
 
 <b>Live data</b>
 
-The app connects to four public services and nothing else:
+The app connects to three public services and nothing else:
 
 • At launch it asks NOAA for the solar wind speed and NASA for today's near-Earth objects.
 • Selecting a near-Earth object asks JPL for its orbit.
-• Turning on Satellites asks CelesTrak for space station orbits.
 
 The model, star charts and planet textures are inside the app and work offline.
 

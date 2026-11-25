@@ -15,7 +15,6 @@ import { AsterismField } from './Asterisms';
 import { OBSERVATORY_MODE } from '../lib/mode';
 import { CometField } from './Comets';
 import { MeteorField } from './Meteors';
-import { SatelliteField } from './Satellites';
 // DeepSpace (spacecraft, near-stars, galaxies) is off by default and renders
 // nothing until toggled — lazy-load it so its module stays out of first paint.
 const DeepSpaceField = lazy(() => import('./DeepSpace').then(m => ({ default: m.DeepSpaceField })));
@@ -23,7 +22,6 @@ import CamCtrl from './CamCtrl';
 import { bumpPositionsUpdateCounter } from '../lib/orreryDiag';
 import type { CometDef } from '../data/comets';
 import type { MeteorShower } from './Meteors';
-import type { SatellitePosition } from '../lib/satellites';
 import type { Spacecraft, NearStar, GalaxyMarker } from '../data/deepspace';
 
 // ─── AU reference grid ──────────────────────────────────────────────────────────
@@ -48,7 +46,6 @@ function AUGrid({ cameraDistance = 0 }: { cameraDistance?: number }) {
 
 export interface SceneProps {
   jd: number; T: number;
-  simTime: Date;
   onLoadComplete?: (id: string) => void;
   neos: NEO[]; selNeo: NEO | null; setSelNeo: (n: NEO | null) => void;
   selPlanet: number | null; setSelPlanet: (i: number | null) => void;
@@ -62,7 +59,6 @@ export interface SceneProps {
   showAsteroidBelt: boolean;
   showComets: boolean;
   showMeteors: boolean;
-  showSatellites: boolean;
   showDeepSpace: boolean;
   constellationFocus: boolean;
   cinematic: boolean;
@@ -75,7 +71,6 @@ export interface SceneProps {
   showBodyGlyphs?: boolean;
   selComet: CometDef | null; setSelComet: (c: CometDef | null) => void;
   selMeteor: MeteorShower | null; setSelMeteor: (m: MeteorShower | null) => void;
-  selSatellite: SatellitePosition | null; setSelSatellite: (s: SatellitePosition | null) => void;
   selSpacecraft: Spacecraft | null; setSelSpacecraft: (s: Spacecraft | null) => void;
   selNearStar: NearStar | null; setSelNearStar: (s: NearStar | null) => void;
   selGalaxy: GalaxyMarker | null; setSelGalaxy: (g: GalaxyMarker | null) => void;
@@ -96,13 +91,13 @@ export interface SceneProps {
 }
 
 export default function Scene({
-  jd, T, simTime, onLoadComplete, neos, selNeo, setSelNeo, selPlanet, setSelPlanet,
+  jd, T, onLoadComplete, neos, selNeo, setSelNeo, selPlanet, setSelPlanet,
   focusTarget, onPositionsUpdate, showDwarf,
   showStars, showConstellations, constellationRevealTick, showAsterisms, showAsteroidBelt,
-  showComets, showMeteors, showSatellites, showDeepSpace,
+  showComets, showMeteors, showDeepSpace,
   constellationFocus, cinematic, cinematicRotateSpeed, onMoonSelect, selMoonIdx, onCameraDistance, cameraDistance, camPreset,
   showBodyGlyphs = false,
-  selComet, setSelComet, selMeteor, setSelMeteor, selSatellite, setSelSatellite,
+  selComet, setSelComet, selMeteor, setSelMeteor,
   selSpacecraft, setSelSpacecraft, selNearStar, setSelNearStar, selGalaxy, setSelGalaxy, onSunSelect, aimAtSphere,
   pointFocus,
   onConstellationSelect, onAsterismSelect,
@@ -229,15 +224,6 @@ export default function Scene({
         selMeteor={selMeteor}
         setSelMeteor={setSelMeteor}
         onLoad={() => onLoadComplete?.('meteors')}
-      />
-      <SatelliteField
-        visible={showSatellites}
-        simTime={simTime}
-        earthPos={positions.get(2) ?? null}
-        cameraDistance={cameraDistance}
-        selSatellite={selSatellite}
-        setSelSatellite={setSelSatellite}
-        onLoad={() => onLoadComplete?.('satellites')}
       />
       {showDeepSpace && (
         <Suspense fallback={null}>

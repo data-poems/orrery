@@ -38,9 +38,6 @@ importers:
       react-dom:
         specifier: ^19.2.4
         version: 19.2.4(react@19.2.4)
-      satellite.js:
-        specifier: ^6.0.2
-        version: 6.0.2
       three:
         specifier: ^0.183.2
         version: 0.183.2
@@ -1711,9 +1708,6 @@ packages:
 
   safe-buffer@5.2.1:
     resolution: {integrity: sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ==}
-
-  satellite.js@6.0.2:
-    resolution: {integrity: sha512-XWKxtqVF5xiJ1xAeiYeT/oSSzsukoCLWvk6nO/WFy4un0M3g4djAU9TAtOCqJLtYW9vxx9pkPJ1L9ITOc607GA==}
 
   sax@1.1.4:
     resolution: {integrity: sha512-5f3k2PbGGp+YtKJjOItpg3P99IMD84E4HOvcfleTb5joCHNXYLsR9yWFPOYGgaeMPDubQILTCMdsFb2OMeOjtg==}
@@ -3803,8 +3797,6 @@ snapshots:
       '@rolldown/binding-win32-x64-msvc': 1.0.0-rc.9
 
   safe-buffer@5.2.1: {}
-
-  satellite.js@6.0.2: {}
 
   sax@1.1.4: {}
 

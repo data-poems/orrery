@@ -22,7 +22,6 @@ import { ThemeProvider, useTheme } from './lib/themes';
 import { getConstellationCentroid } from './lib/constellationCentroids';
 import type { CometDef } from './data/comets';
 import type { MeteorShower } from './scene/Meteors';
-import type { SatellitePosition } from './lib/satellites';
 import type { Spacecraft, NearStar, GalaxyMarker } from './data/deepspace';
 import { SPACECRAFT, heliocentricXYZ } from './data/deepspace';
 import Scene from './scene/Scene';
@@ -109,7 +108,7 @@ type CinematicStep = {
 
   asteroidBelt?: boolean; dwarf?: boolean;
   deepSpace?: boolean;
-  comets?: boolean; satellites?: boolean; meteors?: boolean;
+  comets?: boolean; meteors?: boolean;
   autoRotateSpeed?: number;
 };
 
@@ -188,7 +187,7 @@ const CINEMATIC_DEFAULTS: Omit<CinematicStep, 'duration' | 'label'> = {
   stars: true, constellations: false, asterisms: false,
   constellationFocus: false, asteroidBelt: false, dwarf: false,
   deepSpace: false, comets: false,
-  satellites: false, meteors: false, autoRotateSpeed: 0.3,
+  meteors: false, autoRotateSpeed: 0.3,
 };
 
 function OrreryInner() {
@@ -224,7 +223,6 @@ function OrreryInner() {
   const [showAsteroidBelt, setShowAsteroidBelt] = useState(false);
   const [showComets, setShowComets] = useState(false);
   const [showMeteors, setShowMeteors] = useState(false);
-  const [showSatellites, setShowSatellites] = useState(false);
   const [showDeepSpace, setShowDeepSpace] = useState(OBSERVATORY_MODE);
   const [selSun, setSelSun] = useState(false);
   const [aimAtSphere, setAimAtSphere] = useState<[number, number, number] | null>(null);
@@ -243,7 +241,6 @@ function OrreryInner() {
   const [selAsterism, setSelAsterism] = useState<string | null>(null);
   const [selComet, setSelComet] = useState<CometDef | null>(null);
   const [selMeteor, setSelMeteor] = useState<MeteorShower | null>(null);
-  const [selSatellite, setSelSatellite] = useState<SatellitePosition | null>(null);
   const [constellationFocus, setConstellationFocus] = useState(OBSERVATORY_MODE);
   const [speed] = useState(1);
   const [simTime, setSimTime] = useState(new Date());
@@ -264,7 +261,6 @@ function OrreryInner() {
     constellationLines: false,
     comets: false,
     meteors: false,
-    satellites: false,
   });
 
   const completeLoadingTask = useCallback((id: string) => {
@@ -436,7 +432,6 @@ function OrreryInner() {
     setSelNeo(null);
     setSelComet(null);
     setSelMeteor(null);
-    setSelSatellite(null);
     setSelConstellation(null);
     setSelSun(false);
     setSelSpacecraft(null);
@@ -498,7 +493,6 @@ function OrreryInner() {
     if (step.dwarf !== undefined) setShowDwarf(() => step.dwarf!);
     if (step.deepSpace !== undefined) setShowDeepSpace(() => step.deepSpace!);
     if (step.comets !== undefined) setShowComets(() => step.comets!);
-    if (step.satellites !== undefined) setShowSatellites(() => step.satellites!);
     if (step.meteors !== undefined) setShowMeteors(() => step.meteors!);
     setCinematicRotateSpeed(step.autoRotateSpeed ?? 0.5);
 
@@ -1054,7 +1048,7 @@ function OrreryInner() {
       const k = e.key.toLowerCase();
 
       const isPresetKey = (e.key >= '1' && e.key <= '9') || e.key === '0' || e.key === '-' || e.key === '=';
-      const isInteractiveShortcut = isPresetKey || ['m', 'n', 'd', 'b', 's', 'l', 'a', 'g', 'c', 'r', 'i', 'o', 'escape', ' '].includes(k);
+      const isInteractiveShortcut = isPresetKey || ['m', 'n', 'd', 'b', 's', 'l', 'a', 'g', 'c', 'r', 'o', 'escape', ' '].includes(k);
 
       if (k === 'f') {
         startCinematicTour();
@@ -1119,7 +1113,6 @@ function OrreryInner() {
       }
       if (k === 'c') setShowComets(p => !p);
       if (k === 'r') setShowMeteors(p => !p);
-      if (k === 'i') setShowSatellites(p => !p);
       if (k === 'o') setShowDeepSpace(p => !p);
       if (k === 'escape') {
         if (panelOpen) { setPanelOpen(false); return; }
@@ -1136,7 +1129,6 @@ function OrreryInner() {
         setSelNeo(null);
         setSelComet(null);
         setSelMeteor(null);
-        setSelSatellite(null);
         setSelSpacecraft(null);
         setSelNearStar(null);
         setSelGalaxy(null);
@@ -1177,14 +1169,13 @@ function OrreryInner() {
       }
 
       const hasPointSelection = selNeo !== null || selComet !== null
-        || selMeteor !== null || selSatellite !== null || selSpacecraft !== null
+        || selMeteor !== null || selSpacecraft !== null
         || selNearStar !== null || selGalaxy !== null
         || selConstellation !== null || selAsterism !== null;
       if (hasPointSelection) {
         setSelNeo(null);
         setSelComet(null);
         setSelMeteor(null);
-        setSelSatellite(null);
         setSelSpacecraft(null);
         setSelNearStar(null);
         setSelGalaxy(null);
@@ -1208,7 +1199,7 @@ function OrreryInner() {
   }, [
     cinematic, exitCinematic, navStack.length, navigateBack, panelOpen,
     selAsterism, selComet, selConstellation, selGalaxy, selMeteor, selMoonIdx,
-    selNearStar, selNeo, selPlanet, selSatellite, selSpacecraft, selSun,
+    selNearStar, selNeo, selPlanet, selSpacecraft, selSun,
   ]);
 
   const accentRgb = theme.uiAccentRgb;
@@ -1250,7 +1241,6 @@ function OrreryInner() {
         else if (arg === 'asteroidBelt') setShowAsteroidBelt(p => !p);
         else if (arg === 'comets') setShowComets(p => !p);
         else if (arg === 'meteors') setShowMeteors(p => !p);
-        else if (arg === 'satellites') setShowSatellites(p => !p);
         else if (arg === 'deepSpace') setShowDeepSpace(p => !p);
         else if (arg === 'asterisms') setShowAsterisms(p => !p);
         break;
@@ -1263,8 +1253,8 @@ function OrreryInner() {
     sky: constellationFocus,
     neo: showNeo, dwarf: showDwarf, asteroidBelt: showAsteroidBelt,
     comets: showComets, meteors: showMeteors,
-    satellites: showSatellites, deepSpace: showDeepSpace, asterisms: showAsterisms,
-  }), [constellationFocus, showNeo, showDwarf, showAsteroidBelt, showComets, showMeteors, showSatellites, showDeepSpace, showAsterisms]);
+    deepSpace: showDeepSpace, asterisms: showAsterisms,
+  }), [constellationFocus, showNeo, showDwarf, showAsteroidBelt, showComets, showMeteors, showDeepSpace, showAsterisms]);
 
   // Current zoom-ladder rung drives the +/- grey-out on the bottom cluster.
   const zoomRung = useMemo(() => zoomRungFor(cameraDistance), [cameraDistance]);
@@ -1279,7 +1269,6 @@ function OrreryInner() {
       constellationLines: false,
       comets: false,
       meteors: false,
-      satellites: false,
     });
   }, []);
 
@@ -1323,7 +1312,7 @@ function OrreryInner() {
   // without duplicating the prop list.
   const sceneEl = (
     <Scene
-      jd={jd} T={T} simTime={simTime}
+      jd={jd} T={T}
       onLoadComplete={completeLoadingTask}
       neos={showNeo ? neos : []} selNeo={selNeo} setSelNeo={handleNeoSelect}
       selPlanet={selPlanet} setSelPlanet={handlePlanetSelect}
@@ -1337,7 +1326,6 @@ function OrreryInner() {
       showAsteroidBelt={showAsteroidBelt}
       showComets={showComets}
       showMeteors={showMeteors}
-      showSatellites={showSatellites}
       showDeepSpace={showDeepSpace}
       onConstellationSelect={handleConstellationSelect}
       onAsterismSelect={(name) => { setSelAsterism(prev => prev === name ? null : name); }}
@@ -1356,7 +1344,6 @@ function OrreryInner() {
       showBodyGlyphs={camPreset?.label === 'Stargazer'}
       selComet={selComet} setSelComet={setSelComet}
       selMeteor={selMeteor} setSelMeteor={setSelMeteor}
-      selSatellite={selSatellite} setSelSatellite={setSelSatellite}
       selSpacecraft={selSpacecraft} setSelSpacecraft={setSelSpacecraft}
       selNearStar={selNearStar} setSelNearStar={setSelNearStar}
       selGalaxy={selGalaxy} setSelGalaxy={setSelGalaxy}
@@ -1503,7 +1490,6 @@ function OrreryInner() {
         cameraDistance={cameraDistance}
         selComet={selComet} setSelComet={setSelComet}
         selMeteor={selMeteor} setSelMeteor={setSelMeteor}
-        selSatellite={selSatellite} setSelSatellite={setSelSatellite}
         selSpacecraft={selSpacecraft} setSelSpacecraft={setSelSpacecraft}
         selNearStar={selNearStar} setSelNearStar={setSelNearStar}
         selGalaxy={selGalaxy} setSelGalaxy={setSelGalaxy}

@@ -45,7 +45,7 @@ Features:
 - About 41,000 stars on wider screens and 5,000 on an upright iPhone, plus 88 constellation line patterns
 - Planets placed for today's date, moving in real time
 - Touch-first camera controls for quick orbit, zoom, and focus
-- Live feeds for near-Earth objects, solar wind, and satellite elements
+- Live feeds for near-Earth objects and solar wind
 
 Built for learners, stargazers, educators, and anyone who wants to explore scale and motion in the solar system.
 
@@ -115,7 +115,7 @@ Suggested sequence:
 1. Cinematic hero view (space-to-Earth opening frame)
 2. Planet detail view (Earth + moon context)
 3. Sky mode with constellations
-4. Near-Earth objects or Satellites layer
+4. Near-Earth objects layer
 5. Deep space / spacecraft orbits
 
 Use one clear headline per screenshot and keep labels readable at phone scale.

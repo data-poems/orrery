@@ -4,6 +4,14 @@ All notable changes to Orrery are documented here.
 
 ## Unreleased
 
+### Removed
+
+- The Satellites layer, with its `I` shortcut and info card. It did not show
+  up in practice. The request to CelesTrak, the bundled `stations.tle` file,
+  the `satellite.js` dependency and the TLE prebake script go with it. That
+  leaves three live data services: NOAA and NASA at launch, and JPL when a
+  near-Earth object is selected.
+
 ### Changed
 
 - Version 1.3.0, shared native build 786 (785 before the laptop-pose fix): the

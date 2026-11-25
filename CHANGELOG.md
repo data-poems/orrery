@@ -14,6 +14,10 @@ All notable changes to Orrery are documented here.
 
 ### Changed
 
+- Version 1.3.1, shared native build 787: the first release without the
+  Satellites layer. Android first; no iOS 1.3.1 build has been uploaded.
+- The privacy page is dated November 24, 2026, the day CelesTrak left its list
+  of services.
 - Version 1.3.0, shared native build 786 (785 before the laptop-pose fix): the
   iOS build, and the numbers the next Android build uses. iOS 1.3.0 (785) went to TestFlight on
   November 14 (internal group only, like 777) from af85893; IPA SHA-256

@@ -89,6 +89,9 @@ android {
             applicationIdSuffix ".debug"
         }
         release {
+            // Release bytes must not depend on how the source was checked out:
+            // F-Droid rebuilds from a clean clone and compares with the signed file.
+            vcsInfo.include false
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             if (releaseSigningConfigured) {
@@ -96,6 +99,12 @@ android {
             }
         }
     }
+}
+
+// F-Droid's scanner rejects the Play dependency-metadata signing block in an
+// APK. Store bundles keep theirs (includeInBundle stays at its default).
+android.dependenciesInfo {
+    includeInApk = false
 }
 
 repositories {
@@ -203,13 +212,4 @@ tasks.register('stageReleaseArtifacts', Copy) {
             checksums.join('\n') + '\n'
         new File(stagedReleaseDir, 'SIGNING.txt').text = signingStatus
     }
-}
-
-try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
-        apply plugin: 'com.google.gms.google-services'
-    }
-} catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
 }

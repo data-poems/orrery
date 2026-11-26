@@ -62,7 +62,10 @@ export interface SceneProps {
   showDeepSpace: boolean;
   constellationFocus: boolean;
   cinematic: boolean;
-  cinematicRotateSpeed: number;
+  cinematicPlaying: boolean;
+  cinematicRunId: number;
+  onCinematicPhase?: (phaseIdx: number) => void;
+  onCinematicDone?: () => void;
   onMoonSelect?: (planetIdx: number, moonIdx: number) => void;
   selMoonIdx?: number | null;
   onCameraDistance?: (d: number) => void;
@@ -95,7 +98,7 @@ export default function Scene({
   focusTarget, onPositionsUpdate, showDwarf,
   showStars, showConstellations, constellationRevealTick, showAsterisms, showAsteroidBelt,
   showComets, showMeteors, showDeepSpace,
-  constellationFocus, cinematic, cinematicRotateSpeed, onMoonSelect, selMoonIdx, onCameraDistance, cameraDistance, camPreset,
+  constellationFocus, cinematic, cinematicPlaying, cinematicRunId, onCinematicPhase, onCinematicDone, onMoonSelect, selMoonIdx, onCameraDistance, cameraDistance, camPreset,
   showBodyGlyphs = false,
   selComet, setSelComet, selMeteor, setSelMeteor,
   selSpacecraft, setSelSpacecraft, selNearStar, setSelNearStar, selGalaxy, setSelGalaxy, onSunSelect, aimAtSphere,
@@ -242,8 +245,11 @@ export default function Scene({
         focusTarget={focusTarget}
         positions={positions}
         cinematic={cinematic}
+        cinematicPlaying={cinematicPlaying}
+        cinematicRunId={cinematicRunId}
+        onCinematicPhase={onCinematicPhase}
+        onCinematicDone={onCinematicDone}
         camPreset={camPreset}
-        cinematicRotateSpeed={cinematicRotateSpeed}
         onCameraDistance={handleCameraDistance}
         aimAtSphere={aimAtSphere}
         pointFocus={pointFocus}

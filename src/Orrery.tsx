@@ -38,6 +38,7 @@ import { OBSERVATORY_MODE } from './lib/mode';
 import { IS_ANDROID } from './lib/platform';
 import { PREFERS_REDUCED_MOTION } from './lib/motion';
 import { claimFirstVisitCinematic } from './lib/launchExperience';
+import { CINEMATIC_PHASES } from './lib/cinematicPath';
 import { restoreHudControlFocus } from './lib/hudFocus';
 import { createReviewPromptCoordinator } from './lib/reviewPrompt';
 import { useImmersiveVrSupported } from './lib/xr';
@@ -93,24 +94,6 @@ function zoomRungFor(cameraDistance: number): number {
   }
   return cur;
 }
-
-type CinematicStep = {
-  /** Preferred — resolves via `camIndex(label)` instead of fragile array index. */
-  presetLabel?: string;
-  camPreset?: number;
-  focusPlanet?: number; focusMoon?: number;
-  duration: number; label: string;
-  desc?: string;
-  stars?: boolean;
-  constellations?: boolean;
-  asterisms?: boolean;
-  constellationFocus?: boolean;
-
-  asteroidBelt?: boolean; dwarf?: boolean;
-  deepSpace?: boolean;
-  comets?: boolean; meteors?: boolean;
-  autoRotateSpeed?: number;
-};
 
 type NeoOrbit = NonNullable<NEO['orbit']>;
 
@@ -182,13 +165,6 @@ function fallbackOrbitForNeo(neo: NEO): NeoOrbit {
     synthetic: true,
   };
 }
-
-const CINEMATIC_DEFAULTS: Omit<CinematicStep, 'duration' | 'label'> = {
-  stars: true, constellations: false, asterisms: false,
-  constellationFocus: false, asteroidBelt: false, dwarf: false,
-  deepSpace: false, comets: false,
-  meteors: false, autoRotateSpeed: 0.3,
-};
 
 function OrreryInner() {
   const { theme } = useTheme();
@@ -290,15 +266,14 @@ function OrreryInner() {
   const [panelOpen, setPanelOpen] = useState(false);
   // Controls remain available until the person explicitly hides them.
   const [hudActive, setHudActive] = useState(true);
-  const [cinematicRotateSpeed, setCinematicRotateSpeed] = useState(0.5);
+  // Bumped on every tour start so the camera restarts the flight, including
+  // when the tour is replayed while it is already playing.
+  const [cinematicRunId, setCinematicRunId] = useState(0);
   const [showSkyModeHint, setShowSkyModeHint] = useState(false);
   const [pulseSkyToggle, setPulseSkyToggle] = useState(false);
   const [constellationRevealTick, setConstellationRevealTick] = useState(0);
   const positionsRef = useRef(new Map<number, [number, number, number]>());
   const skyCueTimeoutsRef = useRef<number[]>([]);
-  // Guards the tour's auto-end against the interval double-firing exitCinematic
-  // (one more 500ms tick can land between setCinematic(false) and effect cleanup).
-  const tourEndedRef = useRef(false);
   const reviewPrompt = useMemo(() => createReviewPromptCoordinator(), []);
   const reviewPromptTimeoutRef = useRef<number | undefined>(undefined);
 
@@ -343,11 +318,23 @@ function OrreryInner() {
     };
   }, [cancelScheduledReviewPrompt, reviewPrompt]);
 
+  // The tour's title, clock and Skip button wait until the loading card has
+  // faded, so they never sit on top of it.
+  const [tourChrome, setTourChrome] = useState(false);
   useEffect(() => {
     if (!cinematic || !sceneReady) return;
+    const id = window.setTimeout(() => setTourChrome(true), 700);
+    return () => {
+      window.clearTimeout(id);
+      setTourChrome(false);
+    };
+  }, [cinematic, sceneReady]);
+
+  useEffect(() => {
+    if (!tourChrome) return;
     const id = window.setTimeout(() => cinematicExitButtonRef.current?.focus(), 0);
     return () => window.clearTimeout(id);
-  }, [cinematic, sceneReady]);
+  }, [tourChrome]);
 
   useEffect(() => {
     // A new interaction means the prior dismissal is no longer a quiet moment.
@@ -368,19 +355,6 @@ function OrreryInner() {
 
   const camPreset = camIdx >= 0 && camIdx < CAMS.length ? CAMS[camIdx] : null;
 
-  // ─── Cinematic: tight highlight reel through scale levels ────────────────────
-  const cinematicSteps = useMemo((): CinematicStep[] => [
-    { ...CINEMATIC_DEFAULTS, presetLabel: 'Oort', duration: 2000, label: 'Deep Space', deepSpace: true, dwarf: true, autoRotateSpeed: 0.14 },
-    { ...CINEMATIC_DEFAULTS, presetLabel: 'System', duration: 5000, label: 'Solar System', asteroidBelt: true, dwarf: true, autoRotateSpeed: 0.2 },
-    // Constellations stay off through Inner Planets — they're saved as the
-    // climactic reveal when the camera lands on Earth (see exitCinematic).
-    { ...CINEMATIC_DEFAULTS, presetLabel: 'Inner', duration: 4000, label: 'Inner Planets', asteroidBelt: true, autoRotateSpeed: 0.3 },
-    { ...CINEMATIC_DEFAULTS, focusPlanet: 2, duration: 5000, label: 'Earth', autoRotateSpeed: 0.5 },
-  ], []);
-
-  const cinematicIdx = useRef(0);
-  const cinematicStart = useRef(0);
-
   // Space weather state for cinematic overlay (NOAA SWPC, no auth needed)
   const [solarWind, setSolarWind] = useState<string | null>(null);
 
@@ -395,11 +369,14 @@ function OrreryInner() {
   }, []);
 
   type ExitTarget =
+    | { kind: 'hold' }
     | { kind: 'planet'; idx: number; label: string }
     | { kind: 'preset'; label: string };
 
-  // Leave cinematic and clear all selection state; default lands on Earth focus.
-  const exitCinematic = useCallback((target: ExitTarget = { kind: 'planet', idx: 2, label: 'Earth' }) => {
+  // Leave the cinematic and clear all selection state. Skipping the tour (a
+  // tap, a drag, a key) hands over the camera exactly where it is: 'hold', the
+  // default. Only the tour's own ending lands on Earth with the sky reveal.
+  const exitCinematic = useCallback((target: ExitTarget = { kind: 'hold' }) => {
     setPanelOpen(false);
     // Invalidate any pending dice-roll aim resolve so a Promise that resolves
     // after cinematic exit can't pull the camera to a stale constellation.
@@ -438,7 +415,12 @@ function OrreryInner() {
     setSelNearStar(null);
     setSelGalaxy(null);
 
-    if (target.kind === 'planet') {
+    if (target.kind === 'hold') {
+      setSelPlanet(null);
+      setCamIdx(-1);
+      setFocusTarget(null);
+      setNavStack(['Solar System']);
+    } else if (target.kind === 'planet') {
       const pos = positionsRef.current.get(target.idx);
       setSelPlanet(target.idx);
       setCamIdx(-1);
@@ -457,90 +439,54 @@ function OrreryInner() {
 
   }, [clearSkyCueTimeouts, setPanelOpen, wakeHud]);
 
-  // Apply a cinematic step (camera preset + layers)
-  const applyCinematicStep = useCallback((idx: number) => {
-    const step = cinematicSteps[idx % cinematicSteps.length];
+  // A tour phase began: its title and layers. The camera is not set here; it
+  // flies one continuous path (lib/cinematicPath) and reports each phase as it
+  // reaches it, so the title can never run ahead of or behind the picture.
+  const applyCinematicPhase = useCallback((idx: number) => {
+    const phase = CINEMATIC_PHASES[idx];
+    if (!phase) return;
+    setNavStack([phase.label]);
     setSelMoonIdx(null);
-    setNavStack([step.label]);
-
-
-    if (step.focusPlanet !== undefined) {
-      setCamIdx(-1);
-      setSelPlanet(step.focusPlanet);
-      const pos = positionsRef.current.get(step.focusPlanet);
-      if (step.focusMoon !== undefined) {
-        setSelMoonIdx(step.focusMoon);
-        if (pos) setFocusTarget({ planetIdx: step.focusPlanet, pos, moonIdx: step.focusMoon });
-      } else {
-        if (pos) setFocusTarget({ planetIdx: step.focusPlanet, pos });
-      }
-    } else {
-      setSelPlanet(null);
-      setFocusTarget(null);
-      if (step.presetLabel !== undefined) {
-        const idx = camIndex(step.presetLabel);
-        if (idx >= 0) setCamIdx(idx);
-      } else if (step.camPreset !== undefined) {
-        setCamIdx(step.camPreset);
-      }
-    }
-
-    if (step.stars !== undefined) setShowStars(() => step.stars!);
-    if (step.constellations !== undefined) setShowConstellations(() => step.constellations!);
-    if (step.asterisms !== undefined) setShowAsterisms(() => step.asterisms!);
-    if (step.constellationFocus !== undefined) setConstellationFocus(() => step.constellationFocus!);
-    if (step.asteroidBelt !== undefined) setShowAsteroidBelt(() => step.asteroidBelt!);
-    if (step.dwarf !== undefined) setShowDwarf(() => step.dwarf!);
-    if (step.deepSpace !== undefined) setShowDeepSpace(() => step.deepSpace!);
-    if (step.comets !== undefined) setShowComets(() => step.comets!);
-    if (step.meteors !== undefined) setShowMeteors(() => step.meteors!);
-    setCinematicRotateSpeed(step.autoRotateSpeed ?? 0.5);
-
-  }, [cinematicSteps]);
+    setSelSun(false);
+    setSelPlanet(phase.highlightPlanet ?? null);
+    setFocusTarget(null);
+    setCamIdx(-1);
+    setShowStars(true);
+    setShowConstellations(false);
+    setShowAsterisms(false);
+    setConstellationFocus(false);
+    setShowComets(false);
+    setShowMeteors(false);
+    setShowAsteroidBelt(phase.asteroidBelt);
+    setShowDwarf(phase.dwarf);
+    setShowDeepSpace(phase.deepSpace);
+  }, []);
 
   const startCinematicTour = useCallback(() => {
     cancelScheduledReviewPrompt();
-    cinematicIdx.current = 0;
-    cinematicStart.current = Date.now();
-    tourEndedRef.current = false;
     setPanelOpen(false);
     // Invalidate pending dice aim BEFORE clearing aimAtSphere so a slow Promise
     // resolve gated by `lastTourPickRef.current === aimTicket` can't re-set it.
     lastTourPickRef.current = null;
     setAimAtSphere(null);
     setPointFocus(null);
-    applyCinematicStep(0);
+    setSelConstellation(null);
+    setSelAsterism(null);
+    setSelSpacecraft(null);
+    setSelNearStar(null);
+    setSelGalaxy(null);
+    setSelNeo(null);
+    setSelComet(null);
+    setSelMeteor(null);
+    applyCinematicPhase(0);
+    setCinematicRunId((n) => n + 1);
     setCinematic(true);
-  }, [applyCinematicStep, cancelScheduledReviewPrompt, setPanelOpen]);
+  }, [applyCinematicPhase, cancelScheduledReviewPrompt, setPanelOpen]);
 
-  // Cinematic timer — poll-based; pauses while tab is hidden
-  const cinematicHiddenAt = useRef<number | null>(null);
-  useEffect(() => {
-    if (!cinematic || !sceneReady) return;
-
-    const id = setInterval(() => {
-      if (tabHiddenRef.current || tourEndedRef.current) return;
-      const elapsed = Date.now() - cinematicStart.current;
-      const dur = cinematicSteps[cinematicIdx.current].duration;
-      if (elapsed >= dur) {
-        const next = cinematicIdx.current + 1;
-        if (next >= cinematicSteps.length) {
-          // A natural finish ends on Earth — its climactic constellation reveal
-          // (exitCinematic's default Earth target). Only a tap-to-interrupt goes
-          // to the Sun (handleCinematicClick). Guard against a second tick firing
-          // before this effect's cleanup runs.
-          tourEndedRef.current = true;
-          exitCinematic();
-        } else {
-          cinematicIdx.current = next;
-          cinematicStart.current = Date.now();
-          applyCinematicStep(next);
-        }
-      }
-    }, 500);
-
-    return () => clearInterval(id);
-  }, [cinematic, sceneReady, applyCinematicStep, cinematicSteps, exitCinematic]);
+  // The flight reached Earth: hand over with the constellation reveal.
+  const finishCinematicTour = useCallback(() => {
+    exitCinematic({ kind: 'planet', idx: 2, label: 'Earth' });
+  }, [exitCinematic]);
 
   // Selecting a constellation aims the camera at its sky direction. Constellations
   // live on the camera-pinned celestial sphere (radius 300), so they can't be
@@ -574,21 +520,11 @@ function OrreryInner() {
 
   useEffect(() => {
     const onVisibility = () => {
-      const hidden = document.visibilityState === 'hidden';
-      tabHiddenRef.current = hidden;
-      if (hidden) {
-        cinematicHiddenAt.current = Date.now();
-        return;
-      }
-      if (cinematicHiddenAt.current !== null && cinematic) {
-        const pauseMs = Date.now() - cinematicHiddenAt.current;
-        cinematicStart.current += pauseMs;
-        cinematicHiddenAt.current = null;
-      }
+      tabHiddenRef.current = document.visibilityState === 'hidden';
     };
     document.addEventListener('visibilitychange', onVisibility);
     return () => document.removeEventListener('visibilitychange', onVisibility);
-  }, [cinematic]);
+  }, []);
 
   // Observatory mode: anchor camera at Earth's position via the Earth Observer preset.
   // Fires once — `observatoryEntered` ref prevents re-entry on subsequent renders.
@@ -1144,15 +1080,11 @@ function OrreryInner() {
     return () => window.removeEventListener('keydown', fn);
   }, [cinematic, panelOpen, navigateBack, handlePresetSelect, exitCinematic, startCinematicTour, selPlanet, selSun, selMoonIdx, dismissSelection]);
 
-  // Clicking during the tour exits and zooms to the Sun. exitCinematic first
-  // clears the tour's focusTarget, then jumpToPreset settles the Sun preset —
-  // the same proven order as pressing a preset key during the tour.
+  // Clicking during the tour skips it and leaves the camera where it is.
   const handleCinematicClick = useCallback(() => {
     if (!cinematic) return;
-    tourEndedRef.current = true;
-    exitCinematic({ kind: 'preset', label: 'Sun' });
-    jumpToPreset('Sun', false);
-  }, [cinematic, exitCinematic, jumpToPreset]);
+    exitCinematic();
+  }, [cinematic, exitCinematic]);
 
   useEffect(() => {
     const previousHandler = window.__ORRERY_HANDLE_ANDROID_BACK__;
@@ -1204,15 +1136,13 @@ function OrreryInner() {
 
   const accentRgb = theme.uiAccentRgb;
 
-  // A tap fires OrbitControls' "start" (this) on pointer-down before the click
-  // handler runs, so it must also land on the Sun — otherwise it would exit to
-  // Earth first and the click handler would no-op.
+  // A tap or drag on the scene fires OrbitControls' "start" (this) on
+  // pointer-down, before any click handler. Skip the tour in place so a drag
+  // carries straight on from the frame the person grabbed.
   const handleUserGrabDuringCinematic = useCallback(() => {
     if (!cinematic) return;
-    tourEndedRef.current = true;
-    exitCinematic({ kind: 'preset', label: 'Sun' });
-    jumpToPreset('Sun', false);
-  }, [cinematic, exitCinematic, jumpToPreset]);
+    exitCinematic();
+  }, [cinematic, exitCinematic]);
 
   // Control-surface action dispatch (bottom cluster + side panel).
   const handleArcAction = useCallback((action: string, arg?: string) => {
@@ -1335,7 +1265,10 @@ function OrreryInner() {
       pointFocus={pointFocus}
       constellationFocus={constellationFocus}
       cinematic={cinematic}
-      cinematicRotateSpeed={cinematicRotateSpeed}
+      cinematicPlaying={cinematic && sceneReady}
+      cinematicRunId={cinematicRunId}
+      onCinematicPhase={applyCinematicPhase}
+      onCinematicDone={finishCinematicTour}
       onMoonSelect={handleMoonSelect}
       selMoonIdx={selMoonIdx}
       onCameraDistance={setCameraDistance}
@@ -1484,6 +1417,7 @@ function OrreryInner() {
         selConstellation={selConstellation} setSelConstellation={setSelConstellation}
         selAsterism={selAsterism} setSelAsterism={setSelAsterism}
         cinematic={cinematic}
+        tourChrome={tourChrome}
         navStack={navStack}
         onZoomOut={navigateBack}
         selMoonIdx={selMoonIdx}
@@ -1523,39 +1457,45 @@ function OrreryInner() {
         />
       )}
 
-      {/* Sim clock + date — shown during the cinematic tour. */}
-      {cinematic && !OBSERVATORY_MODE && (
+      {/* Tour chrome: one Skip button and the sim date. Tapping anywhere also
+          skips; the button is the visible, focusable way to do it. */}
+      {cinematic && tourChrome && !OBSERVATORY_MODE && (
         <>
           <div className="sr-only" role="status" aria-live="polite">
-            Cinematic tour playing. Use Exit tour and explore to enter the interactive solar system.
+            Cinematic tour playing. Use Skip tour to explore the solar system yourself.
           </div>
           <button
             ref={cinematicExitButtonRef}
             type="button"
+            className="orrery-tour-skip"
             onClick={(event) => {
               event.stopPropagation();
               handleCinematicClick();
             }}
             style={{
               position: 'fixed',
-              left: 'calc(env(safe-area-inset-left, 0px) + 20px)',
+              // A headset shows Enter VR at bottom center; keep clear of it.
+              ...(vrSupported === true
+                ? { left: 'calc(env(safe-area-inset-left, 0px) + 20px)' }
+                : { left: '50%', transform: 'translateX(-50%)' }),
               bottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)',
               zIndex: 25,
               minHeight: 48,
-              padding: '9px 14px',
+              minWidth: 48,
+              padding: '9px 18px',
               borderRadius: 8,
-              border: '1px solid rgba(255,255,255,0.28)',
-              background: 'rgba(0,0,0,0.48)',
-              color: 'rgba(255,255,255,0.9)',
+              background: 'rgba(0,0,0,0.4)',
+              color: 'rgba(255,255,255,0.86)',
               backdropFilter: 'blur(8px)',
               WebkitBackdropFilter: 'blur(8px)',
               cursor: 'pointer',
               fontFamily: 'inherit',
-              fontSize: 14,
-              letterSpacing: 0.5,
+              fontSize: 15,
+              letterSpacing: 1,
+              animation: 'orrery-fade-in 0.8s ease both',
             }}
           >
-            Exit tour and explore
+            Skip tour
           </button>
           <div
             aria-hidden="true"
@@ -1565,6 +1505,7 @@ function OrreryInner() {
               zIndex: 20, pointerEvents: 'none', textAlign: 'right',
               color: 'rgba(255,255,255,0.5)', fontFamily: 'inherit',
               textShadow: '0 1px 10px rgba(0,0,0,0.85)',
+              animation: 'orrery-fade-in 0.8s ease both',
             }}
           >
             <div style={{ fontSize: 15, letterSpacing: 1, fontWeight: 300 }}>

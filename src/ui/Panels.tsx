@@ -14,7 +14,7 @@ import { jdToDate } from '../lib/kepler';
 import { ALL_BODIES } from '../data/planets';
 import { getMoonsForPlanet } from '../data/moons';
 import { useTheme } from '../lib/themes';
-import { bokehCard, useIsMobile, useIsCompact, useTextScale, isTouchPrimary, Z, BLUR } from './styles';
+import { bokehCard, useIsMobile, useIsCompact, useTextScale, Z, BLUR } from './styles';
 import { PREFERS_REDUCED_MOTION } from '../lib/motion';
 import { useDuoLayout, type DuoLayout } from '../lib/duoFold';
 import BodyStats from './BodyStats';
@@ -454,6 +454,8 @@ export interface PanelProps {
   selConstellation: string | null; setSelConstellation: (id: string | null) => void;
   selAsterism: string | null; setSelAsterism: (name: string | null) => void;
   cinematic: boolean;
+  /** The tour's title may show: the loading card has gone. */
+  tourChrome: boolean;
   navStack: string[];
   /** Zoom back out to the containing scale level (the body card's Back button). */
   onZoomOut: () => void;
@@ -479,7 +481,7 @@ export default function Panels(props: PanelProps) {
     selPlanet, neoStatus, selNeo, setSelNeo, showNeo,
     selConstellation, setSelConstellation,
     selAsterism, setSelAsterism,
-    cinematic, navStack,
+    cinematic, tourChrome, navStack,
     selMoonIdx, cameraDistance,
     selComet, setSelComet, selMeteor, setSelMeteor,
     selSun,
@@ -562,7 +564,7 @@ export default function Panels(props: PanelProps) {
   const cinematicLabel = navStack[navStack.length - 1] || '';
 
   // ─── Cinematic overlay (rendered above main UI when active) ──────────────────
-  const cinematicOverlay = cinematic ? (() => {
+  const cinematicOverlay = cinematic && tourChrome ? (() => {
     const dim: React.CSSProperties = {
       color: 'rgba(255,255,255,0.7)', fontSize: mobile ? 16 : 18, fontWeight: 300,
       letterSpacing: 1.5, fontStyle: 'italic',
@@ -573,10 +575,8 @@ export default function Panels(props: PanelProps) {
           position: 'absolute', inset: 0, zIndex: Z.controls,
           display: 'flex', flexDirection: 'column',
           alignItems: 'center',
-          cursor: 'pointer',
-          backdropFilter: 'blur(0.5px)',
-          WebkitBackdropFilter: 'blur(0.5px)',
           pointerEvents: 'none',
+          animation: 'orrery-fade-in 0.8s ease both',
         }}
       >
         <div style={{
@@ -599,26 +599,18 @@ export default function Panels(props: PanelProps) {
               </>
             )}
           </div>
-          <div style={{
+          {/* Keyed by its text so each new title fades in instead of swapping. */}
+          <div key={cinematicLabel} style={{
             marginTop: mobile ? 10 : 14,
             fontSize: mobile ? 18 : 22, fontWeight: 300, letterSpacing: 5,
             color: 'rgba(255,255,255,0.72)',
             textTransform: 'uppercase',
+            animation: 'orrery-fade-in 0.9s ease both',
           }}>
             {cinematicLabel}
           </div>
         </div>
 
-        {/* Exit hint. On a phone it sits above the Exit button, which is
-            anchored 20px from the bottom and at least 44px tall, taller
-            with a larger system text size. */}
-        <div style={{
-          position: 'absolute', bottom: mobile ? safeAreaBottom(Math.round(64 + 20 * textScale)) : safeAreaBottom(56),
-          color: 'rgba(255,255,255,0.72)', fontSize: mobile ? 16 : 18,
-          letterSpacing: 3, fontWeight: 300, fontStyle: 'italic',
-        }}        >
-          {mobile || isTouchPrimary() ? 'tap' : 'click'} to explore
-        </div>
       </div>
     );
   })() : null;

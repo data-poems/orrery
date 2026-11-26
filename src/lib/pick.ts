@@ -5,8 +5,8 @@
  * planet can be tapped from far away. At system scale those spheres overlap,
  * and the raycaster reports whichever sphere's surface is nearest the camera:
  * a click on the Sun selected Mercury, a click on Mercury from above selected
- * the Sun. A person aims at a body's center, so the body whose center is
- * closest to the click wins instead.
+ * the Sun. The spheres only say which bodies are in reach of the pointer;
+ * which one was meant is decided on screen, in pixels (choosePick).
  */
 
 import type { ThreeEvent } from '@react-three/fiber';
@@ -18,49 +18,114 @@ export const PICK_BODY = 'pickBody';
 export const PICK_PARENT = 'pickParent';
 /** The function that selects the body. */
 export const PICK_SELECT = 'pickSelect';
-
-const center = new THREE.Vector3();
-
-function distanceFromRay(ray: THREE.Ray, object: THREE.Object3D): number {
-  return ray.distanceToPoint(object.getWorldPosition(center));
-}
-
-/**
- * The pick sphere of the body the person aimed at. Starts from the sphere the
- * raycaster reported and moves to any other body under the pointer whose
- * center is nearer the click, until there is none.
- *
- * The one exception is a planet and its own moons: between those the first
- * sphere hit still decides, as it always did. Seen from far away a moon is
- * less than a pixel from its planet, so "nearest center" there would hand a
- * click on Uranus to whichever moon the ray grazed.
- */
-export function resolvePick(e: ThreeEvent<MouseEvent>): THREE.Object3D {
-  let winner = e.eventObject;
-  // Each step moves strictly closer to the ray, so this ends; the bound is a
-  // backstop, not a limit anyone reaches.
-  for (let step = 0; step < 16; step++) {
-    const name = winner.userData[PICK_BODY];
-    const parent = winner.userData[PICK_PARENT];
-    let best: THREE.Object3D | null = null;
-    let bestDistance = distanceFromRay(e.ray, winner);
-    for (const hit of e.intersections) {
-      const other = hit.eventObject;
-      const otherName = other.userData[PICK_BODY];
-      if (other === winner || !otherName || !other.userData[PICK_SELECT]) continue;
-      // My planet, or one of my moons: hit order decided that already.
-      if (otherName === parent || other.userData[PICK_PARENT] === name) continue;
-      const d = distanceFromRay(e.ray, other);
-      if (d < bestDistance) { best = other; bestDistance = d; }
-    }
-    if (!best) break;
-    winner = best;
-  }
-  return winner;
-}
+/** The body's drawn radius, in scene units. */
+export const PICK_RADIUS = 'pickRadius';
+/** Which body wins when two are too close on screen to tell apart. */
+export const PICK_RANK = 'pickRank';
+export const RANK_SUN = 3;
+export const RANK_PLANET = 2;
+export const RANK_DWARF = 1;
+export const RANK_MOON = 0;
 
 /** Furthest the pointer may travel between press and release and still count as a tap. */
 const TAP_SLOP_PX = 8;
+/** Bodies whose centers are closer than this on screen cannot be told apart by a tap. */
+const UNRESOLVED_PX = 10;
+/** A tap this close to a moon's center means the moon, even over its planet's disc. */
+const MOON_TAP_PX = 10;
+
+/** One body under the pointer, measured in screen pixels. */
+export interface PickCandidate {
+  name: string;
+  parent?: string;
+  rank: number;
+  /** Pointer to the body's center. */
+  px: number;
+  /** The body's drawn radius. */
+  discPx: number;
+  /** Unit direction from the camera to the body's center. */
+  dir: THREE.Vector3;
+  /** Camera to the body's center, in scene units. */
+  distance: number;
+}
+
+/**
+ * Which of the bodies under the pointer the person aimed at.
+ *
+ * 0. A moon hidden behind its planet's disc is out: nobody can aim at it.
+ * 1. The body whose center is nearest the pointer.
+ * 2. Unless that is a moon and the tap is on its planet's disc and not right
+ *    on the moon: a moon's target is much larger than its dot, and a tap on
+ *    a small Jupiter kept selecting Europa.
+ * 3. Unless a more important body sits too close to it on screen to tell
+ *    apart, in which case that one: on a phone at the Outer scale Mercury is
+ *    3 pixels from the Sun, and a finger on the Sun got Mercury. A planet
+ *    and its own moons are left to rule 2.
+ */
+export function choosePick(candidates: PickCandidate[], pxPerRadian: number): PickCandidate | null {
+  const hidden = (moon: PickCandidate) => {
+    const planet = candidates.find(c => c.name === moon.parent);
+    return !!planet && moon.distance > planet.distance
+      && moon.dir.angleTo(planet.dir) * pxPerRadian < planet.discPx;
+  };
+  candidates = candidates.filter(c => !(c.parent && hidden(c)));
+  if (candidates.length === 0) return null;
+  let best = candidates[0];
+  for (const c of candidates) if (c.px < best.px) best = c;
+
+  if (best.parent && best.px > MOON_TAP_PX) {
+    const planet = candidates.find(c => c.name === best.parent);
+    if (planet && planet.px <= planet.discPx) best = planet;
+  }
+
+  const related = (a: PickCandidate, b: PickCandidate) => a.parent === b.name || b.parent === a.name;
+  const anchor = best;
+  for (const c of candidates) {
+    if (c === anchor || related(c, anchor)) continue;
+    const apartPx = c.dir.angleTo(anchor.dir) * pxPerRadian;
+    if (apartPx > UNRESOLVED_PX) continue;
+    if (c.rank > best.rank || (c.rank === best.rank && c.rank > anchor.rank && c.px < best.px)) best = c;
+  }
+  return best;
+}
+
+const center = new THREE.Vector3();
+const cameraPosition = new THREE.Vector3();
+
+/** The pick sphere of the body the person aimed at (see choosePick). */
+export function resolvePick(e: ThreeEvent<MouseEvent>): THREE.Object3D {
+  const camera = e.camera as THREE.PerspectiveCamera;
+  const target = e.nativeEvent?.target as HTMLElement | undefined;
+  const height = target?.clientHeight || (typeof window !== 'undefined' ? window.innerHeight : 800);
+  const fov = Number.isFinite(camera.fov) ? camera.fov : 55;
+  const pxPerRadian = height / 2 / Math.tan((fov * Math.PI) / 360);
+  camera.getWorldPosition(cameraPosition);
+
+  const objects: THREE.Object3D[] = [];
+  const candidates: PickCandidate[] = [];
+  for (const object of [e.eventObject, ...e.intersections.map(hit => hit.eventObject)]) {
+    const name = object.userData[PICK_BODY] as string | undefined;
+    if (!name || !object.userData[PICK_SELECT] || objects.includes(object)) continue;
+    object.getWorldPosition(center);
+    const dir = center.clone().sub(cameraPosition);
+    const distance = dir.length();
+    if (!(distance > 0)) continue;
+    dir.divideScalar(distance);
+    const radius = (object.userData[PICK_RADIUS] as number | undefined) ?? 0;
+    objects.push(object);
+    candidates.push({
+      name,
+      parent: object.userData[PICK_PARENT] as string | undefined,
+      rank: (object.userData[PICK_RANK] as number | undefined) ?? RANK_MOON,
+      px: dir.angleTo(e.ray.direction) * pxPerRadian,
+      discPx: Math.asin(Math.min(1, radius / distance)) * pxPerRadian,
+      dir,
+      distance,
+    });
+  }
+  const chosen = choosePick(candidates, pxPerRadian);
+  return chosen ? objects[candidates.indexOf(chosen)] : e.eventObject;
+}
 
 /**
  * Click handler for every body's pick sphere. Whichever sphere gets the event

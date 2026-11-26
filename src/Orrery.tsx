@@ -59,6 +59,9 @@ type DiceTarget =
 /** Scale ladder for the zoom tiles / +- stepping (innermost → outermost). */
 const ZOOM_LADDER = ['Sun', 'Inner', 'System', 'Outer', 'Kuiper', 'Oort', 'Stellar'] as const;
 
+/** Area label for each rung of ZOOM_LADDER, matching the preset labels. */
+const AREA_LABEL_BY_RUNG = ['Inner', 'Inner System', 'Full System', 'Outer System', 'Kuiper Belt', 'Oort Cloud', 'Deep Space'];
+
 /** Pause between the tour landing on Earth and the sky reveal. */
 const SKY_REVEAL_DELAY_MS = 1400;
 
@@ -1012,8 +1015,11 @@ function OrreryInner() {
     if (camPreset?.label === 'Oort') return 'Oort Cloud';
     if (camPreset?.label === 'Stellar') return 'Deep Space';
     if (camPreset?.label === 'Sun') return 'Inner';
-    return 'Full System';
-  }, [camPreset?.label, cinematic, selGalaxy, selMoonIdx, selNearStar, selPlanet, selSpacecraft, selSun]);
+    if (camPreset) return 'Full System';
+    // No preset: the tour was skipped mid-flight, or a card was closed. Name
+    // the scale the camera is actually at instead of always "Full System".
+    return AREA_LABEL_BY_RUNG[zoomRungFor(cameraDistance)] ?? 'Full System';
+  }, [camPreset, cameraDistance, cinematic, selGalaxy, selMoonIdx, selNearStar, selPlanet, selSpacecraft, selSun]);
 
   // Keyboard shortcuts
   useEffect(() => {

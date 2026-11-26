@@ -215,10 +215,12 @@ export default function BodyStats({ name, subtitle, color, stats, accent, accent
         <ArrowLeftIcon />
       </button>
 
-      <div style={{ paddingRight: 30 }}>
+      {/* Clear of the 48 px Back button in the corner; longer names step down
+          a size. "Mercury" used to run under the button. */}
+      <div style={{ paddingRight: 52 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 2 }}>
           {dot}
-          <span style={{ color: '#fff', fontSize: 34, fontWeight: 400, letterSpacing: 1.5, textShadow: shadow }}>{name}</span>
+          <span style={{ color: '#fff', fontSize: name.length > 7 ? 27 : 34, fontWeight: 400, letterSpacing: 1.5, overflowWrap: 'anywhere', minWidth: 0, textShadow: shadow }}>{name}</span>
         </div>
         <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 13, fontStyle: 'italic', letterSpacing: 0.5, marginBottom: 14, textShadow: shadow }}>
           {subtitle}

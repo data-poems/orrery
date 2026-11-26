@@ -12,7 +12,11 @@ import { BODY_SYMBOLS } from '../data/body-symbols';
 import type { PlanetDef } from '../lib/kepler';
 import { planetXYZ, orbitPath, orbitPathEpoch, moonOrbitPath } from '../lib/kepler';
 import type { MoonDef } from '../data/moons';
-import { PICK_BODY, PICK_PARENT, PICK_SELECT, labelCap, selectPicked } from '../lib/pick';
+import {
+  PICK_BODY, PICK_PARENT, PICK_RADIUS, PICK_RANK, PICK_SELECT,
+  RANK_DWARF, RANK_MOON, RANK_PLANET, RANK_SUN,
+  labelCap, selectPicked,
+} from '../lib/pick';
 
 /** Largest a body's name is drawn on screen, in CSS pixels of font size. */
 const MAX_PLANET_LABEL_PX = 40;
@@ -123,7 +127,7 @@ export function Sun({
       {/* Larger invisible tap target so Sol is selectable like planets. */}
       <mesh
         ref={hitRef}
-        userData={{ [PICK_BODY]: 'Sun', [PICK_SELECT]: onSelect }}
+        userData={{ [PICK_BODY]: 'Sun', [PICK_SELECT]: onSelect, [PICK_RADIUS]: 0.15, [PICK_RANK]: RANK_SUN }}
         onClick={onSelect ? selectPicked : undefined}
       >
         <sphereGeometry args={[1, 16, 16]} />
@@ -339,7 +343,7 @@ export function Planet({ planet, T, selected, onSelect, hovered, onHover, moonFo
       <mesh
         ref={hitRef}
         renderOrder={9}
-        userData={{ [PICK_BODY]: planet.name, [PICK_SELECT]: onSelect }}
+        userData={{ [PICK_BODY]: planet.name, [PICK_SELECT]: onSelect, [PICK_RADIUS]: r, [PICK_RANK]: planet.isDwarf ? RANK_DWARF : RANK_PLANET }}
         onClick={selectPicked}
         onPointerEnter={() => onHover(true)}
         onPointerLeave={() => onHover(false)}
@@ -453,7 +457,7 @@ export function Satellite({ moon, parentName, parentPos, jd, selected, onSelect,
         ref={hitRef}
         position={pos}
         renderOrder={10}
-        userData={{ [PICK_BODY]: moon.name, [PICK_PARENT]: parentName, [PICK_SELECT]: onSelect }}
+        userData={{ [PICK_BODY]: moon.name, [PICK_PARENT]: parentName, [PICK_SELECT]: onSelect, [PICK_RADIUS]: moon.radius, [PICK_RANK]: RANK_MOON }}
         onClick={onSelect ? selectPicked : undefined}
         onPointerEnter={onHover ? () => onHover(true) : undefined}
         onPointerLeave={onHover ? () => onHover(false) : undefined}

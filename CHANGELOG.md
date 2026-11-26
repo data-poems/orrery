@@ -30,14 +30,17 @@ All notable changes to Orrery are documented here.
 - A click or tap selects the body it was aimed at. Every body has an invisible
   target larger than its disc, and at system scale those targets overlap; the
   one nearest the camera used to win, so a click on the Sun selected Mercury
-  and a click on Mercury from above selected the Sun. The Sun or planet whose
-  center is nearest the click now wins, and the Sun has the same 18-pixel
-  minimum target as the planets.
+  and a click on Mercury from above selected the Sun. The choice is now made
+  on screen: the body whose center is nearest the tap, and when two are too
+  close to tell apart (under 10 pixels) the more important one, so a finger on
+  the Sun is the Sun at every scale. The Sun has the same 18-pixel minimum
+  target as the planets.
 - From far away a tap on a planet selects the planet, not one of its moons. A
   moon can be picked once its orbit is at least 24 pixels wide on screen;
   before that the planet keeps its full target, which the moons used to shrink
-  to a pixel or two. Between moons of one planet, the one aimed at wins, and
-  a click on a moon is not taken by another planet's target in front of it.
+  to a pixel or two. A tap on a planet's disc is the planet unless it is right
+  on a moon, a moon behind its planet cannot be picked through it, and a click
+  on a moon is not taken by another planet's target in front of it.
 - Orbiting the view and letting go over a planet no longer selects it. Only a
   tap (the pointer moving 8 pixels or less) selects.
 - A selected planet is viewed from its sunlit side wherever it is in its
@@ -60,6 +63,10 @@ All notable changes to Orrery are documented here.
   level, and the scene's shortcuts wait while a dialog is open.
 - Keyboard shortcuts is not listed in Controls where the main pointer is a
   finger.
+- After the tour is skipped mid-flight, or a card is closed, the label at the
+  top names the scale the camera is at instead of always "Full System".
+- A selected body's name stays clear of the Back button in its card on a
+  desktop; "Mercury" ran under it.
 
 ### Removed
 

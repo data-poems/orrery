@@ -29,10 +29,20 @@ export const RANK_MOON = 0;
 
 /** Furthest the pointer may travel between press and release and still count as a tap. */
 const TAP_SLOP_PX = 8;
-/** Bodies whose centers are closer than this on screen cannot be told apart by a tap. */
-const UNRESOLVED_PX = 10;
-/** A tap this close to a moon's center means the moon, even over its planet's disc. */
-const MOON_TAP_PX = 10;
+/**
+ * Bodies whose centers are closer than this on screen cannot be told apart:
+ * with a mouse, 10 pixels; with a finger, the 18-pixel minimum target every
+ * body is given. At the System scale on a phone Earth is 11 pixels from the
+ * Sun, and a finger 7 pixels off the Sun got Earth.
+ */
+export const UNRESOLVED_PX_MOUSE = 10;
+export const UNRESOLVED_PX_TOUCH = 18;
+/**
+ * Over its planet's disc, a tap means the moon only if it lands on the moon's
+ * own dot, give or take this many pixels. Anything looser and a moon one pixel
+ * wide claims a third of a small planet's disc.
+ */
+const MOON_ON_DISC_SLOP_PX = 4;
 
 /** One body under the pointer, measured in screen pixels. */
 export interface PickCandidate {
@@ -54,15 +64,19 @@ export interface PickCandidate {
  *
  * 0. A moon hidden behind its planet's disc is out: nobody can aim at it.
  * 1. The body whose center is nearest the pointer.
- * 2. Unless that is a moon and the tap is on its planet's disc and not right
- *    on the moon: a moon's target is much larger than its dot, and a tap on
- *    a small Jupiter kept selecting Europa.
+ * 2. Unless that is a moon and the tap is on its planet's disc and not on the
+ *    moon's own dot: a moon's target is much larger than its dot, and a tap
+ *    on a small Jupiter kept selecting Europa.
  * 3. Unless a more important body sits too close to it on screen to tell
- *    apart, in which case that one: on a phone at the Outer scale Mercury is
- *    3 pixels from the Sun, and a finger on the Sun got Mercury. A planet
- *    and its own moons are left to rule 2.
+ *    apart (`unresolvedPx`), in which case that one: on a phone at the Outer
+ *    scale Mercury is 3 pixels from the Sun, and a finger on the Sun got
+ *    Mercury. A planet and its own moons are left to rule 2.
  */
-export function choosePick(candidates: PickCandidate[], pxPerRadian: number): PickCandidate | null {
+export function choosePick(
+  candidates: PickCandidate[],
+  pxPerRadian: number,
+  unresolvedPx: number = UNRESOLVED_PX_MOUSE,
+): PickCandidate | null {
   const hidden = (moon: PickCandidate) => {
     const planet = candidates.find(c => c.name === moon.parent);
     return !!planet && moon.distance > planet.distance
@@ -73,7 +87,7 @@ export function choosePick(candidates: PickCandidate[], pxPerRadian: number): Pi
   let best = candidates[0];
   for (const c of candidates) if (c.px < best.px) best = c;
 
-  if (best.parent && best.px > MOON_TAP_PX) {
+  if (best.parent && best.px > best.discPx + MOON_ON_DISC_SLOP_PX) {
     const planet = candidates.find(c => c.name === best.parent);
     if (planet && planet.px <= planet.discPx) best = planet;
   }
@@ -83,7 +97,7 @@ export function choosePick(candidates: PickCandidate[], pxPerRadian: number): Pi
   for (const c of candidates) {
     if (c === anchor || related(c, anchor)) continue;
     const apartPx = c.dir.angleTo(anchor.dir) * pxPerRadian;
-    if (apartPx > UNRESOLVED_PX) continue;
+    if (apartPx > unresolvedPx) continue;
     if (c.rank > best.rank || (c.rank === best.rank && c.rank > anchor.rank && c.px < best.px)) best = c;
   }
   return best;
@@ -91,6 +105,14 @@ export function choosePick(candidates: PickCandidate[], pxPerRadian: number): Pi
 
 const center = new THREE.Vector3();
 const cameraPosition = new THREE.Vector3();
+
+/** Whether this click came from a finger. Safari's click carries no pointer type. */
+function isTouch(e: ThreeEvent<MouseEvent>): boolean {
+  const pointerType = (e.nativeEvent as PointerEvent | undefined)?.pointerType;
+  if (pointerType) return pointerType === 'touch';
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    && window.matchMedia('(pointer: coarse)').matches;
+}
 
 /** The pick sphere of the body the person aimed at (see choosePick). */
 export function resolvePick(e: ThreeEvent<MouseEvent>): THREE.Object3D {
@@ -123,7 +145,7 @@ export function resolvePick(e: ThreeEvent<MouseEvent>): THREE.Object3D {
       distance,
     });
   }
-  const chosen = choosePick(candidates, pxPerRadian);
+  const chosen = choosePick(candidates, pxPerRadian, isTouch(e) ? UNRESOLVED_PX_TOUCH : UNRESOLVED_PX_MOUSE);
   return chosen ? objects[candidates.indexOf(chosen)] : e.eventObject;
 }
 

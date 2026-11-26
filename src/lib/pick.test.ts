@@ -4,6 +4,7 @@ import type { ThreeEvent } from '@react-three/fiber';
 import {
   PICK_BODY, PICK_PARENT, PICK_RADIUS, PICK_RANK, PICK_SELECT,
   RANK_DWARF, RANK_MOON, RANK_PLANET, RANK_SUN,
+  UNRESOLVED_PX_MOUSE, UNRESOLVED_PX_TOUCH,
   choosePick, labelCap, resolvePick, selectPicked,
 } from './pick';
 
@@ -68,6 +69,22 @@ describe('resolvePick', () => {
     expect(picked(tap(eye, [-0.72, 0, 0], [venus, sun, mercury]))).toBe('Sun');
   });
 
+  it('a finger needs more room than a mouse to tell a planet from the Sun', () => {
+    // System scale on a phone: Earth is about 11 px from the Sun.
+    const earth = body('Earth', 0.68, 0, 0, { radius: 0.06 });
+    const eye: [number, number, number] = [0, 0, 50];
+    const apart = 0.68 / unitsPerPx(50);
+    expect(apart).toBeGreaterThan(UNRESOLVED_PX_MOUSE);
+    expect(apart).toBeLessThan(UNRESOLVED_PX_TOUCH);
+    const at: [number, number, number] = [0.45, 0, 0];
+    const mouse = tap(eye, at, [earth, sun]);
+    (mouse.nativeEvent as unknown as { pointerType: string }).pointerType = 'mouse';
+    const finger = tap(eye, at, [earth, sun]);
+    (finger.nativeEvent as unknown as { pointerType: string }).pointerType = 'touch';
+    expect(picked(mouse)).toBe('Earth');
+    expect(picked(finger)).toBe('Sun');
+  });
+
   it('two planets of equal standing: the one nearest the tap', () => {
     const mars = body('Mars', 1.5, 0, 0);
     const earth = body('Earth', 1.0, 0, 0);
@@ -85,6 +102,10 @@ describe('resolvePick', () => {
     expect(0.28 / px).toBeGreaterThan(50);
     // 14 px from Europa's center, well inside Jupiter's disc: Jupiter.
     expect(picked(tap(eye, [5.3 - 14 * px, 0, 0.28], [europa, jupiter]))).toBe('Jupiter');
+    // 7 px from Europa's 2 px dot, nearer to it than to Jupiter's center: still Jupiter.
+    expect(picked(tap(eye, [5.3 + 7 * px, 0, 0.28], [europa, jupiter]))).toBe('Jupiter');
+    // 3 px from the dot: Europa.
+    expect(picked(tap(eye, [5.3 + 3 * px, 0, 0.28], [europa, jupiter]))).toBe('Europa');
     // Right on Europa, in front of the disc: Europa.
     expect(picked(tap(eye, [5.3, 0, 0.28], [europa, jupiter]))).toBe('Europa');
     // Off the disc, inside Europa's large target: Europa.

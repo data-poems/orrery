@@ -32,8 +32,8 @@ All notable changes to Orrery are documented here.
   one nearest the camera used to win, so a click on the Sun selected Mercury
   and a click on Mercury from above selected the Sun. The choice is now made
   on screen: the body whose center is nearest the tap, and when two are too
-  close to tell apart (under 10 pixels) the more important one, so a finger on
-  the Sun is the Sun at every scale. The Sun has the same 18-pixel minimum
+  close to tell apart (under 10 pixels with a mouse, 18 with a finger) the
+  more important one, so a finger on the Sun is the Sun at every scale. The Sun has the same 18-pixel minimum
   target as the planets.
 - From far away a tap on a planet selects the planet, not one of its moons. A
   moon can be picked once its orbit is at least 24 pixels wide on screen;

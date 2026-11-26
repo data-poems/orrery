@@ -8,7 +8,7 @@
  * No emoji anywhere.
  */
 
-import { useEffect, useState, useRef, Fragment } from 'react';
+import { useCallback, useEffect, useState, useRef, Fragment } from 'react';
 import type { NEO } from '../lib/kepler';
 import { jdToDate } from '../lib/kepler';
 import { ALL_BODIES } from '../data/planets';
@@ -519,15 +519,24 @@ export default function Panels(props: PanelProps) {
   // About and Keyboard shortcuts are opened from the Controls panel, which
   // closes to make room. Closing the dialog goes back to it.
   const returnToControls = useRef(false);
-  const closeDialog = (close: () => void) => {
+  const closeDialog = useCallback((close: () => void) => {
     close();
     if (!returnToControls.current) return;
     returnToControls.current = false;
     window.dispatchEvent(new CustomEvent('orrery:open-controls'));
-  };
+  }, []);
+  const shortcutsOpen = useRef(false);
+  useEffect(() => {
+    shortcutsOpen.current = showShortcuts;
+  }, [showShortcuts]);
   useEffect(() => {
     const fromControls = (e: Event) => (e as CustomEvent<{ fromControls?: boolean } | null>).detail?.fromControls === true;
-    const toggleShortcuts = (e: Event) => { returnToControls.current = fromControls(e); setShowShortcuts(s => !s); };
+    const toggleShortcuts = (e: Event) => {
+      // "?" pressed with the sheet open closes it the same way its button does.
+      if (shortcutsOpen.current) { closeDialog(() => setShowShortcuts(false)); return; }
+      returnToControls.current = fromControls(e);
+      setShowShortcuts(true);
+    };
     const openInfo = (e: Event) => { returnToControls.current = fromControls(e); setShowInfo(true); };
     window.addEventListener('orrery:toggle-shortcuts', toggleShortcuts);
     window.addEventListener('orrery:open-info', openInfo);
@@ -535,16 +544,16 @@ export default function Panels(props: PanelProps) {
       window.removeEventListener('orrery:toggle-shortcuts', toggleShortcuts);
       window.removeEventListener('orrery:open-info', openInfo);
     };
-  }, []);
+  }, [closeDialog]);
   // Android's Back closes these dialogs before it does anything else.
   useEffect(() => {
     if (!showInfo) return;
     return registerBackDismiss(() => closeDialog(() => setShowInfo(false)));
-  }, [showInfo]);
+  }, [showInfo, closeDialog]);
   useEffect(() => {
     if (!showShortcuts) return;
     return registerBackDismiss(() => closeDialog(() => setShowShortcuts(false)));
-  }, [showShortcuts]);
+  }, [showShortcuts, closeDialog]);
   const sp = selPlanet !== null ? ALL_BODIES[selPlanet] : null;
   // One card at a time: a sky-object card takes the place of the body's card
   // until it is closed. Both sit in the same spot, so together they overlapped.

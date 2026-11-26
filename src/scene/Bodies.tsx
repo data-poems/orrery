@@ -12,7 +12,7 @@ import { BODY_SYMBOLS } from '../data/body-symbols';
 import type { PlanetDef } from '../lib/kepler';
 import { planetXYZ, orbitPath, orbitPathEpoch, moonOrbitPath } from '../lib/kepler';
 import type { MoonDef } from '../data/moons';
-import { PICK_BODY, PICK_PARENT, labelCap, wonPick } from '../lib/pick';
+import { PICK_BODY, PICK_PARENT, PICK_SELECT, labelCap, selectPicked } from '../lib/pick';
 
 /** Largest a body's name is drawn on screen, in CSS pixels of font size. */
 const MAX_PLANET_LABEL_PX = 40;
@@ -123,8 +123,8 @@ export function Sun({
       {/* Larger invisible tap target so Sol is selectable like planets. */}
       <mesh
         ref={hitRef}
-        userData={{ [PICK_BODY]: 'Sun' }}
-        onClick={onSelect ? (e) => { if (!wonPick(e)) return; e.stopPropagation(); onSelect(); } : undefined}
+        userData={{ [PICK_BODY]: 'Sun', [PICK_SELECT]: onSelect }}
+        onClick={onSelect ? selectPicked : undefined}
       >
         <sphereGeometry args={[1, 16, 16]} />
         <meshBasicMaterial visible={false} />
@@ -339,8 +339,8 @@ export function Planet({ planet, T, selected, onSelect, hovered, onHover, moonFo
       <mesh
         ref={hitRef}
         renderOrder={9}
-        userData={{ [PICK_BODY]: planet.name }}
-        onClick={e => { if (!wonPick(e)) return; e.stopPropagation(); onSelect(); }}
+        userData={{ [PICK_BODY]: planet.name, [PICK_SELECT]: onSelect }}
+        onClick={selectPicked}
         onPointerEnter={() => onHover(true)}
         onPointerLeave={() => onHover(false)}
       >
@@ -419,6 +419,7 @@ export function Satellite({ moon, parentName, parentPos, jd, selected, onSelect,
   const labelCapRef = useRef(1);
   const worldPos = useRef(new THREE.Vector3());
   const hitRef = useRef<THREE.Mesh>(null);
+  const pickableRef = useRef(true);
   useFrame(({ camera, size }, dt) => {
     if (!ref.current) return;
     ref.current.rotation.y += dt * 0.05;
@@ -427,7 +428,13 @@ export function Satellite({ moon, parentName, parentPos, jd, selected, onSelect,
     if (hitRef.current && Number.isFinite(fov) && size.height > 0) {
       const worldUnitsPerPixel = (2 * distanceToCamera * Math.tan(THREE.MathUtils.degToRad(fov / 2))) / size.height;
       const pickable = moon.a / worldUnitsPerPixel >= MIN_MOON_ORBIT_SCREEN_PX;
-      hitRef.current.raycast = pickable ? THREE.Mesh.prototype.raycast : noRaycast;
+      if (pickable !== pickableRef.current) {
+        pickableRef.current = pickable;
+        hitRef.current.raycast = pickable ? THREE.Mesh.prototype.raycast : noRaycast;
+        // The pointer can no longer leave a sphere it cannot hit, so a moon
+        // hovered while zooming out would stay highlighted.
+        if (!pickable) onHover?.(false);
+      }
     }
     // Close to a small moon its name grew several times taller than the planet.
     const cap = labelCap(labelFontSize, labelDistanceFactor, distanceToCamera, fov, MAX_MOON_LABEL_PX);
@@ -446,8 +453,8 @@ export function Satellite({ moon, parentName, parentPos, jd, selected, onSelect,
         ref={hitRef}
         position={pos}
         renderOrder={10}
-        userData={{ [PICK_BODY]: moon.name, [PICK_PARENT]: parentName }}
-        onClick={onSelect ? (e) => { if (!wonPick(e)) return; e.stopPropagation(); onSelect(); } : undefined}
+        userData={{ [PICK_BODY]: moon.name, [PICK_PARENT]: parentName, [PICK_SELECT]: onSelect }}
+        onClick={onSelect ? selectPicked : undefined}
         onPointerEnter={onHover ? () => onHover(true) : undefined}
         onPointerLeave={onHover ? () => onHover(false) : undefined}
       >

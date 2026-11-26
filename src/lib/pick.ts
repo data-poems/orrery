@@ -16,6 +16,8 @@ import * as THREE from 'three';
 export const PICK_BODY = 'pickBody';
 /** On a moon's pick sphere: the name of the planet it orbits. */
 export const PICK_PARENT = 'pickParent';
+/** The function that selects the body. */
+export const PICK_SELECT = 'pickSelect';
 
 const center = new THREE.Vector3();
 
@@ -24,30 +26,58 @@ function distanceFromRay(ray: THREE.Ray, object: THREE.Object3D): number {
 }
 
 /**
- * True when this event's own pick sphere belongs to the body the person aimed
- * at: no rival under the pointer has its center nearer the ray. A handler that
- * loses returns without stopping propagation, so the event reaches the winner.
+ * The pick sphere of the body the person aimed at. Starts from the sphere the
+ * raycaster reported and moves to any other body under the pointer whose
+ * center is nearer the click, until there is none.
  *
- * Rivals are bodies of the same rank. The Sun and planets rival each other,
- * and every moon gives way to them, except to its own planet. Moons of one
- * planet rival each other. Between a planet and its own moons the first sphere
- * hit still decides, as it always did: seen from far away a moon is less than
- * a pixel from its planet, so "nearest center" there would hand a click on
- * Uranus to whichever moon the ray grazed.
+ * The one exception is a planet and its own moons: between those the first
+ * sphere hit still decides, as it always did. Seen from far away a moon is
+ * less than a pixel from its planet, so "nearest center" there would hand a
+ * click on Uranus to whichever moon the ray grazed.
  */
-export function wonPick(e: ThreeEvent<MouseEvent>): boolean {
-  const mine = e.eventObject;
-  const myParent = mine.userData[PICK_PARENT];
-  const myDistance = distanceFromRay(e.ray, mine);
-  for (const hit of e.intersections) {
-    const other = hit.eventObject;
-    const otherName = other.userData[PICK_BODY];
-    if (other === mine || !otherName) continue;
-    const otherParent = other.userData[PICK_PARENT];
-    const rival = otherParent ? otherParent === myParent : otherName !== myParent;
-    if (rival && distanceFromRay(e.ray, other) < myDistance) return false;
+export function resolvePick(e: ThreeEvent<MouseEvent>): THREE.Object3D {
+  let winner = e.eventObject;
+  // Each step moves strictly closer to the ray, so this ends; the bound is a
+  // backstop, not a limit anyone reaches.
+  for (let step = 0; step < 16; step++) {
+    const name = winner.userData[PICK_BODY];
+    const parent = winner.userData[PICK_PARENT];
+    let best: THREE.Object3D | null = null;
+    let bestDistance = distanceFromRay(e.ray, winner);
+    for (const hit of e.intersections) {
+      const other = hit.eventObject;
+      const otherName = other.userData[PICK_BODY];
+      if (other === winner || !otherName || !other.userData[PICK_SELECT]) continue;
+      // My planet, or one of my moons: hit order decided that already.
+      if (otherName === parent || other.userData[PICK_PARENT] === name) continue;
+      const d = distanceFromRay(e.ray, other);
+      if (d < bestDistance) { best = other; bestDistance = d; }
+    }
+    if (!best) break;
+    winner = best;
   }
-  return true;
+  return winner;
+}
+
+/** Furthest the pointer may travel between press and release and still count as a tap. */
+const TAP_SLOP_PX = 8;
+
+/**
+ * Click handler for every body's pick sphere. Whichever sphere gets the event
+ * first settles it: it works out who was aimed at and selects that body
+ * itself. Passing the event along for the winner's own handler to pick up
+ * would drop the click whenever the pointer moved a fraction of a pixel
+ * between press and release, because a handler only receives a click on a
+ * sphere that was also under the press.
+ *
+ * A drag is not a tap: orbiting the view and letting go over a planet used to
+ * select it and fly the camera there.
+ */
+export function selectPicked(e: ThreeEvent<MouseEvent>): void {
+  e.stopPropagation();
+  if (e.delta > TAP_SLOP_PX) return;
+  const select = resolvePick(e).userData[PICK_SELECT] as (() => void) | undefined;
+  select?.();
 }
 
 /**

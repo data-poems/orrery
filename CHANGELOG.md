@@ -36,7 +36,10 @@ All notable changes to Orrery are documented here.
 - From far away a tap on a planet selects the planet, not one of its moons. A
   moon can be picked once its orbit is at least 24 pixels wide on screen;
   before that the planet keeps its full target, which the moons used to shrink
-  to a pixel or two. Between moons of one planet, the one aimed at wins.
+  to a pixel or two. Between moons of one planet, the one aimed at wins, and
+  a click on a moon is not taken by another planet's target in front of it.
+- Orbiting the view and letting go over a planet no longer selects it. Only a
+  tap (the pointer moving 8 pixels or less) selects.
 - A selected planet is viewed from its sunlit side wherever it is in its
   orbit. The view used a fixed direction, which on this date showed Saturn and
   Neptune from their night side.
@@ -47,7 +50,7 @@ All notable changes to Orrery are documented here.
   something else or used a control.
 - One card at a time: a constellation, comet or spacecraft card takes the
   place of the planet's card until it is closed. They used to open on top of
-  each other.
+  each other. Selecting the Sun, a planet or a moon closes any such card.
 - On a phone, a planet's details wrap onto two rows. The row used to scroll
   sideways with nothing to say so, which cut off the last values.
 - Names in the scene stop growing close up. Next to a small moon its name was

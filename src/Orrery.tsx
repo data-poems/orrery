@@ -308,6 +308,20 @@ function OrreryInner() {
     clearSkyCueTimeouts();
   }, [clearSkyCueTimeouts]);
 
+  // Selecting the Sun, a planet or a moon replaces whatever sky object was
+  // selected. One info card shows at a time, so a comet, shower, asteroid or
+  // constellation left selected would keep its card up and hide the new body's.
+  const clearSkyObjectSelection = useCallback(() => {
+    setSelSpacecraft(null);
+    setSelNearStar(null);
+    setSelGalaxy(null);
+    setSelConstellation(null);
+    setSelAsterism(null);
+    setSelComet(null);
+    setSelMeteor(null);
+    setSelNeo(null);
+  }, []);
+
   // The person has taken over (a control, a key, a new tour): drop any sky
   // reveal still pending from the tour's landing and stop its cues.
   const endSkyCues = useCallback(() => {
@@ -737,12 +751,10 @@ function OrreryInner() {
   const handlePlanetSelect = useCallback((idx: number | null, manual = true) => {
     if (cinematic) return;
 
+    endSkyCues();
     if (idx !== null) {
       setSelSun(false);
-      setSelSpacecraft(null);
-      setSelNearStar(null);
-      setSelGalaxy(null);
-      setSelConstellation(null);
+      clearSkyObjectSelection();
       setAimAtSphere(null);
       setPointFocus(null);
       setSelPlanet(idx);
@@ -770,7 +782,7 @@ function OrreryInner() {
       setNavStack(['Solar System']);
       if (manual) scheduleReviewPromptAfterDismissal();
     }
-  }, [cinematic, recordManualExploration, scheduleReviewPromptAfterDismissal, selPlanet]);
+  }, [cinematic, clearSkyObjectSelection, endSkyCues, recordManualExploration, scheduleReviewPromptAfterDismissal, selPlanet]);
 
   // Moon selection drill-down
   const handleMoonSelect = useCallback((planetIdx: number, moonIdx: number, manual = true) => {
@@ -778,11 +790,9 @@ function OrreryInner() {
     const moons = getMoonsForPlanet(planetIdx);
     if (moonIdx >= moons.length) return;
 
+    endSkyCues();
     setSelSun(false);
-    setSelSpacecraft(null);
-    setSelNearStar(null);
-    setSelGalaxy(null);
-    setSelConstellation(null);
+    clearSkyObjectSelection();
     setAimAtSphere(null);
     setPointFocus(null);
     setSelPlanet(planetIdx);
@@ -795,7 +805,7 @@ function OrreryInner() {
       return [...base, moons[moonIdx].name];
     });
     if (manual) recordManualExploration(`moon:${planetIdx}:${moonIdx}`);
-  }, [cinematic, recordManualExploration]);
+  }, [cinematic, clearSkyObjectSelection, endSkyCues, recordManualExploration]);
 
   // Camera preset selection
   const handlePresetSelect = useCallback((idx: number, manual = true) => {
@@ -842,6 +852,8 @@ function OrreryInner() {
 
   const handleSunSelect = useCallback((manual = true) => {
     if (cinematic) return;
+    endSkyCues();
+    clearSkyObjectSelection();
     setSelSun(true);
     setSelMoonIdx(null);
     setSelPlanet(null);
@@ -850,7 +862,7 @@ function OrreryInner() {
     setNavStack(['Solar System', 'Sun']);
     jumpToPreset('Sun', false);
     if (manual) recordManualExploration('sun');
-  }, [cinematic, jumpToPreset, recordManualExploration]);
+  }, [cinematic, clearSkyObjectSelection, endSkyCues, jumpToPreset, recordManualExploration]);
 
   // Build a fresh destination pool. Pool stays planet/moon-heavy on purpose
   // (those read as "stellar bodies"); a few active spacecraft sprinkle in the

@@ -1,0 +1,1 @@
+The opening tour is one smooth flight from deep space to Earth. A tap selects the body you aimed at, and a selected planet shows its sunlit side. On a phone, the System and Outer views show the whole system and a planet's moons fit in its close-up. Mercury is no longer a blank white disc, and moons have surfaces. Near-Earth objects are fetched only when you turn that layer on.

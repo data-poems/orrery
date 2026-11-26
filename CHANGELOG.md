@@ -27,6 +27,36 @@ All notable changes to Orrery are documented here.
 - Closing a planet's card leaves the camera where it is, as its Close button
   says. It used to drift back out to the whole system.
 - Replaying the tour pulls back from wherever the view was instead of cutting.
+- A click or tap selects the body it was aimed at. Every body has an invisible
+  target larger than its disc, and at system scale those targets overlap; the
+  one nearest the camera used to win, so a click on the Sun selected Mercury
+  and a click on Mercury from above selected the Sun. The Sun or planet whose
+  center is nearest the click now wins, and the Sun has the same 18-pixel
+  minimum target as the planets.
+- From far away a tap on a planet selects the planet, not one of its moons. A
+  moon can be picked once its orbit is at least 24 pixels wide on screen;
+  before that the planet keeps its full target, which the moons used to shrink
+  to a pixel or two. Between moons of one planet, the one aimed at wins.
+- A selected planet is viewed from its sunlit side wherever it is in its
+  orbit. The view used a fixed direction, which on this date showed Saturn and
+  Neptune from their night side.
+- The tour's landing arrives in two beats: Earth's card and the controls
+  first, the constellations a moment later. The "Sky mode enabled" badge is
+  gone; the Sky button lights and pulses, and screen readers still hear that
+  Sky mode came on. The reveal is skipped if the person has already picked
+  something else or used a control.
+- One card at a time: a constellation, comet or spacecraft card takes the
+  place of the planet's card until it is closed. They used to open on top of
+  each other.
+- On a phone, a planet's details wrap onto two rows. The row used to scroll
+  sideways with nothing to say so, which cut off the last values.
+- Names in the scene stop growing close up. Next to a small moon its name was
+  several times taller than the moon, and its planet's name taller still.
+- Closing About or Keyboard shortcuts returns to the Controls panel it was
+  opened from. Escape in either dialog no longer also steps the scene back a
+  level, and the scene's shortcuts wait while a dialog is open.
+- Keyboard shortcuts is not listed in Controls where the main pointer is a
+  finger.
 
 ### Removed
 

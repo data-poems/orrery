@@ -516,9 +516,19 @@ export default function Panels(props: PanelProps) {
     return () => { window.clearTimeout(show); window.clearTimeout(hide); };
   }, [cameraDistance, observatoryMode]);
   // The SidePanel + '?' shortcut open these dialogs via window events.
+  // About and Keyboard shortcuts are opened from the Controls panel, which
+  // closes to make room. Closing the dialog goes back to it.
+  const returnToControls = useRef(false);
+  const closeDialog = (close: () => void) => {
+    close();
+    if (!returnToControls.current) return;
+    returnToControls.current = false;
+    window.dispatchEvent(new CustomEvent('orrery:open-controls'));
+  };
   useEffect(() => {
-    const toggleShortcuts = () => setShowShortcuts(s => !s);
-    const openInfo = () => setShowInfo(true);
+    const fromControls = (e: Event) => (e as CustomEvent<{ fromControls?: boolean } | null>).detail?.fromControls === true;
+    const toggleShortcuts = (e: Event) => { returnToControls.current = fromControls(e); setShowShortcuts(s => !s); };
+    const openInfo = (e: Event) => { returnToControls.current = fromControls(e); setShowInfo(true); };
     window.addEventListener('orrery:toggle-shortcuts', toggleShortcuts);
     window.addEventListener('orrery:open-info', openInfo);
     return () => {
@@ -529,14 +539,15 @@ export default function Panels(props: PanelProps) {
   // Android's Back closes these dialogs before it does anything else.
   useEffect(() => {
     if (!showInfo) return;
-    return registerBackDismiss(() => setShowInfo(false));
+    return registerBackDismiss(() => closeDialog(() => setShowInfo(false)));
   }, [showInfo]);
   useEffect(() => {
     if (!showShortcuts) return;
-    return registerBackDismiss(() => setShowShortcuts(false));
+    return registerBackDismiss(() => closeDialog(() => setShowShortcuts(false)));
   }, [showShortcuts]);
   const sp = selPlanet !== null ? ALL_BODIES[selPlanet] : null;
-  // iPhone Duo tabletop shows one card at a time under the fold.
+  // One card at a time: a sky-object card takes the place of the body's card
+  // until it is closed. Both sit in the same spot, so together they overlapped.
   const tabletop = duo?.kind === 'tabletop' ? duo : null;
   const otherCardOpen = !!((selConstellation && MYTHOLOGY[selConstellation]) || selAsterism || selSpacecraft
     || selNearStar || selGalaxy || selComet || selMeteor || selNeo);
@@ -775,7 +786,7 @@ export default function Panels(props: PanelProps) {
       )}
 
       {/* ── Background blur overlay when body selected (hidden in observatory / cinematic) ── */}
-      {sp && !observatoryMode && !cinematic && (
+      {sp && !observatoryMode && !cinematic && !otherCardOpen && (
         <div
           aria-hidden="true"
           style={{
@@ -805,7 +816,7 @@ export default function Panels(props: PanelProps) {
           Tap a planet, moon or star to see its details here.
         </p>
       )}
-      {!cinematic && !observatoryMode && (selSun || sp || selectedMoon) && !(tabletop && otherCardOpen) && (
+      {!cinematic && !observatoryMode && (selSun || sp || selectedMoon) && !otherCardOpen && (
         <BodyStats
           key={selectedMoon ? `m${selectedMoon.name}` : selSun ? 'sun' : sp!.name}
           name={selectedMoon ? selectedMoon.name : selSun ? 'Sun' : sp!.name}
@@ -931,13 +942,13 @@ export default function Panels(props: PanelProps) {
       {/* ── About dialog ── */}
       <AboutDialog
         open={showInfo}
-        onClose={() => setShowInfo(false)}
+        onClose={() => closeDialog(() => setShowInfo(false))}
         accent={accent}
         accentRgb={accentRgb}
       />
       <ShortcutsSheet
         open={showShortcuts}
-        onClose={() => setShowShortcuts(false)}
+        onClose={() => closeDialog(() => setShowShortcuts(false))}
         accent={accent}
         accentRgb={accentRgb}
       />

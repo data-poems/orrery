@@ -14,6 +14,7 @@ import {
   orbitOffset,
   planetFocusDistance,
   poseToCamera,
+  sunlitAzimuth,
   type Vec3,
 } from './cinematicPath';
 
@@ -113,6 +114,20 @@ describe('cinematic flight path', () => {
     expect(cinematicPhaseAt(0)).toBe(0);
     expect(cinematicPhaseAt(CINEMATIC_DURATION)).toBe(CINEMATIC_PHASES.length - 1);
     CINEMATIC_PHASES.forEach((p, i) => expect(cinematicPhaseAt(p.still)).toBe(i));
+  });
+});
+
+describe('sunlit view', () => {
+  it('views a body from its Sun-facing side wherever it is', () => {
+    for (let a = 0; a < Math.PI * 2; a += Math.PI / 9) {
+      for (const r of [0.39, 1, 5.2, 30]) {
+        const body: Vec3 = [r * Math.cos(a), 0, r * Math.sin(a)];
+        const off = orbitOffset(1, sunlitAzimuth(body), FOCUS_ELEVATION);
+        const toSun: Vec3 = [-body[0] / r, 0, -body[2] / r];
+        // cos of the phase angle; 1 is fully lit, below 0 is the night side.
+        expect(off[0] * toSun[0] + off[1] * toSun[1] + off[2] * toSun[2]).toBeGreaterThan(0.6);
+      }
+    }
   });
 });
 

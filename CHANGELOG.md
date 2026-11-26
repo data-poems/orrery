@@ -35,6 +35,9 @@ All notable changes to Orrery are documented here.
 
 ### Changed
 
+- Version 1.3.3, shared native build 789: the first app build with the
+  opening tour, picking, narrow-screen and near-Earth feed changes listed
+  under Fixed below. Android first; no iOS 1.3.3 build has been made.
 - The privacy page is dated November 25, 2026: NASA NeoWs is contacted when
   the Near-Earth objects layer is turned on (app versions 1.3.2 and earlier
   still ask at launch), and today's list is kept in localStorage.

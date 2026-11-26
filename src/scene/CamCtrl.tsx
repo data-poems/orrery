@@ -13,6 +13,7 @@ import {
   CINEMATIC_PHASES,
   FOCUS_AZIMUTH,
   FOCUS_ELEVATION,
+  alignAzimuth,
   blendPose,
   cameraToPose,
   cinematicEntrySeconds,
@@ -122,6 +123,12 @@ export default function CamCtrl({
   const tourEntry = useRef<OrbitPose | null>(null);
   const tourPhase = useRef(-1);
   const tourDone = useRef(false);
+  // A headset owns the camera, so the flight cannot play in a VR session. If
+  // a tour is started there (F on a paired keyboard), skip it at once; left
+  // running, its clock would never advance and it would never end.
+  useEffect(() => {
+    if (inXR && cinematic) onUserGrabDuringCinematic?.();
+  }, [inXR, cinematic, onUserGrabDuringCinematic]);
   // True from the tour until the first camera target after it is planned.
   const wasCinematic = useRef(false);
   useEffect(() => {
@@ -375,9 +382,12 @@ export default function CamCtrl({
         pose = cinematicPose(0, earth);
       } else {
         if (!tourEntry.current) {
-          tourEntry.current = cameraToPose(
-            camera.position.toArray() as [number, number, number],
-            ctrl.target.toArray() as [number, number, number],
+          tourEntry.current = alignAzimuth(
+            cameraToPose(
+              camera.position.toArray() as [number, number, number],
+              ctrl.target.toArray() as [number, number, number],
+            ),
+            cinematicPose(0, earth).az,
           );
         }
         // A long frame (tab switch, GC pause) must not skip the flight ahead.

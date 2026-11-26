@@ -198,14 +198,19 @@ export function cinematicEntrySeconds(entry: OrbitPose): number {
   return Math.max(1.5, Math.min(4.5, 1 + 0.9 * decades));
 }
 
-function shortestAngle(from: number, to: number): number {
-  let d = (to - from) % (2 * Math.PI);
-  if (d > Math.PI) d -= 2 * Math.PI;
-  if (d < -Math.PI) d += 2 * Math.PI;
-  return d;
+/**
+ * The same pose with its azimuth moved by whole turns to within half a turn of
+ * `referenceAz`. Do this once, when a replay captures the camera: blendPose
+ * then interpolates azimuth plainly. Picking "the short way round" on every
+ * frame instead would flip direction mid-blend whenever the moving path
+ * crossed the point opposite the starting view.
+ */
+export function alignAzimuth(pose: OrbitPose, referenceAz: number): OrbitPose {
+  const turns = Math.round((referenceAz - pose.az) / (2 * Math.PI));
+  return turns === 0 ? pose : { ...pose, az: pose.az + turns * 2 * Math.PI };
 }
 
-/** Blend two orbit poses: distance in log space, azimuth the short way round. */
+/** Blend two orbit poses: distance in log space. See alignAzimuth for the angle. */
 export function blendPose(a: OrbitPose, b: OrbitPose, k: number): OrbitPose {
   if (k <= 0) return a;
   if (k >= 1) return b;
@@ -213,7 +218,7 @@ export function blendPose(a: OrbitPose, b: OrbitPose, k: number): OrbitPose {
   return {
     center: [lerp(a.center[0], b.center[0]), lerp(a.center[1], b.center[1]), lerp(a.center[2], b.center[2])],
     dist: 10 ** lerp(Math.log10(a.dist), Math.log10(b.dist)),
-    az: a.az + shortestAngle(a.az, b.az) * k,
+    az: lerp(a.az, b.az),
     el: lerp(a.el, b.el),
   };
 }

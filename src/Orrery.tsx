@@ -318,6 +318,12 @@ function OrreryInner() {
     };
   }, [cancelScheduledReviewPrompt, reviewPrompt]);
 
+  // For handlers bound once to the WebGL canvas, which outlive a render.
+  const cinematicRef = useRef(cinematic);
+  useEffect(() => {
+    cinematicRef.current = cinematic;
+  }, [cinematic]);
+
   // The tour's title, clock and Skip button wait until the loading card has
   // faded, so they never sit on top of it.
   const [tourChrome, setTourChrome] = useState(false);
@@ -1208,7 +1214,9 @@ function OrreryInner() {
     function onLost(e: Event) {
       e.preventDefault();
       setPlaying(false);
-      setCinematic(false);
+      // End a running tour through exitCinematic so the body its last phase
+      // highlighted is not left selected with nothing tracking it.
+      if (cinematicRef.current) exitCinematic();
       reloadLoadingTasks();
     }
     function onRestored() {
@@ -1236,7 +1244,7 @@ function OrreryInner() {
     canvas.addEventListener('webglcontextlost', onLost);
     canvas.addEventListener('webglcontextrestored', onRestored);
     return detach;
-  }, [glCanvas, reloadLoadingTasks]);
+  }, [glCanvas, reloadLoadingTasks, exitCinematic]);
 
   // Extracted so it can render either bare or wrapped in the lazy XRProvider
   // without duplicating the prop list.
@@ -1370,7 +1378,7 @@ function OrreryInner() {
             // Leave the auto-tour before handing the camera to the headset —
             // otherwise the cinematic keeps driving presets the XR camera
             // ignores, and the view looks frozen.
-            setCinematic(false);
+            if (cinematic) exitCinematic();
             setPanelOpen(false);
             void xrStoreRef.current?.enterVR();
           }}

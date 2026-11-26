@@ -3,6 +3,7 @@ import {
   CINEMATIC_DURATION,
   CINEMATIC_PHASES,
   FOCUS_ELEVATION,
+  alignAzimuth,
   blendPose,
   cameraToPose,
   cinematicEntrySeconds,
@@ -141,14 +142,40 @@ describe('pose helpers', () => {
     expect(far).toBe(1.5);
   });
 
-  it('blendPose goes the short way round and ends on its target', () => {
-    const a = { center: [0, 0, 0] as Vec3, dist: 1, az: 3.0, el: 0.2 };
-    const b = { center: [1, 0, 0] as Vec3, dist: 100, az: -3.0, el: 0.4 };
+  it('blendPose blends distance in log space and ends on its target', () => {
+    const a = { center: [0, 0, 0] as Vec3, dist: 1, az: 0.2, el: 0.2 };
+    const b = { center: [1, 0, 0] as Vec3, dist: 100, az: 0.6, el: 0.4 };
     expect(blendPose(a, b, 0)).toBe(a);
     expect(blendPose(a, b, 1)).toBe(b);
     const mid = blendPose(a, b, 0.5);
     expect(mid.dist).toBeCloseTo(10, 9);
-    // 3.0 to -3.0 is 0.283 rad through pi, not 6 rad back through zero.
-    expect(Math.abs(mid.az)).toBeGreaterThan(3.0);
+    expect(mid.az).toBeCloseTo(0.4, 9);
+  });
+
+  it('alignAzimuth takes the short way round, once', () => {
+    const pose = { center: [0, 0, 0] as Vec3, dist: 1, az: 3.0, el: 0.2 };
+    // -3.0 is 0.283 rad from 3.0 through pi, not 6 rad back through zero.
+    expect(alignAzimuth(pose, -3.0).az).toBeCloseTo(3.0 - 2 * Math.PI, 9);
+    expect(alignAzimuth(pose, 2.5)).toBe(pose);
+  });
+
+  it('a replay from the far side of the path never flips direction', () => {
+    // Start a replay from every direction around Earth, including directly
+    // opposite the opening view, and follow the blended camera frame by frame.
+    for (let az = -Math.PI; az < Math.PI; az += Math.PI / 16) {
+      const raw = cameraToPose(
+        [EARTH[0] + 0.5 * Math.cos(0.4) * Math.cos(az), EARTH[1] + 0.5 * Math.sin(0.4), EARTH[2] + 0.5 * Math.cos(0.4) * Math.sin(az)],
+        EARTH,
+      );
+      const entry = alignAzimuth(raw, cinematicPose(0, EARTH).az);
+      const seconds = cinematicEntrySeconds(entry);
+      let prev = poseToCamera(entry);
+      for (let t = FRAME; t <= seconds + 0.5; t += FRAME) {
+        const k = Math.max(0, Math.min(1, t / seconds));
+        const cam = poseToCamera(blendPose(entry, cinematicPose(t, EARTH), k * k * (3 - 2 * k)));
+        expect(angleBetween(forward(prev.pos, prev.look), forward(cam.pos, cam.look))).toBeLessThan(4);
+        prev = cam;
+      }
+    }
   });
 });

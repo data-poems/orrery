@@ -181,6 +181,7 @@ export default function Scene({
             {isFocused && <SatelliteOrbit moon={moon} parentPos={parentPos} />}
             <MoonSatellite
               moon={moon}
+              parentName={body.name}
               parentPos={parentPos}
               jd={jd}
               selected={isFocused && selMoonIdx === mIdx}

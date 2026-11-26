@@ -12,6 +12,25 @@ import { BODY_SYMBOLS } from '../data/body-symbols';
 import type { PlanetDef } from '../lib/kepler';
 import { planetXYZ, orbitPath, orbitPathEpoch, moonOrbitPath } from '../lib/kepler';
 import type { MoonDef } from '../data/moons';
+import {
+  PICK_BODY, PICK_PARENT, PICK_RADIUS, PICK_RANK, PICK_SELECT,
+  RANK_DWARF, RANK_MOON, RANK_PLANET, RANK_SUN,
+  labelCap, selectPicked,
+} from '../lib/pick';
+
+/** Largest a body's name is drawn on screen, in CSS pixels of font size. */
+const MAX_PLANET_LABEL_PX = 40;
+const MAX_MOON_LABEL_PX = 22;
+/** Smallest on-screen radius of a body's pick sphere. */
+const MIN_HIT_SCREEN_PX = 18;
+/**
+ * A moon can be picked once its orbit is at least this wide on screen. From
+ * further away it sits within a few pixels of its planet, and a tap there
+ * means the planet: a click on Uranus from the outer system used to select
+ * whichever of its moons the ray grazed first.
+ */
+const MIN_MOON_ORBIT_SCREEN_PX = 24;
+const noRaycast = () => {};
 
 function useTextures() {
   const isMobile = useIsMobile();
@@ -88,18 +107,30 @@ export function Sun({
   onSelect?: () => void;
 }) {
   const ref = useRef<THREE.Mesh>(null);
+  const hitRef = useRef<THREE.Mesh>(null);
   const TEX = useTextures();
   const tex = useLoader(THREE.TextureLoader, TEX.sun);
-  useFrame((_, dt) => {
+  useFrame(({ camera, size }, dt) => {
     if (ref.current) ref.current.rotation.y += dt * 0.02;
+    if (!hitRef.current) return;
+    // Like the planets: at least 18 px on screen, never enclosing the camera.
+    const distanceToCamera = camera.position.length();
+    const fov = (camera as THREE.PerspectiveCamera).fov;
+    const worldUnitsPerPixel = Number.isFinite(fov) && size.height > 0
+      ? (2 * distanceToCamera * Math.tan(THREE.MathUtils.degToRad(fov / 2))) / size.height
+      : 0;
+    const desired = Math.max(0.5, MIN_HIT_SCREEN_PX * worldUnitsPerPixel);
+    hitRef.current.scale.setScalar(Math.min(desired, Math.max(0.16, distanceToCamera * 0.85)));
   });
   return (
     <group>
       {/* Larger invisible tap target so Sol is selectable like planets. */}
       <mesh
-        onClick={onSelect ? (e) => { e.stopPropagation(); onSelect(); } : undefined}
+        ref={hitRef}
+        userData={{ [PICK_BODY]: 'Sun', [PICK_SELECT]: onSelect, [PICK_RADIUS]: 0.15, [PICK_RANK]: RANK_SUN }}
+        onClick={onSelect ? selectPicked : undefined}
       >
-        <sphereGeometry args={[0.5, 16, 16]} />
+        <sphereGeometry args={[1, 16, 16]} />
         <meshBasicMaterial visible={false} />
       </mesh>
       {/* Main textured photosphere */}
@@ -260,7 +291,10 @@ export function Planet({ planet, T, selected, onSelect, hovered, onHover, moonFo
   // Keep far-away planets clickable even when user is zoomed in on another body
   // (e.g., from Ceres trying to pick Jupiter). This is a minimum on-screen
   // radius converted into world units each frame.
-  const MIN_PLANET_HIT_SCREEN_PX = 18;
+  const MIN_PLANET_HIT_SCREEN_PX = MIN_HIT_SCREEN_PX;
+  const labelRef = useRef<HTMLDivElement>(null);
+  const labelCapRef = useRef(1);
+  const effectiveLabelFactor = planet.isDwarf ? Math.min(labelDistanceFactor, 1.9) : labelDistanceFactor;
 
   useFrame((_, dt) => {
     if (ref.current) ref.current.rotation.y += dt * 0.12;
@@ -274,6 +308,13 @@ export function Planet({ planet, T, selected, onSelect, hovered, onHover, moonFo
 
     hitRef.current.getWorldPosition(worldPosRef.current);
     const distanceToCamera = camera.position.distanceTo(worldPosRef.current);
+    // Hold the name at a readable size when the camera is very close (a moon
+    // of this planet is in focus); written to the DOM only when it changes.
+    const cap = labelCap(labelFontSize, effectiveLabelFactor, distanceToCamera, perspectiveCamera.fov, MAX_PLANET_LABEL_PX);
+    if (labelRef.current && Math.abs(cap - labelCapRef.current) > 0.01) {
+      labelCapRef.current = cap;
+      labelRef.current.style.transform = cap < 1 ? `scale(${cap.toFixed(3)})` : '';
+    }
     const worldUnitsPerPixel =
       (2 * distanceToCamera * Math.tan(THREE.MathUtils.degToRad(perspectiveCamera.fov / 2))) /
       size.height;
@@ -287,7 +328,12 @@ export function Planet({ planet, T, selected, onSelect, hovered, onHover, moonFo
     const cameraSafeMax = Math.max(minPhysicalRadius, distanceToCamera * 0.85);
     // Never let the hit sphere reach this planet's innermost moon — otherwise the
     // planet's pick proxy is hit first and its stopPropagation eats the moon tap.
-    const moonClearance = innerMoonA !== undefined ? innerMoonA * 0.85 : Infinity;
+    // Only once that moon is far enough from the planet on screen to be picked
+    // itself; from further out the cap shrank the planet's own target to a
+    // pixel or two, far below the 18 px minimum.
+    const moonsPickable = innerMoonA !== undefined
+      && innerMoonA / worldUnitsPerPixel >= MIN_MOON_ORBIT_SCREEN_PX;
+    const moonClearance = moonsPickable ? innerMoonA! * 0.85 : Infinity;
     hitRef.current.scale.setScalar(Math.min(desiredRadius, cameraSafeMax, moonClearance));
   });
 
@@ -297,7 +343,8 @@ export function Planet({ planet, T, selected, onSelect, hovered, onHover, moonFo
       <mesh
         ref={hitRef}
         renderOrder={9}
-        onClick={e => { e.stopPropagation(); onSelect(); }}
+        userData={{ [PICK_BODY]: planet.name, [PICK_SELECT]: onSelect, [PICK_RADIUS]: r, [PICK_RANK]: planet.isDwarf ? RANK_DWARF : RANK_PLANET }}
+        onClick={selectPicked}
         onPointerEnter={() => onHover(true)}
         onPointerLeave={() => onHover(false)}
       >
@@ -325,11 +372,11 @@ export function Planet({ planet, T, selected, onSelect, hovered, onHover, moonFo
       <Html className="scene-label"
         position={[0, labelOffset, 0]}
         center
-        distanceFactor={planet.isDwarf ? Math.min(labelDistanceFactor, 1.9) : labelDistanceFactor}
+        distanceFactor={effectiveLabelFactor}
         style={{ pointerEvents: 'none' }}
         zIndexRange={[1, 0]}
       >
-        <div style={{
+        <div ref={labelRef} style={{
           color: hovered || selected ? '#fff' : 'rgba(255,255,255,0.85)',
           fontSize: labelFontSize,
           fontFamily: "'Cormorant Garamond', serif",
@@ -349,8 +396,8 @@ export function Planet({ planet, T, selected, onSelect, hovered, onHover, moonFo
 
 // ─── Satellite (generic moon) ──────────────────────────────────────────────────
 
-export function Satellite({ moon, parentPos, jd, selected, onSelect, hovered, onHover }: {
-  moon: MoonDef; parentPos: [number, number, number]; jd: number;
+export function Satellite({ moon, parentName, parentPos, jd, selected, onSelect, hovered, onHover }: {
+  moon: MoonDef; parentName: string; parentPos: [number, number, number]; jd: number;
   selected?: boolean; onSelect?: () => void;
   hovered?: boolean; onHover?: (h: boolean) => void;
 }) {
@@ -372,7 +419,34 @@ export function Satellite({ moon, parentPos, jd, selected, onSelect, hovered, on
   const labelFontSize = THREE.MathUtils.lerp(3.4, 8.2, labelScale / 1.05);
   const labelOffset = moon.radius + THREE.MathUtils.lerp(0.004, 0.012, labelScale / 1.05);
 
-  useFrame((_, dt) => { if (ref.current) ref.current.rotation.y += dt * 0.05; });
+  const labelRef = useRef<HTMLDivElement>(null);
+  const labelCapRef = useRef(1);
+  const worldPos = useRef(new THREE.Vector3());
+  const hitRef = useRef<THREE.Mesh>(null);
+  const pickableRef = useRef(true);
+  useFrame(({ camera, size }, dt) => {
+    if (!ref.current) return;
+    ref.current.rotation.y += dt * 0.05;
+    const distanceToCamera = camera.position.distanceTo(ref.current.getWorldPosition(worldPos.current));
+    const fov = (camera as THREE.PerspectiveCamera).fov;
+    if (hitRef.current && Number.isFinite(fov) && size.height > 0) {
+      const worldUnitsPerPixel = (2 * distanceToCamera * Math.tan(THREE.MathUtils.degToRad(fov / 2))) / size.height;
+      const pickable = moon.a / worldUnitsPerPixel >= MIN_MOON_ORBIT_SCREEN_PX;
+      if (pickable !== pickableRef.current) {
+        pickableRef.current = pickable;
+        hitRef.current.raycast = pickable ? THREE.Mesh.prototype.raycast : noRaycast;
+        // The pointer can no longer leave a sphere it cannot hit, so a moon
+        // hovered while zooming out would stay highlighted.
+        if (!pickable) onHover?.(false);
+      }
+    }
+    // Close to a small moon its name grew several times taller than the planet.
+    const cap = labelCap(labelFontSize, labelDistanceFactor, distanceToCamera, fov, MAX_MOON_LABEL_PX);
+    if (labelRef.current && Math.abs(cap - labelCapRef.current) > 0.01) {
+      labelCapRef.current = cap;
+      labelRef.current.style.transform = cap < 1 ? `scale(${cap.toFixed(3)})` : '';
+    }
+  });
 
   const moonHitRadius = Math.max(moon.radius * 8, 0.04);
 
@@ -380,9 +454,11 @@ export function Satellite({ moon, parentPos, jd, selected, onSelect, hovered, on
     <group>
       {/* Invisible larger click target for moons */}
       <mesh
+        ref={hitRef}
         position={pos}
         renderOrder={10}
-        onClick={onSelect ? (e) => { e.stopPropagation(); onSelect(); } : undefined}
+        userData={{ [PICK_BODY]: moon.name, [PICK_PARENT]: parentName, [PICK_SELECT]: onSelect, [PICK_RADIUS]: moon.radius, [PICK_RANK]: RANK_MOON }}
+        onClick={onSelect ? selectPicked : undefined}
         onPointerEnter={onHover ? () => onHover(true) : undefined}
         onPointerLeave={onHover ? () => onHover(false) : undefined}
       >
@@ -410,7 +486,7 @@ export function Satellite({ moon, parentPos, jd, selected, onSelect, hovered, on
           style={{ pointerEvents: 'none' }}
           zIndexRange={[1, 0]}
         >
-          <div style={{
+          <div ref={labelRef} style={{
             color: hovered || selected ? '#fff' : 'rgba(255,255,255,0.75)',
             fontSize: labelFontSize,
             fontFamily: "'Cormorant Garamond', serif",

@@ -26,9 +26,21 @@ export interface OrbitPose {
   el: number;
 }
 
-/** Angles the interactive planet focus views a planet from. */
+/** Angles a point focus (spacecraft, comet, asteroid) is viewed from. */
 export const FOCUS_AZIMUTH = 0.7;
+/** Elevation every focused body is viewed from. */
 export const FOCUS_ELEVATION = 0.4;
+/** Radians between the Sun-body line and the view of a focused body (about 43 degrees). */
+const SUNLIT_PHASE_ANGLE = 0.75;
+
+/**
+ * Azimuth to view a body from so its lit face shows: on the sunward side, a
+ * little off the line to the Sun. A fixed world angle showed some planets'
+ * night side, depending on where they were in their orbits.
+ */
+export function sunlitAzimuth(body: Vec3): number {
+  return Math.atan2(-body[2], -body[0]) + SUNLIT_PHASE_ANGLE;
+}
 
 /** How far the camera sits from a focused planet: clear of its outermost moon. */
 export function planetFocusDistance(planetIdx: number): number {
@@ -111,8 +123,6 @@ const EL_T = [0, 6.6, 11.4, CINEMATIC_DURATION];
 const EL_V = [0.571, 0.62, 0.52, FOCUS_ELEVATION];
 /** Radians the camera circles through over the whole flight (about 80 degrees). */
 const SWEEP = 1.4;
-/** Radians between the Sun-Earth line and the landing view (about 43 degrees). */
-const LANDING_PHASE_ANGLE = 0.75;
 /** When the look-at point starts sliding from the Sun to Earth. */
 const HANDOFF_START = 9.4;
 
@@ -155,13 +165,13 @@ function smootherstep(x: number): number {
 }
 
 /**
- * Azimuth the tour views Earth from at the landing: on the sunward side, a
- * little off the Sun-Earth line. Wherever Earth is on its orbit the landing
- * shows a mostly lit planet with the Sun behind the camera, and the flight in
- * passes beside the Sun rather than over it.
+ * Azimuth the tour views Earth from at the landing: the same sunlit view the
+ * interactive focus uses, so the handoff moves nothing. Wherever Earth is on
+ * its orbit the landing shows a mostly lit planet with the Sun behind the
+ * camera, and the flight in passes beside the Sun rather than over it.
  */
 export function cinematicLandingAzimuth(earth: Vec3): number {
-  return Math.atan2(-earth[2], -earth[0]) + LANDING_PHASE_ANGLE;
+  return sunlitAzimuth(earth);
 }
 
 /**

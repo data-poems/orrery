@@ -31,7 +31,6 @@ import SidePanel from './ui/SidePanel';
 import BottomCluster from './ui/BottomCluster';
 import LoadingScreen from './ui/LoadingScreen';
 import OrreryDiagOverlay from './ui/OrreryDiagOverlay';
-import { useTextScale } from './ui/styles';
 import { useDuoLayout } from './lib/duoFold';
 import { neoFeedUrlForDay } from './lib/neoFeed';
 import { OBSERVATORY_MODE } from './lib/mode';
@@ -59,6 +58,12 @@ type DiceTarget =
 
 /** Scale ladder for the zoom tiles / +- stepping (innermost → outermost). */
 const ZOOM_LADDER = ['Sun', 'Inner', 'System', 'Outer', 'Kuiper', 'Oort', 'Stellar'] as const;
+
+/** Area label for each rung of ZOOM_LADDER, matching the preset labels. */
+const AREA_LABEL_BY_RUNG = ['Inner', 'Inner System', 'Full System', 'Outer System', 'Kuiper Belt', 'Oort Cloud', 'Deep Space'];
+
+/** Pause between the tour landing on Earth and the sky reveal. */
+const SKY_REVEAL_DELAY_MS = 1400;
 
 function persistentStorage(): Storage | null {
   try {
@@ -168,7 +173,6 @@ function fallbackOrbitForNeo(neo: NEO): NeoOrbit {
 
 function OrreryInner() {
   const { theme } = useTheme();
-  const textScale = useTextScale();
   // iPhone Duo tabletop: the scene stands on the upper half (see lib/duoFold).
   const duoLayout = useDuoLayout();
   const launchStartsCinematic = LAUNCH_STARTS_CINEMATIC;
@@ -307,6 +311,28 @@ function OrreryInner() {
     clearSkyCueTimeouts();
   }, [clearSkyCueTimeouts]);
 
+  // Selecting the Sun, a planet or a moon replaces whatever sky object was
+  // selected. One info card shows at a time, so a comet, shower, asteroid or
+  // constellation left selected would keep its card up and hide the new body's.
+  const clearSkyObjectSelection = useCallback(() => {
+    setSelSpacecraft(null);
+    setSelNearStar(null);
+    setSelGalaxy(null);
+    setSelConstellation(null);
+    setSelAsterism(null);
+    setSelComet(null);
+    setSelMeteor(null);
+    setSelNeo(null);
+  }, []);
+
+  // The person has taken over (a control, a key, a new tour): drop any sky
+  // reveal still pending from the tour's landing and stop its cues.
+  const endSkyCues = useCallback(() => {
+    clearSkyCueTimeouts();
+    setPulseSkyToggle(false);
+    setShowSkyModeHint(false);
+  }, [clearSkyCueTimeouts]);
+
   useEffect(() => {
     const previousDebugHook = window.__ORRERY_FORCE_REVIEW_PROMPT__;
     window.__ORRERY_FORCE_REVIEW_PROMPT__ = () =>
@@ -318,11 +344,14 @@ function OrreryInner() {
     };
   }, [cancelScheduledReviewPrompt, reviewPrompt]);
 
-  // For handlers bound once to the WebGL canvas, which outlive a render.
+  // For handlers bound once to the WebGL canvas and for timers, which outlive
+  // a render.
   const cinematicRef = useRef(cinematic);
+  const selPlanetRef = useRef(selPlanet);
   useEffect(() => {
     cinematicRef.current = cinematic;
-  }, [cinematic]);
+    selPlanetRef.current = selPlanet;
+  }, [cinematic, selPlanet]);
 
   // The tour's title, clock and Skip button wait until the loading card has
   // faded, so they never sit on top of it.
@@ -392,21 +421,29 @@ function OrreryInner() {
 
     const earthPlanetExit = target.kind === 'planet' && target.idx === 2;
     if (earthPlanetExit) {
-      setConstellationRevealTick((prev) => prev + 1);
-      setConstellationFocus(true);
-      setShowConstellations(true);
       clearSkyCueTimeouts();
-      setShowSkyModeHint(true);
-      const hintId = window.setTimeout(() => setShowSkyModeHint(false), 2200);
-      skyCueTimeoutsRef.current.push(hintId);
-      // Short grace so the constellation reveal animation reads before the
-      // Sky-toggle starts pulsing.
-      const pulseOnId = window.setTimeout(() => {
-        setPulseSkyToggle(true);
-        const pulseOffId = window.setTimeout(() => setPulseSkyToggle(false), 5200);
-        skyCueTimeoutsRef.current.push(pulseOffId);
-      }, 200);
-      skyCueTimeoutsRef.current.push(pulseOnId);
+      // The landing arrives in two beats. Earth's card and the controls come
+      // now; the sky follows, so the tour does not end with everything at
+      // once. If the person has moved on by then (another body, a control, a
+      // key, a new tour) the sky stays as they left it.
+      const revealId = window.setTimeout(() => {
+        if (cinematicRef.current || selPlanetRef.current !== 2) return;
+        setConstellationRevealTick((prev) => prev + 1);
+        setConstellationFocus(true);
+        setShowConstellations(true);
+        setShowSkyModeHint(true);
+        const hintId = window.setTimeout(() => setShowSkyModeHint(false), 2200);
+        skyCueTimeoutsRef.current.push(hintId);
+        // Short grace so the constellation reveal animation reads before the
+        // Sky-toggle starts pulsing.
+        const pulseOnId = window.setTimeout(() => {
+          setPulseSkyToggle(true);
+          const pulseOffId = window.setTimeout(() => setPulseSkyToggle(false), 5200);
+          skyCueTimeoutsRef.current.push(pulseOffId);
+        }, 200);
+        skyCueTimeoutsRef.current.push(pulseOnId);
+      }, SKY_REVEAL_DELAY_MS);
+      skyCueTimeoutsRef.current.push(revealId);
     }
 
     setCinematic(false);
@@ -470,6 +507,7 @@ function OrreryInner() {
 
   const startCinematicTour = useCallback(() => {
     cancelScheduledReviewPrompt();
+    endSkyCues();
     setPanelOpen(false);
     // Invalidate pending dice aim BEFORE clearing aimAtSphere so a slow Promise
     // resolve gated by `lastTourPickRef.current === aimTicket` can't re-set it.
@@ -487,7 +525,7 @@ function OrreryInner() {
     applyCinematicPhase(0);
     setCinematicRunId((n) => n + 1);
     setCinematic(true);
-  }, [applyCinematicPhase, cancelScheduledReviewPrompt, setPanelOpen]);
+  }, [applyCinematicPhase, cancelScheduledReviewPrompt, endSkyCues, setPanelOpen]);
 
   // The flight reached Earth: hand over with the constellation reveal.
   const finishCinematicTour = useCallback(() => {
@@ -716,12 +754,10 @@ function OrreryInner() {
   const handlePlanetSelect = useCallback((idx: number | null, manual = true) => {
     if (cinematic) return;
 
+    endSkyCues();
     if (idx !== null) {
       setSelSun(false);
-      setSelSpacecraft(null);
-      setSelNearStar(null);
-      setSelGalaxy(null);
-      setSelConstellation(null);
+      clearSkyObjectSelection();
       setAimAtSphere(null);
       setPointFocus(null);
       setSelPlanet(idx);
@@ -749,7 +785,7 @@ function OrreryInner() {
       setNavStack(['Solar System']);
       if (manual) scheduleReviewPromptAfterDismissal();
     }
-  }, [cinematic, recordManualExploration, scheduleReviewPromptAfterDismissal, selPlanet]);
+  }, [cinematic, clearSkyObjectSelection, endSkyCues, recordManualExploration, scheduleReviewPromptAfterDismissal, selPlanet]);
 
   // Moon selection drill-down
   const handleMoonSelect = useCallback((planetIdx: number, moonIdx: number, manual = true) => {
@@ -757,11 +793,9 @@ function OrreryInner() {
     const moons = getMoonsForPlanet(planetIdx);
     if (moonIdx >= moons.length) return;
 
+    endSkyCues();
     setSelSun(false);
-    setSelSpacecraft(null);
-    setSelNearStar(null);
-    setSelGalaxy(null);
-    setSelConstellation(null);
+    clearSkyObjectSelection();
     setAimAtSphere(null);
     setPointFocus(null);
     setSelPlanet(planetIdx);
@@ -774,7 +808,7 @@ function OrreryInner() {
       return [...base, moons[moonIdx].name];
     });
     if (manual) recordManualExploration(`moon:${planetIdx}:${moonIdx}`);
-  }, [cinematic, recordManualExploration]);
+  }, [cinematic, clearSkyObjectSelection, endSkyCues, recordManualExploration]);
 
   // Camera preset selection
   const handlePresetSelect = useCallback((idx: number, manual = true) => {
@@ -821,6 +855,8 @@ function OrreryInner() {
 
   const handleSunSelect = useCallback((manual = true) => {
     if (cinematic) return;
+    endSkyCues();
+    clearSkyObjectSelection();
     setSelSun(true);
     setSelMoonIdx(null);
     setSelPlanet(null);
@@ -829,7 +865,7 @@ function OrreryInner() {
     setNavStack(['Solar System', 'Sun']);
     jumpToPreset('Sun', false);
     if (manual) recordManualExploration('sun');
-  }, [cinematic, jumpToPreset, recordManualExploration]);
+  }, [cinematic, clearSkyObjectSelection, endSkyCues, jumpToPreset, recordManualExploration]);
 
   // Build a fresh destination pool. Pool stays planet/moon-heavy on purpose
   // (those read as "stellar bodies"); a few active spacecraft sprinkle in the
@@ -979,28 +1015,41 @@ function OrreryInner() {
     if (camPreset?.label === 'Oort') return 'Oort Cloud';
     if (camPreset?.label === 'Stellar') return 'Deep Space';
     if (camPreset?.label === 'Sun') return 'Inner';
-    return 'Full System';
-  }, [camPreset?.label, cinematic, selGalaxy, selMoonIdx, selNearStar, selPlanet, selSpacecraft, selSun]);
+    if (camPreset) return 'Full System';
+    // No preset: the tour was skipped mid-flight, or a card was closed. Name
+    // the scale the camera is actually at instead of always "Full System".
+    return AREA_LABEL_BY_RUNG[zoomRungFor(cameraDistance)] ?? 'Full System';
+  }, [camPreset, cameraDistance, cinematic, selGalaxy, selMoonIdx, selNearStar, selPlanet, selSpacecraft, selSun]);
 
   // Keyboard shortcuts
   useEffect(() => {
     const fn = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      // A dialog or the Controls panel that already handled this key (Escape
+      // closes it) has the last word. Without this, Escape in About also went
+      // back a level in the scene behind it, and closed the Controls panel
+      // that closing About had just reopened.
+      if (e.defaultPrevented) return;
+      // Modifier keys alone are not an action.
+      if (!['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) endSkyCues();
 
       const k = e.key.toLowerCase();
 
       const isPresetKey = (e.key >= '1' && e.key <= '9') || e.key === '0' || e.key === '-' || e.key === '=';
       const isInteractiveShortcut = isPresetKey || ['m', 'n', 'd', 'b', 's', 'l', 'a', 'g', 'c', 'r', 'o', 'escape', ' '].includes(k);
 
-      if (k === 'f') {
-        startCinematicTour();
-        return;
-      }
-
       if (e.key === '?') {
         // Shortcuts sheet lives in Panels; nudge it via a window event so we
         // don't thread its open-state back up here.
         window.dispatchEvent(new CustomEvent('orrery:toggle-shortcuts'));
+        return;
+      }
+
+      // While About or Keyboard shortcuts is open, the scene's shortcuts wait.
+      if (document.querySelector('[role="dialog"][aria-modal="true"]:not(#orrery-controls-panel)')) return;
+
+      if (k === 'f') {
+        startCinematicTour();
         return;
       }
 
@@ -1084,7 +1133,7 @@ function OrreryInner() {
     };
     window.addEventListener('keydown', fn);
     return () => window.removeEventListener('keydown', fn);
-  }, [cinematic, panelOpen, navigateBack, handlePresetSelect, exitCinematic, startCinematicTour, selPlanet, selSun, selMoonIdx, dismissSelection]);
+  }, [cinematic, panelOpen, navigateBack, handlePresetSelect, exitCinematic, startCinematicTour, selPlanet, selSun, selMoonIdx, dismissSelection, endSkyCues]);
 
   // Clicking during the tour skips it and leaves the camera where it is.
   const handleCinematicClick = useCallback(() => {
@@ -1152,6 +1201,9 @@ function OrreryInner() {
 
   // Control-surface action dispatch (bottom cluster + side panel).
   const handleArcAction = useCallback((action: string, arg?: string) => {
+    // Using any control means the person has taken over; a sky reveal still
+    // pending from the tour's landing would now arrive as a surprise.
+    endSkyCues();
     switch (action) {
       case 'tour': startCinematicTour(); break;
       case 'autotour': toggleTour(); break;
@@ -1181,10 +1233,11 @@ function OrreryInner() {
         else if (arg === 'asterisms') setShowAsterisms(p => !p);
         break;
       case 'controls': window.dispatchEvent(new CustomEvent('orrery:toggle-controls')); break;
-      case 'info': window.dispatchEvent(new CustomEvent('orrery:open-info')); break;
-      case 'shortcuts': window.dispatchEvent(new CustomEvent('orrery:toggle-shortcuts')); break;
+      // Both are opened from the Controls panel; closing them returns there.
+      case 'info': window.dispatchEvent(new CustomEvent('orrery:open-info', { detail: { fromControls: true } })); break;
+      case 'shortcuts': window.dispatchEvent(new CustomEvent('orrery:toggle-shortcuts', { detail: { fromControls: true } })); break;
     }
-  }, [startCinematicTour, toggleTour, triggerRandomJump, jumpToPreset, cameraDistance]);
+  }, [startCinematicTour, toggleTour, triggerRandomJump, jumpToPreset, cameraDistance, endSkyCues]);
   const arcLayerState = useMemo(() => ({
     sky: constellationFocus,
     neo: showNeo, dwarf: showDwarf, asteroidBelt: showAsteroidBelt,
@@ -1526,30 +1579,11 @@ function OrreryInner() {
         </>
       )}
 
+      {/* Sky mode coming on after the tour is announced, not badged: the Sky
+          button lights and pulses, which is the visible cue. */}
       {showSkyModeHint && !OBSERVATORY_MODE && (
-        <div
-          aria-live="polite"
-          style={{
-            position: 'fixed',
-            // Below the area label, which grows with the system text size.
-            top: `calc(env(safe-area-inset-top, 0px) + ${Math.round(28 + 24 * textScale)}px)`,
-            right: 62,
-            zIndex: 25,
-            pointerEvents: 'none',
-            background: `rgba(${accentRgb},0.14)`,
-            border: `1px solid rgba(${accentRgb},0.34)`,
-            borderRadius: 6,
-            padding: '6px 10px',
-            color: theme.uiAccent,
-            fontFamily: 'inherit',
-            fontSize: 11,
-            letterSpacing: 1.2,
-            textTransform: 'uppercase',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
-          }}
-        >
-          Sky mode enabled
+        <div className="sr-only" role="status" aria-live="polite">
+          Sky mode on. Constellations are showing.
         </div>
       )}
     </div>

@@ -171,11 +171,14 @@ export default function BodyStats({ name, subtitle, color, stats, accent, accent
         </div>
         <div style={tabletop
           ? { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '14px 24px', marginTop: 18 }
-          : { display: 'flex', gap: 18, overflowX: 'auto', marginTop: 9, paddingBottom: 1, WebkitOverflowScrolling: 'touch' }}>
+          // Three across, wrapping to a second row: every value is on screen.
+          // This row used to scroll sideways with nothing to say so, which cut
+          // the last values off at the card's edge on a phone.
+          : { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(92px, 1fr))', gap: '8px 14px', marginTop: 9 }}>
           {stats.map((s) => (
-            <div key={s.label} style={{ flexShrink: 0, minWidth: 0 }}>
+            <div key={s.label} style={{ minWidth: 0 }}>
               <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: tabletop ? 13 : 12, letterSpacing: 0.5, textTransform: 'uppercase', textShadow: shadow }}>{s.label}</div>
-              <div style={{ color: '#fff', fontSize: tabletop ? 20 : 14, fontVariantNumeric: 'tabular-nums', whiteSpace: tabletop ? 'normal' : 'nowrap', marginTop: 1, textShadow: shadow }}>{s.value}</div>
+              <div style={{ color: '#fff', fontSize: tabletop ? 20 : 14, fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere', marginTop: 1, textShadow: shadow }}>{s.value}</div>
             </div>
           ))}
         </div>
@@ -212,10 +215,12 @@ export default function BodyStats({ name, subtitle, color, stats, accent, accent
         <ArrowLeftIcon />
       </button>
 
-      <div style={{ paddingRight: 30 }}>
+      {/* Clear of the 48 px Back button in the corner; longer names step down
+          a size. "Mercury" used to run under the button. */}
+      <div style={{ paddingRight: 52 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 2 }}>
           {dot}
-          <span style={{ color: '#fff', fontSize: 34, fontWeight: 400, letterSpacing: 1.5, textShadow: shadow }}>{name}</span>
+          <span style={{ color: '#fff', fontSize: name.length > 7 ? 27 : 34, fontWeight: 400, letterSpacing: 1.5, overflowWrap: 'anywhere', minWidth: 0, textShadow: shadow }}>{name}</span>
         </div>
         <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 13, fontStyle: 'italic', letterSpacing: 0.5, marginBottom: 14, textShadow: shadow }}>
           {subtitle}

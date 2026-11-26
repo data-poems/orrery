@@ -14,6 +14,7 @@ import { hideBackgroundFromAssistiveTech } from '../lib/modalBackground';
 import { useEffect } from 'react';
 import { PREFERS_REDUCED_MOTION } from '../lib/motion';
 import { CloseIcon, StarIcon } from './icons';
+import { isTouchPrimary } from './styles';
 
 export interface SidePanelProps {
   accent: string;
@@ -59,8 +60,13 @@ export default function SidePanel({ accent, onAction, layerState, open, onOpenCh
   // Open/close via the shared window event (bottom-cluster ≡ tile, m key).
   useEffect(() => {
     const onToggle = () => onOpenChange(!open);
+    const onOpen = () => onOpenChange(true);
     window.addEventListener('orrery:toggle-controls', onToggle);
-    return () => window.removeEventListener('orrery:toggle-controls', onToggle);
+    window.addEventListener('orrery:open-controls', onOpen);
+    return () => {
+      window.removeEventListener('orrery:toggle-controls', onToggle);
+      window.removeEventListener('orrery:open-controls', onOpen);
+    };
   }, [onOpenChange, open]);
 
   // While open: focus into the panel, trap Tab, close on Escape, restore focus.
@@ -202,11 +208,14 @@ export default function SidePanel({ accent, onAction, layerState, open, onOpenCh
             <span style={labelCell}>About &amp; data sources</span>
             <span style={markCell} />
           </button>
-          <button type="button" style={row(false)} onClick={() => act('shortcuts', undefined, true)}>
-            <span aria-hidden="true" style={glyphCell}>{'⌘'}</span>
-            <span style={labelCell}>Keyboard shortcuts</span>
-            <span style={markCell} />
-          </button>
+          {/* Not offered where the main pointer is a finger: no keyboard. */}
+          {!isTouchPrimary() && (
+            <button type="button" style={row(false)} onClick={() => act('shortcuts', undefined, true)}>
+              <span aria-hidden="true" style={glyphCell}>{'⌘'}</span>
+              <span style={labelCell}>Keyboard shortcuts</span>
+              <span style={markCell} />
+            </button>
+          )}
         </div>
       </aside>
     </>

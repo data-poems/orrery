@@ -23,6 +23,7 @@ import {
   planetFocusDistance,
   poseToCamera,
   smoothstep,
+  sunlitAzimuth,
   type OrbitPose,
 } from '../lib/cinematicPath';
 import type { CamPreset, FocusTarget } from '../lib/kepler';
@@ -129,8 +130,6 @@ export default function CamCtrl({
   useEffect(() => {
     if (inXR && cinematic) onUserGrabDuringCinematic?.();
   }, [inXR, cinematic, onUserGrabDuringCinematic]);
-  // True from the tour until the first camera target after it is planned.
-  const wasCinematic = useRef(false);
   useEffect(() => {
     tourT.current = 0;
     tourEntry.current = null;
@@ -173,9 +172,10 @@ export default function CamCtrl({
         };
       }
     } else {
-      // The cinematic tour lands on this exact pose (see lib/cinematicPath).
+      // Viewed from its sunlit side, wherever it is in its orbit. The
+      // cinematic tour lands on this exact pose (see lib/cinematicPath).
       const d = planetFocusDistance(focusTarget.planetIdx);
-      const [ox, oy, oz] = offsetFromAngle(d, FOCUS_AZIMUTH, FOCUS_ELEVATION);
+      const [ox, oy, oz] = offsetFromAngle(d, sunlitAzimuth(pp), FOCUS_ELEVATION);
       return { pos: [pp[0] + ox, pp[1] + oy, pp[2] + oz] as [number, number, number], look: pp };
     }
     return undefined;
@@ -212,12 +212,7 @@ export default function CamCtrl({
     frameSinceTargetRef.current = 0;
 
     // The tour writes the camera itself every frame (see useFrame).
-    if (cinematic) {
-      wasCinematic.current = true;
-      return;
-    }
-    const cameFromTour = wasCinematic.current;
-    wasCinematic.current = false;
+    if (cinematic) return;
 
     if (aimAtSphere && planAimAtSphere(aimAtSphere)) {
       observeUserTook.current = false;
@@ -232,23 +227,6 @@ export default function CamCtrl({
       const pp = positions.get(focusTarget.planetIdx);
       if (pp) {
         const ctrl = ctrlRef.current;
-        const arrivedWithTour = cameFromTour
-          && focusTarget.moonIdx === undefined
-          && ctrl !== null
-          && ctrl.target.distanceTo(newTargetRef.current.set(...pp)) < 0.01
-          && Math.abs(camera.position.distanceTo(ctrl.target) / planetFocusDistance(focusTarget.planetIdx) - 1) < 0.1;
-        if (arrivedWithTour) {
-          // The tour just landed on this body, already framed at the focus
-          // distance from its sunlit side. Keep that view and start tracking;
-          // re-settling to the stock focus angle would swing the camera round
-          // the planet the moment the tour ends.
-          tPos.current.copy(camera.position);
-          tLook.current.set(...pp);
-          prevTrackPos.current.set(...pp);
-          settling.current = false;
-          phaseRef.current = 'tracking';
-          return;
-        }
         const off = computeFocusOffset(pp);
         if (off) {
           tLook.current.set(...off.look);
@@ -259,7 +237,7 @@ export default function CamCtrl({
       }
       phaseRef.current = 'settling';
     } else if (pointFocus) {
-      const [ox, oy, oz] = offsetFromAngle(pointFocus.dist, 0.7, 0.4);
+      const [ox, oy, oz] = offsetFromAngle(pointFocus.dist, FOCUS_AZIMUTH, FOCUS_ELEVATION);
       tPos.current.set(pointFocus.pos[0] + ox, pointFocus.pos[1] + oy, pointFocus.pos[2] + oz);
       tLook.current.set(...pointFocus.pos);
       phaseRef.current = 'settling';

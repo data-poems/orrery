@@ -210,7 +210,11 @@ function OrreryInner() {
   const [neos, setNeos] = useState<NEO[]>(() => initialNeoCache ?? []);
   const [neoStatus, setNeoStatus] = useState<'loading' | 'loaded' | 'error' | 'busy'>(() => initialNeoCache ? 'loaded' : 'loading');
   // The feed is asked for when the layer is first turned on, not at launch.
-  const neoRequested = useRef(false);
+  // Both hold a day's cache key: the day being requested, and the day whose
+  // list is on screen. The day is read when the layer is shown, so a page left
+  // open past midnight UTC asks for the new day instead of the one it started in.
+  const neoRequested = useRef<string | null>(null);
+  const neoLoaded = useRef<string | null>(initialNeoCache ? neoCacheKey : null);
   const [selNeo, setSelNeo] = useState<NEO | null>(null);
   // Cinematic mode is the default — start bare, reveal layers progressively.
   // Observatory mode skips the cinematic and anchors the camera at Earth's heliocentric position
@@ -291,14 +295,23 @@ function OrreryInner() {
   // narrow screen every overview stands `viewFit` times further back, and the
   // scale ladder, the layer fades and the area label should not notice.
   const [cameraDistance, setCameraDistance] = useState(50);
-  const [viewFit, setViewFit] = useState(() => portraitFit(window.innerWidth / Math.max(1, window.innerHeight)));
+  // Width over height of the scene. One value for the camera's framing and for
+  // the distance scale here, so the two cannot disagree after a rotation. It
+  // only follows changes of more than an eighth: a phone's address bar sliding
+  // away changes the height by a few percent, and re-framing on that would
+  // yank the camera back from wherever the person had moved it.
+  const [viewAspect, setViewAspect] = useState(() => window.innerWidth / Math.max(1, window.innerHeight));
   const canvasHeight = duoLayout?.kind === 'tabletop' ? duoLayout.foldTop : null;
   useEffect(() => {
-    const measure = () => setViewFit(portraitFit(window.innerWidth / Math.max(1, canvasHeight ?? window.innerHeight)));
+    const measure = () => {
+      const next = window.innerWidth / Math.max(1, canvasHeight ?? window.innerHeight);
+      setViewAspect(prev => (Math.abs(next - prev) / prev > 0.125 ? next : prev));
+    };
     measure();
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
   }, [canvasHeight]);
+  const viewFit = portraitFit(viewAspect);
   const viewFitRef = useRef(viewFit);
   useEffect(() => {
     viewFitRef.current = viewFit;
@@ -653,10 +666,12 @@ function OrreryInner() {
   // is shown, unless today's list is already on the device. A failed request
   // is tried again the next time the layer is turned on.
   useEffect(() => {
-    if (initialNeoCache || !showNeo || neoRequested.current) return;
-    neoRequested.current = true;
+    if (!showNeo) return;
+    const key = getTodayNeoCacheKey();
+    if (neoLoaded.current === key || neoRequested.current === key) return;
+    neoRequested.current = key;
 
-    const day = neoCacheKey.slice(4);
+    const day = key.slice(4);
     let cancelled = false;
     let settled = false;
     let rateLimited = false;
@@ -690,24 +705,25 @@ function OrreryInner() {
         });
         list.sort((a, b) => a.missLunar - b.missLunar);
         settled = true;
+        neoLoaded.current = key;
         setNeos(list);
         setNeoStatus('loaded');
-        writeNeoCache(neoCacheKey, list);
+        writeNeoCache(key, list);
       })
       .catch(() => {
         if (cancelled) return;
         settled = true;
         // Ask again the next time the layer is turned on.
-        neoRequested.current = false;
+        neoRequested.current = null;
         setNeoStatus(rateLimited ? 'busy' : 'error');
       });
 
     return () => {
       // The layer was turned off before the answer came: ask again next time.
-      if (!settled) neoRequested.current = false;
+      if (!settled) neoRequested.current = null;
       cancelled = true;
     };
-  }, [initialNeoCache, neoCacheKey, showNeo]);
+  }, [showNeo]);
 
   const handleNeoSelect = useCallback((neo: NEO | null) => {
     if (neo === null) {
@@ -1386,6 +1402,7 @@ function OrreryInner() {
       onMoonSelect={handleMoonSelect}
       selMoonIdx={selMoonIdx}
       onCameraDistance={handleCameraDistance}
+      viewAspect={viewAspect}
       cameraDistance={cameraDistance}
       camPreset={camPreset}
       showBodyGlyphs={camPreset?.label === 'Stargazer'}

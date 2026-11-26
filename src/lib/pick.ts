@@ -40,6 +40,12 @@ const TAP_SLOP_PX = 8;
 export const RANK_REACH_PX_MOUSE = 8;
 export const RANK_REACH_PX_TOUCH = 10;
 /**
+ * A body this close to a more important one cannot be told apart from it at
+ * all: at the System scale on a phone the inner planets are 2 to 4 pixels from
+ * the Sun. A tap anywhere on that blob is the Sun.
+ */
+const MERGED_PX = 6;
+/**
  * Over its planet's disc, a tap means the moon only if it lands on the moon's
  * own dot, give or take this many pixels. Anything looser and a moon one pixel
  * wide claims a third of a small planet's disc.
@@ -70,8 +76,9 @@ export interface PickCandidate {
  *    moon's own dot: a moon's target is much larger than its dot, and a tap
  *    on a small Jupiter kept selecting Europa.
  * 3. Unless the tap is within `rankReachPx` of a more important body's center,
- *    in which case that one (Sun over planet over dwarf planet over moon). A
- *    planet and its own moons are left to rule 2.
+ *    or that body is too close to the first to tell apart, in which case that
+ *    one (Sun over planet over dwarf planet over moon). A planet and its own
+ *    moons are left to rule 2.
  */
 export function choosePick(
   candidates: PickCandidate[],
@@ -96,7 +103,9 @@ export function choosePick(
   const related = (a: PickCandidate, b: PickCandidate) => a.parent === b.name || b.parent === a.name;
   const anchor = best;
   for (const c of candidates) {
-    if (c === anchor || related(c, anchor) || c.px > rankReachPx) continue;
+    if (c === anchor || related(c, anchor)) continue;
+    const merged = c.dir.angleTo(anchor.dir) * pxPerRadian <= MERGED_PX;
+    if (c.px > rankReachPx && !merged) continue;
     if (c.rank > best.rank || (c.rank === best.rank && c.rank > anchor.rank && c.px < best.px)) best = c;
   }
   return best;

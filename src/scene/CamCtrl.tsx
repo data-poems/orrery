@@ -52,6 +52,10 @@ export interface CamCtrlProps {
   cinematicPlaying: boolean;
   /** Changes each time the tour is started, including a replay mid-tour. */
   cinematicRunId: number;
+  /** Width over height of the scene. The app steadies it against small changes
+   *  (a phone's address bar), so a new value here is a real one, a rotation or
+   *  a fold, and the current view is re-framed for it. */
+  viewAspect: number;
   /** A new phase of the tour began (index into CINEMATIC_PHASES). */
   onCinematicPhase?: (phaseIdx: number) => void;
   /** The flight reached its last frame, on Earth. */
@@ -77,6 +81,7 @@ export default function CamCtrl({
   cinematicRunId,
   onCinematicPhase,
   onCinematicDone,
+  viewAspect,
   camPreset,
   onCameraDistance,
   aimAtSphere,
@@ -84,12 +89,7 @@ export default function CamCtrl({
   jd,
   pointFocus,
 }: CamCtrlProps) {
-  const { camera, gl, size } = useThree();
-  // Width over height of the canvas. Read when a move is planned, not as a
-  // dependency: a phone's address bar sliding away changes it by a few percent,
-  // and re-planning then would yank the camera back from wherever it was.
-  const aspectRef = useRef(1.6);
-  aspectRef.current = size.height > 0 ? size.width / size.height : 1.6;
+  const { camera, gl } = useThree();
   // During an immersive WebXR session the headset is the sole driver of the
   // camera. Yield to it: stop writing camera.position and disable OrbitControls.
   // Detected via three's own WebXRManager events — no @react-three/xr import, so
@@ -181,12 +181,12 @@ export default function CamCtrl({
     } else {
       // Viewed from its sunlit side, wherever it is in its orbit. The
       // cinematic tour lands on this exact pose (see lib/cinematicPath).
-      const d = planetFocusDistance(focusTarget.planetIdx, aspectRef.current);
+      const d = planetFocusDistance(focusTarget.planetIdx, viewAspect);
       const [ox, oy, oz] = offsetFromAngle(d, sunlitAzimuth(pp), FOCUS_ELEVATION);
       return { pos: [pp[0] + ox, pp[1] + oy, pp[2] + oz] as [number, number, number], look: pp };
     }
     return undefined;
-  }, [focusTarget, offsetFromAngle]);
+  }, [focusTarget, offsetFromAngle, viewAspect]);
 
   const computePresetFollowOffset = useCallback((pp: [number, number, number], preset: CamPreset) => {
     if (preset.observe) {
@@ -269,7 +269,7 @@ export default function CamCtrl({
       }
     } else if (camPreset) {
       // An overview stands further back on a narrow screen (see portraitFit).
-      const fit = camPreset.fitWidth ? portraitFit(aspectRef.current) : 1;
+      const fit = camPreset.fitWidth ? portraitFit(viewAspect) : 1;
       tLook.current.set(...camPreset.tgt);
       tPos.current.set(...camPreset.pos).sub(tLook.current).multiplyScalar(fit).add(tLook.current);
       phaseRef.current = 'settling';
@@ -290,7 +290,7 @@ export default function CamCtrl({
     // We only need the body's position at the moment the target changes; the
     // per-frame loop tracks the live position thereafter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusTarget, camPreset, cinematic, computeFocusOffset, computePresetFollowOffset, aimAtSphere, planAimAtSphere, pointFocus, offsetFromAngle, camera]);
+  }, [focusTarget, camPreset, cinematic, computeFocusOffset, computePresetFollowOffset, aimAtSphere, planAimAtSphere, pointFocus, offsetFromAngle, camera, viewAspect]);
 
   useEffect(() => {
     const ctrl = ctrlRef.current;
@@ -361,7 +361,7 @@ export default function CamCtrl({
 
     if (cinematic) {
       const earth = positions.get(2) ?? [1, 0, 0];
-      const view = cinematicViewFor(aspectRef.current);
+      const view = cinematicViewFor(viewAspect);
       let pose: OrbitPose;
       if (!cinematicPlaying) {
         // Still loading: wait on the opening frame, out in deep space.

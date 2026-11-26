@@ -26,9 +26,12 @@ All notable changes to Orrery are documented here.
   over its limit the message says so, and turning the layer off and on asks
   again.
 - A tap within 8 pixels (mouse) or 10 (finger) of the Sun or a planet is a tap
-  on it, whatever smaller body is nearer still. The earlier rule compared the
-  distance between the two bodies, which on a phone standing further back
+  on it, whatever smaller body is nearer still, and a body within 6 pixels of
+  a more important one counts as part of it. The earlier rule compared only
+  the distance between the two bodies, which on a phone standing further back
   made Jupiter unreachable at the Outer scale.
+- Rotating the device re-frames the current view for the new shape. A small
+  change of height, such as a phone's address bar sliding away, does not.
 
 ### Changed
 

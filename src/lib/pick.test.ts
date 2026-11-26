@@ -86,6 +86,19 @@ describe('resolvePick', () => {
     expect(picked(finger)).toBe('Sun');
   });
 
+  it('a tap anywhere on a blob of bodies a few pixels across is the most important one', () => {
+    // System scale on a phone standing back: Earth is 4 px from the Sun.
+    const earth = body('Earth', 0.68, 0, 0, { radius: 0.06 });
+    const eye: [number, number, number] = [0, 0, 135];
+    const px = unitsPerPx(135);
+    expect(0.68 / px).toBeLessThan(6);
+    // 11 px from the Sun, on the far side of Earth: nearer Earth, out of the
+    // Sun's reach for a finger, and still the Sun.
+    const finger = tap(eye, [11 * px, 0, 0], [earth, sun]);
+    (finger.nativeEvent as unknown as { pointerType: string }).pointerType = 'touch';
+    expect(picked(finger)).toBe('Sun');
+  });
+
   it('a planet 14 px from the Sun is still that planet when the tap lands on it', () => {
     // Outer scale on a phone standing back for the narrow screen.
     const jupiter = body('Jupiter', 5.2, 0, 0, { radius: 0.16 });

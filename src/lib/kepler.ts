@@ -42,6 +42,9 @@ export interface CamPreset {
   tgt: [number, number, number];
   follow?: number;
   autoRotate?: boolean;
+  /** An overview of the system: stands further back on a narrow screen so the
+   *  same width of the system shows (see portraitFit). */
+  fitWidth?: boolean;
   /** When true with `follow`, camera position equals followed body's position
    *  (with a tiny epsilon offset for OrbitControls). Used for Earth Observer mode. */
   observe?: boolean;

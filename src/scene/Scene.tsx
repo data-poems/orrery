@@ -66,6 +66,8 @@ export interface SceneProps {
   cinematicRunId: number;
   onCinematicPhase?: (phaseIdx: number) => void;
   onCinematicDone?: () => void;
+  /** Width over height of the scene, for framing on narrow screens. */
+  viewAspect: number;
   onMoonSelect?: (planetIdx: number, moonIdx: number) => void;
   selMoonIdx?: number | null;
   onCameraDistance?: (d: number) => void;
@@ -98,7 +100,7 @@ export default function Scene({
   focusTarget, onPositionsUpdate, showDwarf,
   showStars, showConstellations, constellationRevealTick, showAsterisms, showAsteroidBelt,
   showComets, showMeteors, showDeepSpace,
-  constellationFocus, cinematic, cinematicPlaying, cinematicRunId, onCinematicPhase, onCinematicDone, onMoonSelect, selMoonIdx, onCameraDistance, cameraDistance, camPreset,
+  constellationFocus, cinematic, cinematicPlaying, cinematicRunId, onCinematicPhase, onCinematicDone, viewAspect, onMoonSelect, selMoonIdx, onCameraDistance, cameraDistance, camPreset,
   showBodyGlyphs = false,
   selComet, setSelComet, selMeteor, setSelMeteor,
   selSpacecraft, setSelSpacecraft, selNearStar, setSelNearStar, selGalaxy, setSelGalaxy, onSunSelect, aimAtSphere,
@@ -139,7 +141,7 @@ export default function Scene({
     <>
       <color attach="background" args={['#000000']} />
       <ambientLight intensity={0.35} />
-      {!OBSERVATORY_MODE && <Sun cameraDistance={cameraDistance} showGlyphOverlay={showBodyGlyphs} onSelect={onSunSelect} />}
+      {!OBSERVATORY_MODE && <Sun showGlyphOverlay={showBodyGlyphs} onSelect={onSunSelect} />}
       {!OBSERVATORY_MODE && <AUGrid cameraDistance={cameraDistance} />}
       <Suspense fallback={null}>
         <RealAsteroidBelt jd={jd} visible={showAsteroidBelt} onLoad={() => onLoadComplete?.('asteroids')} />
@@ -250,6 +252,7 @@ export default function Scene({
         cinematicRunId={cinematicRunId}
         onCinematicPhase={onCinematicPhase}
         onCinematicDone={onCinematicDone}
+        viewAspect={viewAspect}
         camPreset={camPreset}
         onCameraDistance={handleCameraDistance}
         aimAtSphere={aimAtSphere}

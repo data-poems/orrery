@@ -449,7 +449,7 @@ export interface PanelProps {
   moon: { name: string; ill: number };
   solarWind: string | null;
   selPlanet: number | null;
-  neoStatus: 'loading' | 'loaded' | 'error'; selNeo: NEO | null; setSelNeo: (n: NEO | null) => void;
+  neoStatus: 'loading' | 'loaded' | 'error' | 'busy'; selNeo: NEO | null; setSelNeo: (n: NEO | null) => void;
   showNeo: boolean;
   selConstellation: string | null; setSelConstellation: (id: string | null) => void;
   selAsterism: string | null; setSelAsterism: (name: string | null) => void;
@@ -845,7 +845,7 @@ export default function Panels(props: PanelProps) {
         />
       )}
 
-      {showNeo && neoStatus === 'error' && !cinematic && (
+      {showNeo && (neoStatus === 'error' || neoStatus === 'busy') && !cinematic && (
         <div
           role="status"
           style={{
@@ -854,7 +854,9 @@ export default function Panels(props: PanelProps) {
           }}
         >
           <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, fontWeight: 300 }}>
-            Near-Earth object feed unavailable. Check your connection or try again later.
+            {neoStatus === 'busy'
+              ? "NASA's near-Earth object feed is taking too many requests from this network right now. Turn the layer off and on again in a few minutes."
+              : 'Near-Earth object feed unavailable. Check your connection, then turn the layer off and on again.'}
           </div>
         </div>
       )}

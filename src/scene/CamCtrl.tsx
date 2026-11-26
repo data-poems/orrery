@@ -19,8 +19,10 @@ import {
   cinematicEntrySeconds,
   cinematicPhaseAt,
   cinematicPose,
+  cinematicViewFor,
   orbitOffset,
   planetFocusDistance,
+  portraitFit,
   poseToCamera,
   smoothstep,
   sunlitAzimuth,
@@ -50,6 +52,10 @@ export interface CamCtrlProps {
   cinematicPlaying: boolean;
   /** Changes each time the tour is started, including a replay mid-tour. */
   cinematicRunId: number;
+  /** Width over height of the scene. The app steadies it against small changes
+   *  (a phone's address bar), so a new value here is a real one, a rotation or
+   *  a fold, and the current view is re-framed for it. */
+  viewAspect: number;
   /** A new phase of the tour began (index into CINEMATIC_PHASES). */
   onCinematicPhase?: (phaseIdx: number) => void;
   /** The flight reached its last frame, on Earth. */
@@ -75,6 +81,7 @@ export default function CamCtrl({
   cinematicRunId,
   onCinematicPhase,
   onCinematicDone,
+  viewAspect,
   camPreset,
   onCameraDistance,
   aimAtSphere,
@@ -174,12 +181,12 @@ export default function CamCtrl({
     } else {
       // Viewed from its sunlit side, wherever it is in its orbit. The
       // cinematic tour lands on this exact pose (see lib/cinematicPath).
-      const d = planetFocusDistance(focusTarget.planetIdx);
+      const d = planetFocusDistance(focusTarget.planetIdx, viewAspect);
       const [ox, oy, oz] = offsetFromAngle(d, sunlitAzimuth(pp), FOCUS_ELEVATION);
       return { pos: [pp[0] + ox, pp[1] + oy, pp[2] + oz] as [number, number, number], look: pp };
     }
     return undefined;
-  }, [focusTarget, offsetFromAngle]);
+  }, [focusTarget, offsetFromAngle, viewAspect]);
 
   const computePresetFollowOffset = useCallback((pp: [number, number, number], preset: CamPreset) => {
     if (preset.observe) {
@@ -261,8 +268,10 @@ export default function CamCtrl({
         if (ctrl) ctrl.target.copy(tLook.current);
       }
     } else if (camPreset) {
-      tPos.current.set(...camPreset.pos);
+      // An overview stands further back on a narrow screen (see portraitFit).
+      const fit = camPreset.fitWidth ? portraitFit(viewAspect) : 1;
       tLook.current.set(...camPreset.tgt);
+      tPos.current.set(...camPreset.pos).sub(tLook.current).multiplyScalar(fit).add(tLook.current);
       phaseRef.current = 'settling';
       const ctrl = ctrlRef.current;
       if (ctrl) ctrl.target.copy(tLook.current);
@@ -281,7 +290,7 @@ export default function CamCtrl({
     // We only need the body's position at the moment the target changes; the
     // per-frame loop tracks the live position thereafter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusTarget, camPreset, cinematic, computeFocusOffset, computePresetFollowOffset, aimAtSphere, planAimAtSphere, pointFocus, offsetFromAngle, camera]);
+  }, [focusTarget, camPreset, cinematic, computeFocusOffset, computePresetFollowOffset, aimAtSphere, planAimAtSphere, pointFocus, offsetFromAngle, camera, viewAspect]);
 
   useEffect(() => {
     const ctrl = ctrlRef.current;
@@ -352,12 +361,13 @@ export default function CamCtrl({
 
     if (cinematic) {
       const earth = positions.get(2) ?? [1, 0, 0];
+      const view = cinematicViewFor(viewAspect);
       let pose: OrbitPose;
       if (!cinematicPlaying) {
         // Still loading: wait on the opening frame, out in deep space.
         tourT.current = 0;
         tourEntry.current = null;
-        pose = cinematicPose(0, earth);
+        pose = cinematicPose(0, earth, view);
       } else {
         if (!tourEntry.current) {
           tourEntry.current = alignAzimuth(
@@ -365,7 +375,7 @@ export default function CamCtrl({
               camera.position.toArray() as [number, number, number],
               ctrl.target.toArray() as [number, number, number],
             ),
-            cinematicPose(0, earth).az,
+            cinematicPose(0, earth, view).az,
           );
         }
         // A long frame (tab switch, GC pause) must not skip the flight ahead.
@@ -378,12 +388,12 @@ export default function CamCtrl({
         }
         if (PREFERS_REDUCED_MOTION) {
           // No flight: one still per phase.
-          pose = cinematicPose(CINEMATIC_PHASES[phaseIdx].still, earth);
+          pose = cinematicPose(CINEMATIC_PHASES[phaseIdx].still, earth, view);
         } else {
           // A replay starts wherever the camera was; swing onto the path.
           pose = blendPose(
             tourEntry.current,
-            cinematicPose(t, earth),
+            cinematicPose(t, earth, view),
             smoothstep(t / cinematicEntrySeconds(tourEntry.current)),
           );
         }

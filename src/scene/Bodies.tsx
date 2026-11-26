@@ -98,23 +98,29 @@ function BodyGlyph({
 }
 
 export function Sun({
-  cameraDistance = 0,
   showGlyphOverlay = false,
   onSelect,
 }: {
-  cameraDistance?: number;
   showGlyphOverlay?: boolean;
   onSelect?: () => void;
 }) {
   const ref = useRef<THREE.Mesh>(null);
   const hitRef = useRef<THREE.Mesh>(null);
+  const whiteLight = useRef<THREE.PointLight>(null);
+  const warmLight = useRef<THREE.PointLight>(null);
   const TEX = useTextures();
   const tex = useLoader(THREE.TextureLoader, TEX.sun);
   useFrame(({ camera, size }, dt) => {
     if (ref.current) ref.current.rotation.y += dt * 0.02;
+    const distanceToCamera = camera.position.length();
+    // A little more light when the camera is right at the Sun. Read from the
+    // camera, in scene units: the distance the app passes around is scaled for
+    // narrow screens and would switch this by the shape of the screen.
+    const near = distanceToCamera <= 2;
+    if (whiteLight.current) whiteLight.current.intensity = near ? 3.6 : 3.3;
+    if (warmLight.current) warmLight.current.intensity = near ? 1.65 : 1.5;
     if (!hitRef.current) return;
     // Like the planets: at least 18 px on screen, never enclosing the camera.
-    const distanceToCamera = camera.position.length();
     const fov = (camera as THREE.PerspectiveCamera).fov;
     const worldUnitsPerPixel = Number.isFinite(fov) && size.height > 0
       ? (2 * distanceToCamera * Math.tan(THREE.MathUtils.degToRad(fov / 2))) / size.height
@@ -146,8 +152,8 @@ export function Sun({
           Earth does and rendered as a blank white disc, while Neptune was
           nearly black. Distances here are compressed for viewing, so the
           lighting is too: every body is lit like Earth. */}
-      <pointLight intensity={cameraDistance > 2 ? 3.3 : 3.6} color="#fff3d2" distance={0} decay={0} />
-      <pointLight intensity={cameraDistance > 2 ? 1.5 : 1.65} color="#ffb25c" distance={0} decay={0} />
+      <pointLight ref={whiteLight} intensity={3.3} color="#fff3d2" distance={0} decay={0} />
+      <pointLight ref={warmLight} intensity={1.5} color="#ffb25c" distance={0} decay={0} />
       <Html className="scene-label"
         position={[0, 0.25, 0]}
         center
@@ -406,6 +412,10 @@ export function Satellite({ moon, parentName, parentPos, jd, selected, onSelect,
   const inc = (moon.i || 0) * (Math.PI / 180);
 
   const isEarthMoon = moon.name === 'Moon' && moon.parent === 2;
+  // Titan's surface is hidden under haze: a smooth ball is the true picture.
+  const hasHaze = moon.name === 'Titan';
+  // The surface map is mid-gray; lift the tint so the moon keeps its brightness.
+  const surfaceTint = useMemo(() => new THREE.Color(moon.color).multiplyScalar(1.7), [moon.color]);
   const TEX = useTextures();
   const tex = useLoader(THREE.TextureLoader, isEarthMoon ? TEX.moon : TEX.mercury);
 
@@ -473,8 +483,13 @@ export function Satellite({ moon, parentName, parentPos, jd, selected, onSelect,
         <sphereGeometry args={[moon.radius, 24, 24]} />
         {isEarthMoon ? (
           <meshStandardMaterial map={tex} roughness={0.9} depthWrite={true} />
-        ) : (
+        ) : hasHaze ? (
           <meshStandardMaterial color={moon.color} roughness={0.9} depthWrite={true} />
+        ) : (
+          // No map of its own is bundled, so it wears the generic cratered
+          // surface the dwarf planets use, tinted its own color. Flat color
+          // read as an unfinished placeholder next to the textured planets.
+          <meshStandardMaterial map={tex} color={surfaceTint} roughness={0.9} depthWrite={true} />
         )}
       </mesh>
       {/* Always-visible label */}

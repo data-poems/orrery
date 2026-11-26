@@ -37,7 +37,7 @@ import { OBSERVATORY_MODE } from './lib/mode';
 import { IS_ANDROID } from './lib/platform';
 import { PREFERS_REDUCED_MOTION } from './lib/motion';
 import { claimFirstVisitCinematic } from './lib/launchExperience';
-import { CINEMATIC_PHASES } from './lib/cinematicPath';
+import { CINEMATIC_PHASES, portraitFit } from './lib/cinematicPath';
 import { restoreHudControlFocus } from './lib/hudFocus';
 import { createReviewPromptCoordinator } from './lib/reviewPrompt';
 import { useImmersiveVrSupported } from './lib/xr';
@@ -148,12 +148,33 @@ function getTodayNeoCacheKey() {
   return `neo-${new Date().toISOString().split('T')[0]}`;
 }
 
+/**
+ * Today's list, kept on the device for the day so the feed is asked at most
+ * once a day per browser. It used to be kept per session, and the shared NASA
+ * demo key answers only 30 requests an hour per network address.
+ */
 function readNeoCache(cacheKey: string): NEO[] | null {
+  for (const store of [() => localStorage, () => sessionStorage]) {
+    try {
+      const cached = store().getItem(cacheKey);
+      if (cached) return JSON.parse(cached) as NEO[];
+    } catch {
+      // Storage unavailable or the entry is damaged: try the next, then the feed.
+    }
+  }
+  return null;
+}
+
+function writeNeoCache(cacheKey: string, list: NEO[]): void {
   try {
-    const cached = sessionStorage.getItem(cacheKey);
-    return cached ? JSON.parse(cached) as NEO[] : null;
+    // Yesterday's lists are of no use; drop them before adding today's.
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && /^neo-\d{4}-\d{2}-\d{2}$/.test(key) && key !== cacheKey) localStorage.removeItem(key);
+    }
+    localStorage.setItem(cacheKey, JSON.stringify(list));
   } catch {
-    return null;
+    // Private browsing or a full store: the list still shows for this visit.
   }
 }
 
@@ -187,7 +208,13 @@ function OrreryInner() {
   const neoCacheKey = useMemo(() => getTodayNeoCacheKey(), []);
   const initialNeoCache = useMemo(() => readNeoCache(neoCacheKey), [neoCacheKey]);
   const [neos, setNeos] = useState<NEO[]>(() => initialNeoCache ?? []);
-  const [neoStatus, setNeoStatus] = useState<'loading' | 'loaded' | 'error'>(() => initialNeoCache ? 'loaded' : 'loading');
+  const [neoStatus, setNeoStatus] = useState<'loading' | 'loaded' | 'error' | 'busy'>(() => initialNeoCache ? 'loaded' : 'loading');
+  // The feed is asked for when the layer is first turned on, not at launch.
+  // Both hold a day's cache key: the day being requested, and the day whose
+  // list is on screen. The day is read when the layer is shown, so a page left
+  // open past midnight UTC asks for the new day instead of the one it started in.
+  const neoRequested = useRef<string | null>(null);
+  const neoLoaded = useRef<string | null>(initialNeoCache ? neoCacheKey : null);
   const [selNeo, setSelNeo] = useState<NEO | null>(null);
   // Cinematic mode is the default — start bare, reveal layers progressively.
   // Observatory mode skips the cinematic and anchors the camera at Earth's heliocentric position
@@ -264,7 +291,34 @@ function OrreryInner() {
   const [cinematic, setCinematic] = useState(launchStartsCinematic);
   const [navStack, setNavStack] = useState<string[]>(['Solar System']);
   const [selMoonIdx, setSelMoonIdx] = useState<number | null>(null);
+  // Distance of the camera from the Sun in landscape-equivalent units: on a
+  // narrow screen every overview stands `viewFit` times further back, and the
+  // scale ladder, the layer fades and the area label should not notice.
   const [cameraDistance, setCameraDistance] = useState(50);
+  // Width over height of the scene. One value for the camera's framing and for
+  // the distance scale here, so the two cannot disagree after a rotation. It
+  // only follows changes of more than an eighth: a phone's address bar sliding
+  // away changes the height by a few percent, and re-framing on that would
+  // yank the camera back from wherever the person had moved it.
+  const [viewAspect, setViewAspect] = useState(() => window.innerWidth / Math.max(1, window.innerHeight));
+  const canvasHeight = duoLayout?.kind === 'tabletop' ? duoLayout.foldTop : null;
+  useEffect(() => {
+    const measure = () => {
+      const next = window.innerWidth / Math.max(1, canvasHeight ?? window.innerHeight);
+      setViewAspect(prev => (Math.abs(next - prev) / prev > 0.125 ? next : prev));
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [canvasHeight]);
+  const viewFit = portraitFit(viewAspect);
+  const viewFitRef = useRef(viewFit);
+  useEffect(() => {
+    viewFitRef.current = viewFit;
+  }, [viewFit]);
+  const handleCameraDistance = useCallback((d: number) => {
+    setCameraDistance(d / viewFitRef.current);
+  }, []);
   const [camIdx, setCamIdx] = useState(() =>
     launchStartsCinematic ? camIndex('Inner') : camIndex('System'));
   const [panelOpen, setPanelOpen] = useState(false);
@@ -608,15 +662,23 @@ function OrreryInner() {
     return () => clearInterval(id);
   }, [playing, speed]);
 
-  // Fetch today's near-Earth objects from NASA NeoWs (with sessionStorage caching)
+  // Fetch today's near-Earth objects from NASA NeoWs the first time the layer
+  // is shown, unless today's list is already on the device. A failed request
+  // is tried again the next time the layer is turned on.
   useEffect(() => {
-    if (initialNeoCache) return;
+    if (!showNeo) return;
+    const key = getTodayNeoCacheKey();
+    if (neoLoaded.current === key || neoRequested.current === key) return;
+    neoRequested.current = key;
 
-    const day = neoCacheKey.slice(4);
+    const day = key.slice(4);
     let cancelled = false;
+    let settled = false;
+    let rateLimited = false;
 
     fetch(neoFeedUrlForDay(day))
       .then(r => {
+        rateLimited = r.status === 429;
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
@@ -642,19 +704,26 @@ function OrreryInner() {
           });
         });
         list.sort((a, b) => a.missLunar - b.missLunar);
+        settled = true;
+        neoLoaded.current = key;
         setNeos(list);
         setNeoStatus('loaded');
-        try { sessionStorage.setItem(neoCacheKey, JSON.stringify(list)); } catch { /* ignore */ }
+        writeNeoCache(key, list);
       })
       .catch(() => {
         if (cancelled) return;
-        setNeoStatus('error');
+        settled = true;
+        // Ask again the next time the layer is turned on.
+        neoRequested.current = null;
+        setNeoStatus(rateLimited ? 'busy' : 'error');
       });
 
     return () => {
+      // The layer was turned off before the answer came: ask again next time.
+      if (!settled) neoRequested.current = null;
       cancelled = true;
     };
-  }, [initialNeoCache, neoCacheKey]);
+  }, [showNeo]);
 
   const handleNeoSelect = useCallback((neo: NEO | null) => {
     if (neo === null) {
@@ -1332,7 +1401,8 @@ function OrreryInner() {
       onCinematicDone={finishCinematicTour}
       onMoonSelect={handleMoonSelect}
       selMoonIdx={selMoonIdx}
-      onCameraDistance={setCameraDistance}
+      onCameraDistance={handleCameraDistance}
+      viewAspect={viewAspect}
       cameraDistance={cameraDistance}
       camPreset={camPreset}
       showBodyGlyphs={camPreset?.label === 'Stargazer'}

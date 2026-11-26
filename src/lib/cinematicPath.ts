@@ -42,12 +42,36 @@ export function sunlitAzimuth(body: Vec3): number {
   return Math.atan2(-body[2], -body[0]) + SUNLIT_PHASE_ANGLE;
 }
 
-/** How far the camera sits from a focused planet: clear of its outermost moon. */
-export function planetFocusDistance(planetIdx: number): number {
+/** tan of half the scene camera's 55 degree vertical field of view. */
+const TAN_HALF_FOV = Math.tan((55 * Math.PI) / 360);
+
+/**
+ * How much further back the camera stands on a narrow screen so an overview
+ * shows the same width of the system as it does on a wide one. Presets and the
+ * tour were framed for landscape; in portrait the System view stopped at
+ * Saturn and the Outer view cut off Neptune. 1 on anything wider than 5:4.
+ */
+export function portraitFit(aspect: number): number {
+  if (!(aspect > 0)) return 1;
+  return Math.max(1, Math.min(3, 1.25 / aspect));
+}
+
+/**
+ * How far the camera sits from a focused planet: clear of its outermost moon.
+ * On a narrow screen that also means far enough back that the moons' orbits
+ * fit across it, but never so far that the planet is under a fifth of the
+ * screen's width.
+ */
+export function planetFocusDistance(planetIdx: number, aspect: number = Infinity): number {
   const planet = ALL_BODIES[planetIdx];
   const moons = getMoonsForPlanet(planetIdx);
   const maxMoonA = moons.length > 0 ? Math.max(...moons.map(m => m.a)) : 0;
-  return Math.max(planet.radius * 8, maxMoonA * 2.5);
+  const base = Math.max(planet.radius * 8, maxMoonA * 2.5);
+  if (!(aspect < 1) || maxMoonA === 0) return base;
+  const halfWidthPerUnit = TAN_HALF_FOV * aspect;
+  const fitsMoons = (maxMoonA * 1.35) / halfWidthPerUnit;
+  const keepsPlanet = planet.radius / (0.2 * halfWidthPerUnit);
+  return Math.max(base, Math.min(fitsMoons, keepsPlanet));
 }
 
 export function orbitOffset(dist: number, az: number, el: number): Vec3 {
@@ -119,6 +143,8 @@ export function cinematicPhaseAt(t: number): number {
 const KEY_T = [0, 3.6, 6.6, 9.4, 11.4, CINEMATIC_DURATION];
 const START_DIST = 1650;
 const KEY_LOG_DIST_HEAD = [Math.log10(START_DIST), Math.log10(110), Math.log10(34), Math.log10(6), Math.log10(2.7)];
+/** How much of the narrow-screen fit each of those keys takes. */
+const KEY_FIT_SHARE = [1, 1, 1, 0.6, 0.25];
 const EL_T = [0, 6.6, 11.4, CINEMATIC_DURATION];
 const EL_V = [0.571, 0.62, 0.52, FOCUS_ELEVATION];
 /** Radians the camera circles through over the whole flight (about 80 degrees). */
@@ -174,17 +200,36 @@ export function cinematicLandingAzimuth(earth: Vec3): number {
   return sunlitAzimuth(earth);
 }
 
+/** How the tour is framed for a screen: see portraitFit and planetFocusDistance. */
+export interface CinematicView {
+  /** Multiplies every distance of the flight except the landing. */
+  fit: number;
+  /** Camera distance from Earth at the landing. */
+  landingDistance: number;
+}
+
+const WIDE_VIEW: CinematicView = { fit: 1, landingDistance: planetFocusDistance(EARTH) };
+
+/** The framing for a canvas of this aspect ratio (width over height). */
+export function cinematicViewFor(aspect: number): CinematicView {
+  return { fit: portraitFit(aspect), landingDistance: planetFocusDistance(EARTH, aspect) };
+}
+
 /**
  * Camera pose `t` seconds into the tour. `earth` is Earth's current position;
  * the last stretch of the flight slides the look-at point from the Sun onto it
  * and ends at the interactive Earth focus distance and elevation, so the camera
  * controller can keep that pose when the tour hands over.
  */
-export function cinematicPose(t: number, earth: Vec3): OrbitPose {
+export function cinematicPose(t: number, earth: Vec3, view: CinematicView = WIDE_VIEW): OrbitPose {
   const tc = Math.max(0, Math.min(CINEMATIC_DURATION, t));
+  // The overview keys stand back by the full fit. The last two, flown while
+  // the view is already turning toward Earth, take less of it, so the final
+  // dive to the close-up is no faster on a phone than on a desktop.
+  const fitLog = Math.log10(view.fit);
   const logDist = monotoneSpline(
     KEY_T,
-    [...KEY_LOG_DIST_HEAD, Math.log10(planetFocusDistance(EARTH))],
+    [...KEY_LOG_DIST_HEAD.map((v, i) => v + fitLog * KEY_FIT_SHARE[i]), Math.log10(view.landingDistance)],
     tc,
   );
   const az = cinematicLandingAzimuth(earth) - SWEEP * (1 - smoothstep(tc / CINEMATIC_DURATION));

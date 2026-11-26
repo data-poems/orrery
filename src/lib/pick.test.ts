@@ -4,7 +4,7 @@ import type { ThreeEvent } from '@react-three/fiber';
 import {
   PICK_BODY, PICK_PARENT, PICK_RADIUS, PICK_RANK, PICK_SELECT,
   RANK_DWARF, RANK_MOON, RANK_PLANET, RANK_SUN,
-  UNRESOLVED_PX_MOUSE, UNRESOLVED_PX_TOUCH,
+  RANK_REACH_PX_MOUSE, RANK_REACH_PX_TOUCH,
   choosePick, labelCap, resolvePick, selectPicked,
 } from './pick';
 
@@ -69,20 +69,49 @@ describe('resolvePick', () => {
     expect(picked(tap(eye, [-0.72, 0, 0], [venus, sun, mercury]))).toBe('Sun');
   });
 
-  it('a finger needs more room than a mouse to tell a planet from the Sun', () => {
+  it('a finger near the Sun is the Sun; a mouse right on a planet beside it is the planet', () => {
     // System scale on a phone: Earth is about 11 px from the Sun.
     const earth = body('Earth', 0.68, 0, 0, { radius: 0.06 });
     const eye: [number, number, number] = [0, 0, 50];
-    const apart = 0.68 / unitsPerPx(50);
-    expect(apart).toBeGreaterThan(UNRESOLVED_PX_MOUSE);
-    expect(apart).toBeLessThan(UNRESOLVED_PX_TOUCH);
-    const at: [number, number, number] = [0.45, 0, 0];
+    const px = unitsPerPx(50);
+    // 9 px from the Sun, 2 px from Earth.
+    const at: [number, number, number] = [9 * px, 0, 0];
+    expect(9).toBeGreaterThan(RANK_REACH_PX_MOUSE);
+    expect(9).toBeLessThan(RANK_REACH_PX_TOUCH);
     const mouse = tap(eye, at, [earth, sun]);
     (mouse.nativeEvent as unknown as { pointerType: string }).pointerType = 'mouse';
     const finger = tap(eye, at, [earth, sun]);
     (finger.nativeEvent as unknown as { pointerType: string }).pointerType = 'touch';
     expect(picked(mouse)).toBe('Earth');
     expect(picked(finger)).toBe('Sun');
+  });
+
+  it('a tap anywhere on a blob of bodies a few pixels across is the most important one', () => {
+    // System scale on a phone standing back: Earth is 4 px from the Sun.
+    const earth = body('Earth', 0.68, 0, 0, { radius: 0.06 });
+    const eye: [number, number, number] = [0, 0, 135];
+    const px = unitsPerPx(135);
+    expect(0.68 / px).toBeLessThan(6);
+    // 11 px from the Sun, on the far side of Earth: nearer Earth, out of the
+    // Sun's reach for a finger, and still the Sun.
+    const finger = tap(eye, [11 * px, 0, 0], [earth, sun]);
+    (finger.nativeEvent as unknown as { pointerType: string }).pointerType = 'touch';
+    expect(picked(finger)).toBe('Sun');
+  });
+
+  it('a planet 14 px from the Sun is still that planet when the tap lands on it', () => {
+    // Outer scale on a phone standing back for the narrow screen.
+    const jupiter = body('Jupiter', 5.2, 0, 0, { radius: 0.16 });
+    const eye: [number, number, number] = [0, 0, 292];
+    const apart = 5.2 / unitsPerPx(292);
+    expect(apart).toBeGreaterThan(RANK_REACH_PX_TOUCH);
+    expect(apart).toBeLessThan(18);
+    const onJupiter = tap(eye, [5.2, 0, 0], [sun, jupiter]);
+    (onJupiter.nativeEvent as unknown as { pointerType: string }).pointerType = 'touch';
+    expect(picked(onJupiter)).toBe('Jupiter');
+    const nearSun = tap(eye, [1.5, 0, 0], [sun, jupiter]);
+    (nearSun.nativeEvent as unknown as { pointerType: string }).pointerType = 'touch';
+    expect(picked(nearSun)).toBe('Sun');
   });
 
   it('two planets of equal standing: the one nearest the tap', () => {

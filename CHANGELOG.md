@@ -6,6 +6,41 @@ All notable changes to Orrery are documented here.
 
 ### Fixed
 
+- On a narrow screen every overview stands further back, so it shows the same
+  width of the system as on a wide one. On a phone the System view stopped at
+  Saturn and the Outer view cut off Neptune. The tour does the same, the +/-
+  ladder, layer fades and the label at the top follow, and nothing changes on
+  screens wider than 5:4.
+- A planet's close-up on a narrow screen stands far enough back that its
+  moons' orbits fit across it, without letting the planet drop under a fifth
+  of the screen's width. The Moon's name used to clip at the edge of Earth's
+  close-up on a phone.
+- Moons other than Earth's have a surface. No map of their own is bundled, so
+  they wear the generic cratered surface the dwarf planets use, tinted their
+  own color, in place of a flat colored ball. Titan stays smooth under its
+  haze.
+- Today's near-Earth objects are requested when the Near-Earth objects layer
+  is first turned on, not at launch, and the list is kept on the device for
+  the rest of the day. The shared NASA demo key answers 30 requests an hour
+  per network address, and every launch used to spend one. When the feed is
+  over its limit the message says so, and turning the layer off and on asks
+  again.
+- A tap within 8 pixels (mouse) or 10 (finger) of the Sun or a planet is a tap
+  on it, whatever smaller body is nearer still, and a body within 6 pixels of
+  a more important one counts as part of it. The earlier rule compared only
+  the distance between the two bodies, which on a phone standing further back
+  made Jupiter unreachable at the Outer scale.
+- Rotating the device re-frames the current view for the new shape. A small
+  change of height, such as a phone's address bar sliding away, does not.
+
+### Changed
+
+- The privacy page is dated November 25, 2026: NASA NeoWs is contacted when
+  the Near-Earth objects layer is turned on (app versions 1.3.2 and earlier
+  still ask at launch), and today's list is kept in localStorage.
+
+### Fixed
+
 - The opening tour is one continuous flight. The camera used to lunge at four
   fixed viewpoints, coast to a stop at each, wait for a timer and lunge again,
   and its clock started while the page was still loading, so the first move
@@ -32,8 +67,8 @@ All notable changes to Orrery are documented here.
   one nearest the camera used to win, so a click on the Sun selected Mercury
   and a click on Mercury from above selected the Sun. The choice is now made
   on screen: the body whose center is nearest the tap, and when two are too
-  close to tell apart (under 10 pixels with a mouse, 18 with a finger) the
-  more important one, so a finger on the Sun is the Sun at every scale. The Sun has the same 18-pixel minimum
+  close to tell apart the more important one, so a finger on the Sun is the
+  Sun at every scale. The Sun has the same 18-pixel minimum
   target as the planets.
 - From far away a tap on a planet selects the planet, not one of its moons. A
   moon can be picked once its orbit is at least 24 pixels wide on screen;

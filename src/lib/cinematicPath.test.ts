@@ -10,9 +10,11 @@ import {
   cinematicLandingAzimuth,
   cinematicPhaseAt,
   cinematicPose,
+  cinematicViewFor,
   monotoneSpline,
   orbitOffset,
   planetFocusDistance,
+  portraitFit,
   poseToCamera,
   sunlitAzimuth,
   type Vec3,
@@ -114,6 +116,58 @@ describe('cinematic flight path', () => {
     expect(cinematicPhaseAt(0)).toBe(0);
     expect(cinematicPhaseAt(CINEMATIC_DURATION)).toBe(CINEMATIC_PHASES.length - 1);
     CINEMATIC_PHASES.forEach((p, i) => expect(cinematicPhaseAt(p.still)).toBe(i));
+  });
+});
+
+describe('narrow screens', () => {
+  const PHONE = 390 / 844;
+  const TAN = Math.tan((55 * Math.PI) / 360);
+
+  it('portraitFit is 1 on wide screens and grows as the screen narrows, up to 3', () => {
+    expect(portraitFit(16 / 10)).toBe(1);
+    expect(portraitFit(1.25)).toBe(1);
+    expect(portraitFit(1)).toBeCloseTo(1.25, 9);
+    expect(portraitFit(PHONE)).toBeCloseTo(1.25 / PHONE, 9);
+    expect(portraitFit(0.2)).toBe(3);
+    expect(portraitFit(0)).toBe(1);
+  });
+
+  it('the Outer view fits Neptune\'s orbit across a phone', () => {
+    // Outer preset: 108 units out. Half the screen's width, in scene units, at the Sun.
+    const halfWidth = (fit: number) => 108 * fit * TAN * PHONE;
+    expect(halfWidth(1)).toBeLessThan(30.07);
+    expect(halfWidth(portraitFit(PHONE))).toBeGreaterThan(30.07 * 1.3);
+  });
+
+  it('a planet\'s close-up fits its moons across a phone without shrinking the planet away', () => {
+    for (let idx = 0; idx < 8; idx++) {
+      const wide = planetFocusDistance(idx);
+      const narrow = planetFocusDistance(idx, PHONE);
+      expect(planetFocusDistance(idx, 1.6)).toBe(wide);
+      expect(narrow).toBeGreaterThanOrEqual(wide);
+      // The planet stays at least a fifth of the screen's width across.
+      const halfWidth = narrow * TAN * PHONE;
+      const radius = [0.035, 0.055, 0.06, 0.045, 0.16, 0.13, 0.09, 0.085][idx];
+      if (narrow > wide) expect(radius / halfWidth).toBeGreaterThanOrEqual(0.2 - 1e-9);
+    }
+    // Earth: the Moon's orbit (0.10) fits with room for its name.
+    expect(planetFocusDistance(2, PHONE) * TAN * PHONE).toBeGreaterThan(0.10 * 1.3);
+  });
+
+  it('the tour stands further back on a phone and still lands at the phone close-up', () => {
+    const view = cinematicViewFor(PHONE);
+    expect(view.fit).toBeCloseTo(portraitFit(PHONE), 9);
+    expect(cinematicPose(0, EARTH, view).dist).toBeCloseTo(cinematicPose(0, EARTH).dist * view.fit, 6);
+    expect(cinematicPose(CINEMATIC_DURATION, EARTH, view).dist).toBeCloseTo(planetFocusDistance(2, PHONE), 9);
+    // Still one continuous dive: always inward, never stopped, no rush.
+    let prev = cinematicPose(0.5 - FRAME, EARTH, view).dist;
+    for (let t = 0.5; t <= CINEMATIC_DURATION - 0.5; t += FRAME) {
+      const d = cinematicPose(t, EARTH, view).dist;
+      const rate = (Math.log10(prev) - Math.log10(d)) / FRAME;
+      expect(rate).toBeGreaterThan(0.1);
+      expect(rate).toBeLessThan(0.6);
+      prev = d;
+    }
   });
 });
 

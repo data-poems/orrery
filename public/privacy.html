@@ -13,13 +13,13 @@
 </head>
 <body>
   <h1>Solar Orrery Privacy</h1>
-  <p>Effective November 24, 2026.</p>
+  <p>Effective November 25, 2026.</p>
   <p>Solar Orrery (also shown as Orrery) does not collect, store, or sell personal information. There is no account system and no analytics SDK in the app.</p>
 
   <h2>Network requests</h2>
   <p>The app contacts these public services from your device:</p>
   <ul>
-    <li>NASA NeoWs: today's near-Earth object feed, requested each time the app starts, unless today's list is already cached from earlier in the same session</li>
+    <li>NASA NeoWs: today's near-Earth object feed. On the website, and in app versions after 1.3.2, it is requested the first time you turn on the Near-Earth objects layer on a given day, then kept on your device for the rest of that day. App versions 1.3.2 and earlier request it each time the app starts, unless today's list is already cached from earlier in the same session</li>
     <li>JPL Small-Body Database: asteroid orbital elements, requested when you select a near-Earth object</li>
     <li>NOAA Space Weather Prediction Center: solar wind speed summary, requested each time the app starts</li>
   </ul>
@@ -27,7 +27,7 @@
   <p>The website also loads its typeface from Google Fonts and records page views with GoatCounter at stats.dr.eamer.dev. The iPhone, iPad, and Android apps do neither.</p>
 
   <h2>Local storage</h2>
-  <p>Today's NEO list may be cached in <code>sessionStorage</code> for the current day only. The app may use <code>localStorage</code> for your theme preference, whether the opening cinematic has been handled, and review-prompt eligibility history such as explored destination identifiers, random per-launch identifiers, app versions, and dates. These values remain on your device and are not sent to Luke Steuber.</p>
+  <p>Today's NEO list may be cached in <code>localStorage</code> (<code>sessionStorage</code> in app versions 1.3.2 and earlier) for the current day only. The app may use <code>localStorage</code> for your theme preference, whether the opening cinematic has been handled, and review-prompt eligibility history such as explored destination identifiers, random per-launch identifiers, app versions, and dates. These values remain on your device and are not sent to Luke Steuber.</p>
   <p>On Android, if you have turned on your device's own backup, Android may include these stored values in that backup, which goes to the backup account you chose. The app does not start, read or control that backup.</p>
 
   <h2>Contact</h2>

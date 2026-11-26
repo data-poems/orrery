@@ -30,13 +30,15 @@ export const RANK_MOON = 0;
 /** Furthest the pointer may travel between press and release and still count as a tap. */
 const TAP_SLOP_PX = 8;
 /**
- * Bodies whose centers are closer than this on screen cannot be told apart:
- * with a mouse, 10 pixels; with a finger, the 18-pixel minimum target every
- * body is given. At the System scale on a phone Earth is 11 pixels from the
- * Sun, and a finger 7 pixels off the Sun got Earth.
+ * A tap this close to a more important body's center is a tap on that body,
+ * whatever smaller thing is nearer still: 8 pixels with a mouse, 10 with a
+ * finger. On a phone at the Outer scale Mercury is 3 pixels from the Sun, and
+ * at the System scale Earth is 11; a finger on the Sun got one or the other.
+ * It is measured from the tap, not between the bodies, so Jupiter 12 pixels
+ * from the Sun is still Jupiter when the tap lands on it.
  */
-export const UNRESOLVED_PX_MOUSE = 10;
-export const UNRESOLVED_PX_TOUCH = 18;
+export const RANK_REACH_PX_MOUSE = 8;
+export const RANK_REACH_PX_TOUCH = 10;
 /**
  * Over its planet's disc, a tap means the moon only if it lands on the moon's
  * own dot, give or take this many pixels. Anything looser and a moon one pixel
@@ -67,15 +69,14 @@ export interface PickCandidate {
  * 2. Unless that is a moon and the tap is on its planet's disc and not on the
  *    moon's own dot: a moon's target is much larger than its dot, and a tap
  *    on a small Jupiter kept selecting Europa.
- * 3. Unless a more important body sits too close to it on screen to tell
- *    apart (`unresolvedPx`), in which case that one: on a phone at the Outer
- *    scale Mercury is 3 pixels from the Sun, and a finger on the Sun got
- *    Mercury. A planet and its own moons are left to rule 2.
+ * 3. Unless the tap is within `rankReachPx` of a more important body's center,
+ *    in which case that one (Sun over planet over dwarf planet over moon). A
+ *    planet and its own moons are left to rule 2.
  */
 export function choosePick(
   candidates: PickCandidate[],
   pxPerRadian: number,
-  unresolvedPx: number = UNRESOLVED_PX_MOUSE,
+  rankReachPx: number = RANK_REACH_PX_MOUSE,
 ): PickCandidate | null {
   const hidden = (moon: PickCandidate) => {
     const planet = candidates.find(c => c.name === moon.parent);
@@ -95,9 +96,7 @@ export function choosePick(
   const related = (a: PickCandidate, b: PickCandidate) => a.parent === b.name || b.parent === a.name;
   const anchor = best;
   for (const c of candidates) {
-    if (c === anchor || related(c, anchor)) continue;
-    const apartPx = c.dir.angleTo(anchor.dir) * pxPerRadian;
-    if (apartPx > unresolvedPx) continue;
+    if (c === anchor || related(c, anchor) || c.px > rankReachPx) continue;
     if (c.rank > best.rank || (c.rank === best.rank && c.rank > anchor.rank && c.px < best.px)) best = c;
   }
   return best;
@@ -145,7 +144,7 @@ export function resolvePick(e: ThreeEvent<MouseEvent>): THREE.Object3D {
       distance,
     });
   }
-  const chosen = choosePick(candidates, pxPerRadian, isTouch(e) ? UNRESOLVED_PX_TOUCH : UNRESOLVED_PX_MOUSE);
+  const chosen = choosePick(candidates, pxPerRadian, isTouch(e) ? RANK_REACH_PX_TOUCH : RANK_REACH_PX_MOUSE);
   return chosen ? objects[candidates.indexOf(chosen)] : e.eventObject;
 }
 

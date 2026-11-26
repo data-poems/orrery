@@ -87,18 +87,18 @@ export const ALL_BODIES: PlanetDef[] = [...PLANETS, ...DWARF_PLANETS];
 // ─── Camera presets ──────────────────────────────────────────────────────────
 
 export const CAMS: CamPreset[] = [
-  { key: '1', label: 'Inner',     pos: [0, 3, 4],          tgt: [0, 0, 0] },
-  { key: '2', label: 'System',    pos: [0, 30, 40],        tgt: [0, 0, 0] },
-  { key: '3', label: 'Top',       pos: [0, 45, 0.01],      tgt: [0, 0, 0] },
-  { key: '4', label: 'Ecliptic',  pos: [10, 0.2, 0],       tgt: [0, 0, 0] },
-  { key: '5', label: 'Outer',     pos: [0, 60, 90],        tgt: [0, 0, 0] },
-  { key: '6', label: 'Kuiper',    pos: [0, 120, 180],      tgt: [0, 0, 0] },
+  { key: '1', label: 'Inner',     pos: [0, 3, 4],          tgt: [0, 0, 0], fitWidth: true },
+  { key: '2', label: 'System',    pos: [0, 30, 40],        tgt: [0, 0, 0], fitWidth: true },
+  { key: '3', label: 'Top',       pos: [0, 45, 0.01],      tgt: [0, 0, 0], fitWidth: true },
+  { key: '4', label: 'Ecliptic',  pos: [10, 0.2, 0],       tgt: [0, 0, 0], fitWidth: true },
+  { key: '5', label: 'Outer',     pos: [0, 60, 90],        tgt: [0, 0, 0], fitWidth: true },
+  { key: '6', label: 'Kuiper',    pos: [0, 120, 180],      tgt: [0, 0, 0], fitWidth: true },
   { key: '7', label: 'Screensaver', pos: [4, 2.5, 6],      tgt: [0, 0, 0], follow: 2, autoRotate: true },
   { key: '8', label: 'Sun',       pos: [0.3, 0.15, 0.4],   tgt: [0, 0, 0] },
-  { key: '9', label: 'Belt',      pos: [0, 5, 8],          tgt: [2.7, 0, 0] },
-  { key: '0', label: 'Oort',      pos: [0, 900, 1400],     tgt: [0, 0, 0] },
+  { key: '9', label: 'Belt',      pos: [0, 5, 8],          tgt: [2.7, 0, 0], fitWidth: true },
+  { key: '0', label: 'Oort',      pos: [0, 900, 1400],     tgt: [0, 0, 0], fitWidth: true },
   { key: '-', label: 'Stargazer', pos: [0, 3, 6],         tgt: [0, 0, 0] },
-  { key: '=', label: 'Stellar',   pos: [0, 12000, 18000], tgt: [0, 0, 0] },
+  { key: '=', label: 'Stellar',   pos: [0, 12000, 18000], tgt: [0, 0, 0], fitWidth: true },
   { key: 'e', label: 'Earth Observer', pos: [0.001, 0, 0], tgt: [0, 0, 0], follow: 2, observe: true },
 ];
 

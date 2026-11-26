@@ -406,6 +406,10 @@ export function Satellite({ moon, parentName, parentPos, jd, selected, onSelect,
   const inc = (moon.i || 0) * (Math.PI / 180);
 
   const isEarthMoon = moon.name === 'Moon' && moon.parent === 2;
+  // Titan's surface is hidden under haze: a smooth ball is the true picture.
+  const hasHaze = moon.name === 'Titan';
+  // The surface map is mid-gray; lift the tint so the moon keeps its brightness.
+  const surfaceTint = useMemo(() => new THREE.Color(moon.color).multiplyScalar(1.7), [moon.color]);
   const TEX = useTextures();
   const tex = useLoader(THREE.TextureLoader, isEarthMoon ? TEX.moon : TEX.mercury);
 
@@ -473,8 +477,13 @@ export function Satellite({ moon, parentName, parentPos, jd, selected, onSelect,
         <sphereGeometry args={[moon.radius, 24, 24]} />
         {isEarthMoon ? (
           <meshStandardMaterial map={tex} roughness={0.9} depthWrite={true} />
-        ) : (
+        ) : hasHaze ? (
           <meshStandardMaterial color={moon.color} roughness={0.9} depthWrite={true} />
+        ) : (
+          // No map of its own is bundled, so it wears the generic cratered
+          // surface the dwarf planets use, tinted its own color. Flat color
+          // read as an unfinished placeholder next to the textured planets.
+          <meshStandardMaterial map={tex} color={surfaceTint} roughness={0.9} depthWrite={true} />
         )}
       </mesh>
       {/* Always-visible label */}

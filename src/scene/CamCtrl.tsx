@@ -19,8 +19,10 @@ import {
   cinematicEntrySeconds,
   cinematicPhaseAt,
   cinematicPose,
+  cinematicViewFor,
   orbitOffset,
   planetFocusDistance,
+  portraitFit,
   poseToCamera,
   smoothstep,
   sunlitAzimuth,
@@ -82,7 +84,12 @@ export default function CamCtrl({
   jd,
   pointFocus,
 }: CamCtrlProps) {
-  const { camera, gl } = useThree();
+  const { camera, gl, size } = useThree();
+  // Width over height of the canvas. Read when a move is planned, not as a
+  // dependency: a phone's address bar sliding away changes it by a few percent,
+  // and re-planning then would yank the camera back from wherever it was.
+  const aspectRef = useRef(1.6);
+  aspectRef.current = size.height > 0 ? size.width / size.height : 1.6;
   // During an immersive WebXR session the headset is the sole driver of the
   // camera. Yield to it: stop writing camera.position and disable OrbitControls.
   // Detected via three's own WebXRManager events — no @react-three/xr import, so
@@ -174,7 +181,7 @@ export default function CamCtrl({
     } else {
       // Viewed from its sunlit side, wherever it is in its orbit. The
       // cinematic tour lands on this exact pose (see lib/cinematicPath).
-      const d = planetFocusDistance(focusTarget.planetIdx);
+      const d = planetFocusDistance(focusTarget.planetIdx, aspectRef.current);
       const [ox, oy, oz] = offsetFromAngle(d, sunlitAzimuth(pp), FOCUS_ELEVATION);
       return { pos: [pp[0] + ox, pp[1] + oy, pp[2] + oz] as [number, number, number], look: pp };
     }
@@ -261,8 +268,10 @@ export default function CamCtrl({
         if (ctrl) ctrl.target.copy(tLook.current);
       }
     } else if (camPreset) {
-      tPos.current.set(...camPreset.pos);
+      // An overview stands further back on a narrow screen (see portraitFit).
+      const fit = camPreset.fitWidth ? portraitFit(aspectRef.current) : 1;
       tLook.current.set(...camPreset.tgt);
+      tPos.current.set(...camPreset.pos).sub(tLook.current).multiplyScalar(fit).add(tLook.current);
       phaseRef.current = 'settling';
       const ctrl = ctrlRef.current;
       if (ctrl) ctrl.target.copy(tLook.current);
@@ -352,12 +361,13 @@ export default function CamCtrl({
 
     if (cinematic) {
       const earth = positions.get(2) ?? [1, 0, 0];
+      const view = cinematicViewFor(aspectRef.current);
       let pose: OrbitPose;
       if (!cinematicPlaying) {
         // Still loading: wait on the opening frame, out in deep space.
         tourT.current = 0;
         tourEntry.current = null;
-        pose = cinematicPose(0, earth);
+        pose = cinematicPose(0, earth, view);
       } else {
         if (!tourEntry.current) {
           tourEntry.current = alignAzimuth(
@@ -365,7 +375,7 @@ export default function CamCtrl({
               camera.position.toArray() as [number, number, number],
               ctrl.target.toArray() as [number, number, number],
             ),
-            cinematicPose(0, earth).az,
+            cinematicPose(0, earth, view).az,
           );
         }
         // A long frame (tab switch, GC pause) must not skip the flight ahead.
@@ -378,12 +388,12 @@ export default function CamCtrl({
         }
         if (PREFERS_REDUCED_MOTION) {
           // No flight: one still per phase.
-          pose = cinematicPose(CINEMATIC_PHASES[phaseIdx].still, earth);
+          pose = cinematicPose(CINEMATIC_PHASES[phaseIdx].still, earth, view);
         } else {
           // A replay starts wherever the camera was; swing onto the path.
           pose = blendPose(
             tourEntry.current,
-            cinematicPose(t, earth),
+            cinematicPose(t, earth, view),
             smoothstep(t / cinematicEntrySeconds(tourEntry.current)),
           );
         }

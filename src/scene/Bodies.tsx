@@ -110,8 +110,13 @@ export function Sun({
       {showGlyphOverlay && (
         <BodyGlyph symbolKey="Sol" color="rgba(255,196,108,0.95)" distanceFactor={0.86} size={92} />
       )}
-      <pointLight intensity={cameraDistance > 2 ? 5.8 : 6.4} color="#fff3d2" distance={0} />
-      <pointLight intensity={cameraDistance > 2 ? 2.6 : 3.0} color="#ffb25c" distance={0} />
+      {/* decay 0: sunlight that does not fall off with distance. With the
+          physical inverse-square default Mercury got about 55 times the light
+          Earth does and rendered as a blank white disc, while Neptune was
+          nearly black. Distances here are compressed for viewing, so the
+          lighting is too: every body is lit like Earth. */}
+      <pointLight intensity={cameraDistance > 2 ? 3.3 : 3.6} color="#fff3d2" distance={0} decay={0} />
+      <pointLight intensity={cameraDistance > 2 ? 1.5 : 1.65} color="#ffb25c" distance={0} decay={0} />
       <Html className="scene-label"
         position={[0, 0.25, 0]}
         center

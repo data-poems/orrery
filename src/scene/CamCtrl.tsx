@@ -7,8 +7,24 @@ import { useEffect, useRef, useCallback, useState, type ElementRef } from 'react
 import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
-import { ALL_BODIES } from '../data/planets';
 import { getMoonsForPlanet, moonPositionAt } from '../data/moons';
+import {
+  CINEMATIC_DURATION,
+  CINEMATIC_PHASES,
+  FOCUS_AZIMUTH,
+  FOCUS_ELEVATION,
+  alignAzimuth,
+  blendPose,
+  cameraToPose,
+  cinematicEntrySeconds,
+  cinematicPhaseAt,
+  cinematicPose,
+  orbitOffset,
+  planetFocusDistance,
+  poseToCamera,
+  smoothstep,
+  type OrbitPose,
+} from '../lib/cinematicPath';
 import type { CamPreset, FocusTarget } from '../lib/kepler';
 import { OBSERVATORY_MODE } from '../lib/mode';
 import { PREFERS_REDUCED_MOTION } from '../lib/motion';
@@ -26,9 +42,18 @@ type CamPhase = 'idle' | 'settling' | 'tracking' | 'cinematic' | 'observing' | '
 export interface CamCtrlProps {
   focusTarget: FocusTarget | null;
   positions: Map<number, [number, number, number]>;
+  /** The cinematic tour owns the camera. */
   cinematic: boolean;
+  /** The tour's clock runs. False while the scene is still loading, so the
+   *  flight starts when there is something to see, not behind the title card. */
+  cinematicPlaying: boolean;
+  /** Changes each time the tour is started, including a replay mid-tour. */
+  cinematicRunId: number;
+  /** A new phase of the tour began (index into CINEMATIC_PHASES). */
+  onCinematicPhase?: (phaseIdx: number) => void;
+  /** The flight reached its last frame, on Earth. */
+  onCinematicDone?: () => void;
   camPreset?: CamPreset | null;
-  cinematicRotateSpeed: number;
   onCameraDistance?: (d: number) => void;
   aimAtSphere?: [number, number, number] | null;
   onUserGrabDuringCinematic?: () => void;
@@ -45,8 +70,11 @@ export default function CamCtrl({
   focusTarget,
   positions,
   cinematic,
+  cinematicPlaying,
+  cinematicRunId,
+  onCinematicPhase,
+  onCinematicDone,
   camPreset,
-  cinematicRotateSpeed,
   onCameraDistance,
   aimAtSphere,
   onUserGrabDuringCinematic,
@@ -88,6 +116,27 @@ export default function CamCtrl({
   const diagFramesRef = useRef(0);
   const diagLastTRef = useRef(0);
   const diagFpsRef = useRef(0);
+  // Cinematic tour state: seconds into the flight, the pose the camera had
+  // when the flight began (a replay swings in from there), the phase last
+  // announced, and whether the landing was reported.
+  const tourT = useRef(0);
+  const tourEntry = useRef<OrbitPose | null>(null);
+  const tourPhase = useRef(-1);
+  const tourDone = useRef(false);
+  // A headset owns the camera, so the flight cannot play in a VR session. If
+  // a tour is started there (F on a paired keyboard), skip it at once; left
+  // running, its clock would never advance and it would never end.
+  useEffect(() => {
+    if (inXR && cinematic) onUserGrabDuringCinematic?.();
+  }, [inXR, cinematic, onUserGrabDuringCinematic]);
+  // True from the tour until the first camera target after it is planned.
+  const wasCinematic = useRef(false);
+  useEffect(() => {
+    tourT.current = 0;
+    tourEntry.current = null;
+    tourPhase.current = -1;
+    tourDone.current = false;
+  }, [cinematic, cinematicRunId]);
 
   // Live Julian date, mirrored into a ref so computeFocusOffset can read the
   // current moon position WITHOUT taking jd as a callback dependency — that would
@@ -97,11 +146,10 @@ export default function CamCtrl({
   const jdRef = useRef(jd);
   jdRef.current = jd;
 
-  const offsetFromAngle = useCallback((dist: number, angle: number, elevation: number): [number, number, number] => [
-    dist * Math.cos(elevation) * Math.cos(angle),
-    dist * Math.sin(elevation),
-    dist * Math.cos(elevation) * Math.sin(angle),
-  ], []);
+  const offsetFromAngle = useCallback(
+    (dist: number, angle: number, elevation: number) => orbitOffset(dist, angle, elevation),
+    [],
+  );
 
   const computeFocusOffset = useCallback((pp: [number, number, number]) => {
     if (focusTarget === null) return;
@@ -125,11 +173,9 @@ export default function CamCtrl({
         };
       }
     } else {
-      const planet = ALL_BODIES[focusTarget.planetIdx];
-      const moons = getMoonsForPlanet(focusTarget.planetIdx);
-      const maxMoonA = moons.length > 0 ? Math.max(...moons.map(m => m.a)) : 0;
-      const d = Math.max(planet.radius * 8, maxMoonA * 2.5);
-      const [ox, oy, oz] = offsetFromAngle(d, 0.7, 0.4);
+      // The cinematic tour lands on this exact pose (see lib/cinematicPath).
+      const d = planetFocusDistance(focusTarget.planetIdx);
+      const [ox, oy, oz] = offsetFromAngle(d, FOCUS_AZIMUTH, FOCUS_ELEVATION);
       return { pos: [pp[0] + ox, pp[1] + oy, pp[2] + oz] as [number, number, number], look: pp };
     }
     return undefined;
@@ -165,6 +211,14 @@ export default function CamCtrl({
     lastTargetChange.current = performance.now();
     frameSinceTargetRef.current = 0;
 
+    // The tour writes the camera itself every frame (see useFrame).
+    if (cinematic) {
+      wasCinematic.current = true;
+      return;
+    }
+    const cameFromTour = wasCinematic.current;
+    wasCinematic.current = false;
+
     if (aimAtSphere && planAimAtSphere(aimAtSphere)) {
       observeUserTook.current = false;
       // Snap orientation: camera looks at the celestial-sphere target instantly,
@@ -177,12 +231,29 @@ export default function CamCtrl({
     if (focusTarget !== null) {
       const pp = positions.get(focusTarget.planetIdx);
       if (pp) {
+        const ctrl = ctrlRef.current;
+        const arrivedWithTour = cameFromTour
+          && focusTarget.moonIdx === undefined
+          && ctrl !== null
+          && ctrl.target.distanceTo(newTargetRef.current.set(...pp)) < 0.01
+          && Math.abs(camera.position.distanceTo(ctrl.target) / planetFocusDistance(focusTarget.planetIdx) - 1) < 0.1;
+        if (arrivedWithTour) {
+          // The tour just landed on this body, already framed at the focus
+          // distance from its sunlit side. Keep that view and start tracking;
+          // re-settling to the stock focus angle would swing the camera round
+          // the planet the moment the tour ends.
+          tPos.current.copy(camera.position);
+          tLook.current.set(...pp);
+          prevTrackPos.current.set(...pp);
+          settling.current = false;
+          phaseRef.current = 'tracking';
+          return;
+        }
         const off = computeFocusOffset(pp);
         if (off) {
           tLook.current.set(...off.look);
           tPos.current.set(...off.pos);
           prevTrackPos.current.set(...pp);
-          const ctrl = ctrlRef.current;
           if (ctrl) ctrl.target.copy(tLook.current);
         }
       }
@@ -218,18 +289,21 @@ export default function CamCtrl({
       const ctrl = ctrlRef.current;
       if (ctrl) ctrl.target.copy(tLook.current);
     } else {
-      tPos.current.set(...HOME_POS);
-      tLook.current.set(...HOME_TGT);
-      phaseRef.current = 'settling';
+      // Nothing to fly to: stay put. This is where the camera lands when the
+      // tour is skipped and when a body's card is closed, and both promise to
+      // leave the view where it is.
       const ctrl = ctrlRef.current;
-      if (ctrl) ctrl.target.copy(tLook.current);
+      tPos.current.copy(camera.position);
+      if (ctrl) tLook.current.copy(ctrl.target);
+      settling.current = false;
+      phaseRef.current = 'idle';
     }
     // `positions` is intentionally NOT a dep: it's a new Map every sim tick, so
     // including it re-fired this effect every frame and kept resetting settling.
     // We only need the body's position at the moment the target changes; the
     // per-frame loop tracks the live position thereafter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusTarget, camPreset, cinematic, computeFocusOffset, computePresetFollowOffset, aimAtSphere, planAimAtSphere, pointFocus, offsetFromAngle]);
+  }, [focusTarget, camPreset, cinematic, computeFocusOffset, computePresetFollowOffset, aimAtSphere, planAimAtSphere, pointFocus, offsetFromAngle, camera]);
 
   useEffect(() => {
     const ctrl = ctrlRef.current;
@@ -282,13 +356,11 @@ export default function CamCtrl({
     else phase = 'idle';
     phaseRef.current = phase;
 
-    const smoothBase = cinematic ? 0.6 : observeMode ? 0.5 : 1.0;
+    const smoothBase = observeMode ? 0.5 : 1.0;
 
-    const smoothBoost = cinematic
-      ? (remainDist > 10000 ? 0.35 : remainDist > 1000 ? 0.2 : remainDist > 100 ? 0.1 : 0)
-      : observeMode
-        ? 0
-        : (remainDist > 10000 ? 0.8 : remainDist > 1000 ? 0.5 : remainDist > 100 ? 0.2 : 0);
+    const smoothBoost = observeMode
+      ? 0
+      : (remainDist > 10000 ? 0.8 : remainDist > 1000 ? 0.5 : remainDist > 100 ? 0.2 : 0);
     // Reduced motion: snap to the destination instead of easing toward it.
     const posAlpha = PREFERS_REDUCED_MOTION ? 1 : 1 - Math.exp(-(smoothBase + smoothBoost) * dt);
     // Look-at converges ~5x faster than position so the camera always faces
@@ -300,21 +372,53 @@ export default function CamCtrl({
     const dampingWhileSettling = settling.current || cinematic || (observeMode && !observeUserTook.current);
     ctrl.dampingFactor = dampingWhileSettling ? 0.04 : 0.08;
 
-    if (phase === 'cinematic' || cinematic) {
-      if (trackIdx !== null) {
-        const pp = positions.get(trackIdx);
-        if (pp) {
-          const off = focusTarget !== null ? computeFocusOffset(pp) : camPreset ? computePresetFollowOffset(pp, camPreset) : null;
-          if (off) {
-            tPos.current.set(...off.pos);
-            tLook.current.set(...off.look);
-          } else {
-            tLook.current.set(...pp);
-          }
+    if (cinematic) {
+      const earth = positions.get(2) ?? [1, 0, 0];
+      let pose: OrbitPose;
+      if (!cinematicPlaying) {
+        // Still loading: wait on the opening frame, out in deep space.
+        tourT.current = 0;
+        tourEntry.current = null;
+        pose = cinematicPose(0, earth);
+      } else {
+        if (!tourEntry.current) {
+          tourEntry.current = alignAzimuth(
+            cameraToPose(
+              camera.position.toArray() as [number, number, number],
+              ctrl.target.toArray() as [number, number, number],
+            ),
+            cinematicPose(0, earth).az,
+          );
+        }
+        // A long frame (tab switch, GC pause) must not skip the flight ahead.
+        tourT.current = Math.min(CINEMATIC_DURATION, tourT.current + Math.min(dt, 0.1));
+        const t = tourT.current;
+        const phaseIdx = cinematicPhaseAt(t);
+        if (phaseIdx !== tourPhase.current) {
+          tourPhase.current = phaseIdx;
+          onCinematicPhase?.(phaseIdx);
+        }
+        if (PREFERS_REDUCED_MOTION) {
+          // No flight: one still per phase.
+          pose = cinematicPose(CINEMATIC_PHASES[phaseIdx].still, earth);
+        } else {
+          // A replay starts wherever the camera was; swing onto the path.
+          pose = blendPose(
+            tourEntry.current,
+            cinematicPose(t, earth),
+            smoothstep(t / cinematicEntrySeconds(tourEntry.current)),
+          );
+        }
+        if (t >= CINEMATIC_DURATION && !tourDone.current) {
+          tourDone.current = true;
+          onCinematicDone?.();
         }
       }
-      camera.position.lerp(tPos.current, posAlpha);
-      ctrl.target.lerp(tLook.current, lookAlpha);
+      const { pos, look } = poseToCamera(pose);
+      camera.position.set(...pos);
+      ctrl.target.set(...look);
+      tPos.current.copy(camera.position);
+      tLook.current.copy(ctrl.target);
     } else if (trackIdx !== null) {
       const pp = positions.get(trackIdx);
       if (pp) {
@@ -394,8 +498,8 @@ export default function CamCtrl({
       dampingFactor={0.08}
       minDistance={0.05}
       maxDistance={200000}
-      autoRotate={!inXR && !PREFERS_REDUCED_MOTION && (cinematic || camPreset?.autoRotate || false)}
-      autoRotateSpeed={cinematic ? cinematicRotateSpeed * 0.78 : camPreset?.autoRotate ? 0.1 : 0}
+      autoRotate={!inXR && !PREFERS_REDUCED_MOTION && !cinematic && (camPreset?.autoRotate || false)}
+      autoRotateSpeed={camPreset?.autoRotate ? 0.1 : 0}
       rotateSpeed={OBSERVATORY_MODE ? -1 : 1}
     />
   );

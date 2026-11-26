@@ -4,6 +4,30 @@ All notable changes to Orrery are documented here.
 
 ## Unreleased
 
+### Fixed
+
+- The opening tour is one continuous flight. The camera used to lunge at four
+  fixed viewpoints, coast to a stop at each, wait for a timer and lunge again,
+  and its clock started while the page was still loading, so the first move
+  happened behind the title card. Now it spirals in from deep space to Earth
+  in 15 seconds without stopping, circling about 80 degrees on the way, and
+  starts when the scene is ready. The titles change when the camera reaches
+  each region, and fade instead of swapping.
+- The tour lands on Earth's sunlit side wherever Earth is in its orbit, passes
+  beside the Sun instead of over it, and the view no longer shifts when the
+  tour hands over.
+- Skipping the tour leaves the view where it is. A tap used to send the camera
+  to the Sun and a key press to Earth.
+- One Skip tour button replaces the Exit button and the separate "tap to
+  explore" line, and neither it nor the tour title shows over the loading
+  card any more. Tapping anywhere still skips.
+- Mercury is no longer a blank white disc. The Sun's light fell off with the
+  square of distance, which gave Mercury about 55 times Earth's light and left
+  Neptune nearly black. Every body is now lit like Earth.
+- Closing a planet's card leaves the camera where it is, as its Close button
+  says. It used to drift back out to the whole system.
+- Replaying the tour pulls back from wherever the view was instead of cutting.
+
 ### Removed
 
 - The Satellites layer, with its `I` shortcut and info card. It did not show

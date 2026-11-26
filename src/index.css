@@ -58,6 +58,18 @@ a:focus-visible,
   outline-offset: 2px;
 }
 
+/* The tour's Skip button takes focus as soon as it appears, so a keyboard or
+   switch user can leave with one press. Browsers draw the focus ring for that
+   scripted focus too, and the accent-colored ring read as an alert on an
+   otherwise empty screen. Focus brightens the button's own border instead. */
+.orrery-tour-skip {
+  border: 1px solid rgba(255, 255, 255, 0.24);
+}
+.orrery-tour-skip:focus-visible {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
 /* Screen reader only */
 .sr-only {
   position: absolute;

@@ -34,7 +34,7 @@ From Earth to the Oort Cloud. Interactive, 41,000 stars (5,000 on phones), 88 co
 ### Features
 
 - WebXR immersive mode: an **Enter VR** button appears on any WebXR headset and drops you inside the system — Apple Vision Pro (Safari), Meta Quest, Pico, and PCVR — with motion controllers, hand tracking, or pinch-to-select, whichever the headset reports
-- First-visit cinematic tour from deep space to Earth, with an explicit Replay Cinematic Tour action in Controls
+- First-visit cinematic tour: one continuous 15-second flight from deep space to Earth, with a Skip tour button and an explicit Replay Cinematic Tour action in Controls
 - Stargazer mode with immersive constellation + starfield emphasis
 - Deep Space layer (Oort Cloud, spacecraft, nearby star markers, galaxy markers) can be toggled independently
 - Click any planet to zoom in; click Sol or any moon to drill down

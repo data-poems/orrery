@@ -37,7 +37,11 @@ All notable changes to Orrery are documented here.
 
 - Version 1.3.3, shared native build 789: the first app build with the
   opening tour, picking, narrow-screen and near-Earth feed changes listed
-  under Fixed below. Android first; no iOS 1.3.3 build has been made.
+  under Fixed below. Android 1.3.3 (789) was released November 26, 2026: GitHub release v1.3.3, the
+  direct download and the hosted F-Droid repository. iOS 1.3.3 (789) went to TestFlight
+  the same day (internal group); it has not been sent to App Review. The Android build
+  passed a one-hour run on a Fire HD 8 (memory steady near 550 MB); it has no Amazon
+  listing.
 - The privacy page is dated November 25, 2026: NASA NeoWs is contacted when
   the Near-Earth objects layer is turned on (app versions 1.3.2 and earlier
   still ask at launch), and today's list is kept in localStorage.
